@@ -13,11 +13,12 @@
 </head>
 <body>
 <div class="container">
+<h2>{% trans "Confirm action:" %}</h2>
 <div>
 	<form method="post">
-		<p><i class="fa fa-warning"></i> {% trans "Are you sure you want to delete &quot;{{competition.name}}&quot; and all it's data?"%}</p>
+		<p><i class="fa fa-warning"></i> {% blocktrans with cname=competition.name %}Are you sure you want to delete &quot;{{cname}}&quot; and all it's data?{% endblocktrans %}</p>
 		{% csrf_token %}
-        <button type="submit" class="btn">{% trans "Yes" %}</button>
+        <button type="submit" class="btn btn-danger"><i class="fa fa-trash-o" ></i> {% trans "Yes" %}</button> <a class="btn btn-default" href="{% url 'seuranta.views.dashboard' %}"><i class="fa fa-times" ></i> {% trans "Cancel" %}</a>
 	</form>
 </div>
 </div>

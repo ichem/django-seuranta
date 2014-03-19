@@ -3,7 +3,7 @@
 <head>
     <title>{{ competition.name }}</title>
     <link rel="shortcut icon" href="{{STATIC_URL}}icons/favicon.ico" type="image/x-icon" />
-    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
     <style>
@@ -176,7 +176,7 @@
                 is_completed=false,
                 PLAYER_DELAY=30*1e3,
                 PLAY_RATES = [0, 1, 2, 5, 10, 15, 30, 60, 100],
-                clock = new Clock();
+                clock = new Clock(),
                 time_displayed = clock.now()-PLAYER_DELAY, //30 seconds delay
                 play_rate = 1,
                 prev_display_time=null,
@@ -254,10 +254,8 @@
 
             if(is_started){
                 map = new SmallWorld.Map("main", race_info.map_dataURI, race_info.calibration_points, "", "", function(){
-
+                    whileUncompleteFunction();
                 });
-
-                whileUncompleteFunction();
 
                 (function refreshDisplay(){
                     var now = +new Date();
@@ -291,7 +289,7 @@
                     });
 
                     $.each(competitors, function(i, runner){
-                        if(runner.is_shown && runner.positions.getPositionsCount() > 0){
+                        if(map && runner.is_shown && runner.positions.getPositionsCount() > 0){
                             var position = runner.positions.getByTime(time_displayed);
                             var latlon = new LatLon(position.coords.latitude, position.coords.longitude);
                             if(!runner.marker){
@@ -317,7 +315,7 @@
                             runner.marker.show();
                             runner.polyline.show();
 
-                        }else if(!runner.is_shown){
+                        }else if(map && !runner.is_shown){
                             runner.marker.hide();
                             runner.polyline.hide();
                         }
@@ -326,6 +324,7 @@
                     prev_display_time = now;
                     setTimeout(refreshDisplay, 50-(new Date()-now))
                 })();
+
                 $("#controls")
                 .css({
                     height:$(document).height()+"px"
@@ -336,7 +335,12 @@
                     "overflow-x":"hidden",
                     "overflow-y":"scroll"
                 })
-
+                $("#main")
+                .css({
+                    height:$(document).height()+"px",
+                    width:$(document).width()-$("#controls").width()+"px",
+                    left:$("#controls").width()+"px"
+                })
                 $(window).resize(function(){
                     $("#controls")
                     .css({
@@ -346,15 +350,25 @@
                     .css({
                         height:($(document).height() - ($("#main_control").height()+$("#timeline_bar").height()))+"px",
                     })
+                    $("#main")
+                    .css({
+                        height:$(document).height()+"px",
+                        width:$(document).width()-$("#controls").width()+"px",
+                        left:$("#controls").width()+"px"
+                    })
                 })
 
                 $("#minus_button").on("click", function(e){
                     e.preventDefault();
-                    map.zoom_out();
+                    if(map){
+                        map.zoom_out();
+                    }
                 });
                 $("#plus_button").on("click", function(e){
                     e.preventDefault();
-                    map.zoom_in();
+                    if(map){
+                        map.zoom_in();
+                    }
                 });
 
                 $("#slower_button").on("click", function(e){

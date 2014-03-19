@@ -15,6 +15,14 @@ setup(
     author_email='rphl@rphl.net',
     url='http://github.com/rphlo/django-seuranta',
     packages=find_packages(),
+    zip_safe=False,
+    package_data={
+        'seuranta': [
+            'templates/seuranta/*.html',
+            'static/seuranta/js/*.js',
+            'static/seuranta/admin/js/*.js',
+        ],
+    },
     license="MIT License",
     classifiers=[
       'Development Status :: Beta',

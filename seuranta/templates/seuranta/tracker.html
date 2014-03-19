@@ -232,26 +232,37 @@ $(window).load(function(){
 				break;
 		}
 	}
-
+	
 	$("#gps_switch").on(
 	    'click',
 	    function (e) {
     	    e.preventDefault();
     	    if(screen_locked){return;}
     		if (!gps_switched_on) {
-    			geoWatchId = setInterval(function() {
-    				navigator.geolocation.getCurrentPosition(
-    				onPositionUpdate,
-    				onPositionError,
-    				{
-    					enableHighAccuracy:true,
-    					timeout:999,
-    					maximumAge:1
-    				});
-    			}, 1e3);
+    		    geoWatchId = navigator.geolocation.watchPosition(
+    		        onPositionUpdate,
+    		        onPositionError,
+    		        {
+    		            enableHighAccuracy:true, 
+    		            maximumAge: 1
+                    }
+                );
+                
+		        (function positionRequestor(){
+		            navigator.geolocation.getCurrentPosition(
+    				    onPositionUpdate,
+    				    onPositionError,
+    				    {
+    					    enableHighAccuracy:true,
+    					    timeout:999,
+    					    maximumAge:1
+    				    }
+    				);
+                    setTimeout(positionRequestor, 1e3);
+		        })();
     			gps_switched_on = true;
     		} else {
-    			clearInterval(geoWatchId);
+    			navigator.geolocation.clearWatch(geoWatchId);
     			gps_switched_on = false;
     		}
     		updateUI();

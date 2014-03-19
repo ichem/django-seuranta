@@ -5,6 +5,10 @@ urlpatterns = patterns('seuranta.views',
 		"home",
 	),
 
+	url(r'^dashboard/?$',
+		"dashboard",
+	),
+
 	url(r'^web_tracker/?$',
 		"tracker",
 	),

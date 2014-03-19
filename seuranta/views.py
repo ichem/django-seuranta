@@ -1,13 +1,16 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.views.decorators.http import condition
 from django.views.decorators.csrf import csrf_exempt
+from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.timezone import utc, now
+from django.contrib.auth.decorators import login_required
 
-from models import Competition, Competitor, RouteSection, Tracker
+from .models import Competition, Competitor, RouteSection, Tracker
 from .utils import gps_codec
+from .forms import CompetitionForm
 
 import datetime, time
 import json
@@ -40,6 +43,66 @@ def home(request):
         },
         RequestContext(request)
     )
+
+@login_required
+def dashboard(request):
+	if request.GET.get('delete') is not None:
+		uuid = request.GET.get('delete')
+		obj = get_object_or_404(
+			Competition,
+			uuid = uuid,
+			publisher = request.user
+		)
+
+		if request.method == "POST":
+			obj.delete()
+			return HttpResponseRedirect(reverse('seuranta.views.dashboard'))
+
+		return render_to_response(
+			'seuranta/confirm_deletion.html',
+			{'competition':obj},
+			RequestContext(request)
+		)
+
+	if request.GET.get('edit') is not None:
+		uuid = request.GET.get('edit')
+		obj = get_object_or_404(
+			Competition,
+			uuid = uuid,
+			publisher = request.user
+		)
+		if request.method == "POST":
+			competition_form = CompetitionForm(request.POST, request.FILES, instance=obj)
+			if competition_form.is_valid():
+				competition_form.save()
+				return HttpResponseRedirect(reverse('seuranta.views.dashboard'))
+		else:
+			competition_form = CompetitionForm(instance=obj)
+
+		return render_to_response(
+			'seuranta/competition_editor.html',
+			{
+			    'competition':obj,
+			    'form':competition_form
+			},
+			RequestContext(request)
+		)
+
+	if request.method == "POST":
+		competition_form = CompetitionForm(request.POST, request.FILES)
+		if competition_form.is_valid():
+			obj = competition_form.save(commit=False)
+			obj.publisher = request.user
+			obj.save()
+			return HttpResponseRedirect("%s?edit=%s"%(reverse('seuranta.views.dashboard'), obj.uuid))
+	else:
+		competition_form = CompetitionForm()
+
+	return render_to_response(
+		'seuranta/dashboard.html',
+		{'form':competition_form},
+		RequestContext(request)
+	)
 
 def tracker(request):
     return render_to_response(

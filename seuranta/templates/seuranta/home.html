@@ -13,7 +13,7 @@
 </head>
 <body>
 <div class="container">
-    <a href="{% url 'seuranta.views.tracker' %}">{% trans "Web Tracker"%}</a> - <a href="#">{% trans "Manage my events" %} (Available soon)</a>
+    <a href="{% url 'seuranta.views.tracker' %}"><i class="fa fa-location-arrow"></i> {% trans "Web Tracker"%}</a> - <a href="{% url 'seuranta.views.dashboard' %}"><i class="fa fa-cogs"></i> {% trans "Manage my events" %}</a>
     <hr/>
     <h1><i class="fa fa-trophy"></i> {% trans "Events"%}</h1>
     <h2><i class="fa fa-bolt"></i> {% trans "Live"%}</h2>

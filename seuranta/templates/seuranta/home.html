@@ -1,3 +1,4 @@
+{% load i18n %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -12,31 +13,31 @@
 </head>
 <body>
 <div class="container">
-    <a href="{% url 'seuranta.views.tracker' %}">Web Tracker</a> - <a href="#">Manage my events (Available soon)</a>
+    <a href="{% url 'seuranta.views.tracker' %}">{% trans "Web Tracker"%}</a> - <a href="#">{% trans "Manage my events" %} (Available soon)</a>
     <hr/>
-    <h1><i class="fa fa-trophy"></i> Events</h1>
-    <h2><i class="fa fa-bolt"></i> Live</h2>
+    <h1><i class="fa fa-trophy"></i> {% trans "Events"%}</h1>
+    <h2><i class="fa fa-bolt"></i> {% trans "Live"%}</h2>
     <ul>
     {% for comp in live %}
         <li><a href="{% url "seuranta.views.races_view" comp.uuid %}">{{comp.name}}</a></li>
     {% empty %}
-        <li>No live race</li>
+        <li>{% trans "No live race"%}</li>
     {% endfor %}
     </ul>
-    <h2><i class="fa fa-calendar"></i> Upcoming</h2>
+    <h2><i class="fa fa-calendar"></i> {% trans "Upcoming"%}</h2>
     <ul>
     {% for comp in upcoming %}
         <li><a href="{% url "seuranta.views.races_view" comp.uuid %}">{{comp.name}}</a></li>
     {% empty %}
-        <li>No race upcoming</li>
+        <li>{% trans "No race upcoming"%}</li>
     {% endfor %}
     </ul>
-    <h2><i class="fa fa-archive"></i> Arhived</h2>
+    <h2><i class="fa fa-archive"></i> {% trans "Archived"%}</h2>
     <ul>
     {% for comp in past %}
         <li><a href="{% url "seuranta.views.races_view" comp.uuid %}">{{comp.name}}</a></li>
     {% empty %}
-        <li>No race archived</li>
+        <li>{% trans "No race archived"%}</li>
     {% endfor %}
     </ul>
 </div>

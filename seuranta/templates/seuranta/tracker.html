@@ -313,7 +313,7 @@ $(window).load(function(){
 							encoded_data:tks,
 						},
 						success:function(data){
-							onAPIResponse(data);
+							onAPIResponse(data + " " +now);
 							broadcast_buffer.eraseInterval(-Infinity, now);
 							last_data_timestamp = now;
 							setTimeout(broadcast_position, 5*1e3);

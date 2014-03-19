@@ -313,8 +313,8 @@ $(window).load(function(){
 						},
 						success:function(data){
 							onAPIResponse(data);
-							broadcast_buffer.eraseInterval(0, now);
-							last_data_timestamp = +new Date();
+							broadcast_buffer.eraseInterval(-Infinity, now);
+							last_data_timestamp = now;
 							setTimeout(broadcast_position, 5*1e3);
 						},
 						error:function(){

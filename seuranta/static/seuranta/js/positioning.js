@@ -117,10 +117,10 @@ var PositionArchive = function(){
         while(index_s>0 && positions[index_s-1].timestamp>=start){
             index_s--;
         }
-        while(index_e<positions.length-1 && positions[index_e].timestamp<=end){
+        while(index_e < positions.length-1 && positions[index_e].timestamp <= end){
             index_e++;
         }
-        positions.splice(index_s, index_e-index_s);
+        positions.splice(index_s, index_e-index_s+1);
         return this;
     };
     this.getByIndex = function(i) {

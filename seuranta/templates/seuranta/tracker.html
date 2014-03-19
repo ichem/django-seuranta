@@ -203,11 +203,23 @@ $(window).load(function(){
 
 	}
 	updateUI();
+	
 	function onAPIResponse(data){
         $("#server_output").text(data)
 	}
+	
+	
+    $("#uuid").on("change", function(){
+        uuid = $("#uuid").val();
+        localStorage["seuranta.tracker.uuid"]=uuid
+    });
+	
 	(function loadUuid(){
-		if (supportsLocalStorage()) {
+	    var hash = window.location.hash;
+	    if(hash && hash.length>1){
+	        uuid = hash.slice(1);
+	        history.pushState("", document.title, window.location.pathname);
+	    }else if (supportsLocalStorage()) {
             uuid = localStorage["seuranta.tracker.uuid"];
 		}
 
@@ -330,12 +342,8 @@ $(window).load(function(){
         e.preventDefault();
         screen_locked=!screen_locked;
         updateUI();
-    })
+    });
 
-    $("#uuid").on("change", function(){
-        uuid = $("#uuid").val();
-        localStorage["seuranta.tracker.uuid"]=uuid
-    })
 });//]]>
 </script>
 </body>

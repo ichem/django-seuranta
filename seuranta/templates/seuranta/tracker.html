@@ -188,7 +188,7 @@ $(window).load(function(){
 		}
 
 		$("#broadcast_output").html(
-			"<i class='fa fa-"+(navigator.onLine?"signal":"warning")+'></i> "+((!last_data_timestamp)?"You did not sent data yet.":("Last packet sent "+(date-last_data_timestamp<2*1e3?"about now":moment(last_data_timestamp).from(date))))
+			"<i class='fa fa-"+(navigator.onLine?"signal":"warning")+"'></i> "+((!last_data_timestamp)?"You did not sent data yet.":("Last packet sent "+(date-last_data_timestamp<2*1e3?"about now":moment(last_data_timestamp).from(date))))
 		);
 
 		$("#gps_output").html(

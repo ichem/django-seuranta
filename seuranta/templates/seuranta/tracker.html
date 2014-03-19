@@ -32,7 +32,15 @@
 			<div id="broadcast_output"></div>
 			<div id="server_output"></div>
 		</div>
-
+        <hr/>
+        <div>
+            <i class="fa fa-info-circle"></i> 1. Enter the secret given to you by the organizer.<br/>
+            2. Turn on GPS - When accuracy gets bellow 50m you are ready to broadcast.<br/>
+            3. Turn on Broadcast - Data will be sent by packet every 5 seconds to the server.<br/>
+            4. Use Lock screen to avoid pressing button accidentaly.<br/>
+            <br/>
+            Android user are recomended to install a anti lock app such as <a href="https://play.google.com/store/apps/details?id=eu.thedarken.wl">Wake Lock - PowerManager</a> to avoid the phone to stop broadcasting their position when phone goes to sleep. You can use the setting &quote;SCREEN_DIM_WAKE_LOCK&quote; during the period of the broadcast.
+        </div>
 	</div>
 	<div id="error"><span id="error_message"></span></div>
 </div>
@@ -82,25 +90,33 @@ var Clock = function(){
 
     (function syncClock(){
         var client_request_time = +new Date();
-        $.ajax(
-	        API_URL,
-			{
-        		data:{t:+client_request_time/1e3, action:"get_time"},
-		        type:"GET",
-		        dataType:"JSON",
-		        success:function(data){
-					var now = +new Date(),
-						server_time = data.time*1e3,
-						request_drift = data.drift*1e3,
-						response_drift = now - server_time,
-						response_time = (now - client_request_time)/2,
-						avg_drift = (request_drift - response_drift) /2;
+        if(navigator.onLine){
+            $.ajax(
+    	        API_URL,
+    			{
+            		data:{t:+client_request_time/1e3, action:"get_time"},
+    		        type:"GET",
+    		        dataType:"JSON",
+    		        success:function(data){
+    					var now = +new Date(),
+    						server_time = data.time*1e3,
+    						request_drift = data.drift*1e3,
+    						response_drift = now - server_time,
+    						response_time = (now - client_request_time)/2,
+    						avg_drift = (request_drift - response_drift) /2;
+    
+    					drift += avg_drift-response_time;
+       		        	setTimeout(syncClock, 300*1e3);
+    		        },
+    		        error:function(){
+                    	setTimeout(syncClock, 30*1e3);
+    		        }
+        		}
 
-					drift += avg_drift-response_time;
-		        }
-    		}
-    	);
-    	setTimeout(syncClock, 300*1e3);
+        	);
+        }else{
+        	setTimeout(syncClock, 30*1e3);
+        }
     })();
 
     this.now = function(){
@@ -140,10 +156,10 @@ $(window).load(function(){
 	}
 
 	if (!('geolocation' in navigator)) {
-			fatalError("<i class='fa fa-warning'></i> Geolocation is not supported by this browser!");
-			return;
+		fatalError("<i class='fa fa-warning'></i> Geolocation is not supported by this browser!");
+		return;
 	}
-
+    
 	function updateUI(){
 		var date=server_clock.now();
 		$("#clock").html("<i class='fa fa-clock-o'></i> "+Humanize.dateTime(+date));
@@ -172,7 +188,7 @@ $(window).load(function(){
 		}
 
 		$("#broadcast_output").html(
-			"<i class='fa fa-signal'></i> "+((!last_data_timestamp)?"You did not start broadcasting yet.":("Last packet sent "+(date-last_data_timestamp<2*1e3?"about now":moment(last_data_timestamp).from(date))))
+			"<i class='fa fa-"+(navigator.online?"signal":"warning")+'></i> "+((!last_data_timestamp)?"You did not sent data yet.":("Last packet sent "+(date-last_data_timestamp<2*1e3?"about now":moment(last_data_timestamp).from(date))))
 		);
 
 		$("#gps_output").html(
@@ -274,7 +290,7 @@ $(window).load(function(){
 		if(broadcast_switched_on){
 			var tks = broadcast_buffer.exportTks(),
 				now = server_clock.now();
-			if( broadcast_buffer.getAge(now) > 5*1e3 ){
+			if( broadcast_buffer.getAge(now) > 5*1e3 && navigator.onLine){
 				$.ajax(
 					API_URL,
 					{
@@ -295,7 +311,7 @@ $(window).load(function(){
 					}
 				);
 			} else {
-				setTimeout(broadcast_position, 5*1e3-broadcast_buffer.getAge(now));
+				setTimeout(broadcast_position, Math.max(5*1e3-broadcast_buffer.getAge(now), 1e3));
 			}
 		} else {
 			setTimeout(broadcast_position, 5*1e3);

@@ -2,7 +2,7 @@
 django-seuranta
 ==================
 
-An application dedicated to live gps tracking for orienteering purposes.
+An application dedicated to live gps tracking for orienteering events.
 
 Prerequisites
 -------------

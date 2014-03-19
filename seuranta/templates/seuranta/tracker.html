@@ -267,7 +267,8 @@ $(window).load(function(){
     	    e.preventDefault();
     	    if(screen_locked){return;}
     		if (!gps_switched_on) {
-    		    geoWatchId = navigator.geolocation.watchPosition(
+    			gps_switched_on = true;
+                geoWatchId = navigator.geolocation.watchPosition(
     		        onPositionUpdate,
     		        onPositionError,
     		        {
@@ -275,7 +276,6 @@ $(window).load(function(){
     		            maximumAge: 1
                     }
                 );
-                
 		        (function positionRequestor(){
 		            navigator.geolocation.getCurrentPosition(
     				    onPositionUpdate,
@@ -286,12 +286,13 @@ $(window).load(function(){
     					    maximumAge:1
     				    }
     				);
-                    setTimeout(positionRequestor, 1e3);
+    				if(gps_switched_on){
+                        setTimeout(positionRequestor, 1e3);
+    				}
 		        })();
-    			gps_switched_on = true;
     		} else {
-    			navigator.geolocation.clearWatch(geoWatchId);
     			gps_switched_on = false;
+    		    navigator.geolocation.clearWatch(geoWatchId);
     		}
     		updateUI();
     	}
@@ -302,7 +303,7 @@ $(window).load(function(){
 		if(broadcast_switched_on){
 			var tks = broadcast_buffer.exportTks(),
 				now = server_clock.now();
-			if( broadcast_buffer.getAge(now) > 5*1e3 && navigator.onLine){
+			if( broadcast_buffer.getAge(now) > 5*1e3 && navigator.onLine && tks != ""){
 				$.ajax(
 					API_URL,
 					{

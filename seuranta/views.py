@@ -117,7 +117,7 @@ def api(request):
                 section.route = route
                 section.save()
 
-            return HttpResponse("OK %r"%route)
+            return HttpResponse("OK")
         return HttpResponse("Invalid parameters")
     else:
         action = request.GET.get('action')

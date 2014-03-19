@@ -1,0 +1,11 @@
+build
+*CACHE*
+dist
+MANIFEST
+*.pyc
+*.egg-info
+*.egg
+*.sqlite3
+*~
+*.save
+docs/_build/

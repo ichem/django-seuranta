@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ competition.name }}</title>
+    <link rel="shortcut icon" href="{{STATIC_URL}}icons/favicon.ico" type="image/x-icon" />
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+    <style>
+        #main{
+            position:absolute;
+        	display:block;
+        	overflow:hidden;
+        	top:0;
+        	left:0;
+        	width:100%;
+        	height:100%;
+        	z-index:-1000;
+        }
+        #controls{
+        	position:absolute;
+        	display:block;
+        	overflow:hidden;
+        	top:0;
+        	left:0;
+        	height:100%;
+        	color:#fff;
+        	background:#000;
+        	font-family:Arial;
+        }
+        .clock{
+            font-size:2em;
+        }
+        .control_button{
+            display:inline-block;
+        	text-decoration:none;
+        	padding:2px 5px;
+        	text-align:center;
+        	color:#fff;
+        	margin:0 2px;
+        }
+
+        .control_button:hover{
+        	color:#bbb;
+        }
+
+        #timeline{
+        	background:#555;
+        	height:10px;
+        	min-height:10px;
+        	min-width:250px;
+        	white-space:nowrap;
+        }
+        #timeline_bar{
+        	background:#aaa;
+        	width:0px;
+        	height:100%;
+        	white-space:nowrap;
+        }
+        #participant_list{
+            overflow-y:auto;
+            overflow-x:hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="main"></div>
+    <div id="controls">
+        <div id="main_control">
+            <span class="clock">
+                <small><i class="fa fa-calendar"></i> <span id="date_display"></span></small><br/>
+                <i class="fa fa-clock-o"></i> <span id="hour_display"> </span><br/>
+                <small><i class="fa fa-globe"></i> <span id="tz_display"></span></small>
+            </span><br/>
+            <a href="#" id="minus_button" class="control_button"><i class="fa fa-search-minus"></i></a>
+            <a href="#" id="plus_button" class="control_button"><i class="fa fa-search-plus"></i></a>
+            <a href="#" id="slower_button" class="control_button"><i class="fa fa-backward"></i></a>
+            <a href="#" id="pause_button" class="control_button"><i class="fa fa-pause"></i></a>
+            <a href="#" id="play_button" class="control_button"><i class="fa fa-play"></i></a>
+            <a href="#" id="faster_button" class="control_button"><i class="fa fa-forward"></i></a>
+            <span id="play_rate_display"></span>
+        </div>
+        <div id="timeline">
+            <div id="timeline_bar">
+            </div>
+        </div>
+        <div id="participant_list">
+        </div>
+    </div>
+    <script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.2/raphael-min.js"></script>
+    <script type="text/javascript" src="{{STATIC_URL}}seuranta/js/smallworldmap.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.0.3/moment-timezone.min.js"></script>
+    <script type="text/javascript" src="{{STATIC_URL}}seuranta/js/moment-timezone-data.js"></script>
+    <script type="text/javascript" src="{{STATIC_URL}}seuranta/js/positioning.js"></script>
+    <script>
+        var API_URL = '{% url 'seuranta.views.api' %}';
+
+        var COLORS = new (function(){
+        	this.colors = new Array(
+        	"#0099FF",
+        	"#99FF00",
+        	"#FF0099",
+        	"#FF9900",
+        	"#9900FF",
+        	"#FFFF00",
+        	"#77FFFF",
+        	"#FF0000",
+        	"#FF9999",
+        	"#0000FF",
+        	"#FFFF77",
+        	"#BBFFBB");
+        	this.cnt = -1;
+        	this.get = function(){
+        		this.cnt++;
+        		if( this.cnt==this.colors.length )this.cnt = 0;
+        		return this.colors[this.cnt];
+        	}
+        })();
+        var Clock = function(){
+            var drift = 0;
+
+            (function syncClock(){
+                //Do some ajax magic to get the clock drift
+                var client_request_time = +new Date();
+		        $.ajax(
+			        API_URL,
+        			{
+		        		data:{t:+client_request_time/1e3, action:"get_time"},
+				        type:"GET",
+				        dataType:"JSON",
+				        success:function(data){
+        					var now = +new Date(),
+        						server_time = data.time*1e3,
+        						request_drift = data.drift*1e3,
+        						response_drift = now - server_time,
+        						response_time = (now - client_request_time)/2,
+        						avg_drift = (request_drift - response_drift) /2;
+
+        					drift += avg_drift-response_time;
+				        }
+	        		}
+	        	);
+	        	setTimeout(syncClock, 300*1e3);
+            })();
+
+            this.now = function(){
+                return +new Date()+drift;
+            }
+
+            this.getDrift = function(){
+                return drift;
+            }
+            return this;
+        }
+        Competitor = function(options){
+            var color = options.color,
+                name = options.name,
+                shortname = options.shortname,
+                start_time = options.start_time;
+            this.uuid = options.uuid;
+            this.getColor = function(){return color};
+            this.getName = function(){return name};
+            this.getShortname = function(){return shortname};
+            this.positions = new PositionArchive();
+
+            this.marker = null;
+            this.polyline = null;
+            this.is_shown = true;
+        };
+
+        $(function(){
+            var race_info = {{competition.as_json|safe}},
+                is_started=false,
+                is_completed=false,
+                PLAYER_DELAY=30*1e3,
+                PLAY_RATES = [0, 1, 2, 5, 10, 15, 30, 60, 100],
+                clock = new Clock();
+                time_displayed = clock.now()-PLAYER_DELAY, //30 seconds delay
+                play_rate = 1,
+                prev_display_time=null,
+                map=null,
+                prev_fetch_time=null;
+
+            is_started = (clock.now() - Date.parse(race_info.start_date))>0;
+            is_completed = (clock.now() - Date.parse(race_info.end_date))>0;
+
+            var competitors = {};
+            $.each(race_info.competitors, function(i, el){
+                el.color = COLORS.get();
+                competitors[el.uuid] = new Competitor(el);
+                $('<div/>')
+                .on(
+                    "click",
+                    (function(c){
+                        return function(){
+                            if(c.is_shown){
+                                $(this).html("<i class='fa fa-square-o' style='color:"+c.getColor()+"'></i> "+c.getName());
+                            }else{
+                                $(this).html("<i class='fa fa-square' style='color:"+c.getColor()+"'></i> "+c.getName());
+                            }
+                            c.is_shown = !c.is_shown;
+                        }
+                    })(competitors[el.uuid])
+                )
+                .html("<i class='fa fa-square' style='color:"+competitors[el.uuid].getColor()+"'></i> "+competitors[el.uuid].getName())
+                .appendTo($("#participant_list"))
+            });
+
+            var whileUncompleteFunction = function(){
+                is_completed = (clock.now() - Date.parse(race_info.end_date))>0;
+                // ajax to grab gps data
+
+                var list_uuids = $.map(race_info.competitors, function(el){
+                    return el.uuid;
+                });
+                if(list_uuids.length>0){
+                    var post_data = {action:"get_route", "uuids[]":list_uuids}
+                    if(prev_fetch_time !== null){
+                        post_data["timestamp_start"]=prev_fetch_time;
+                    }
+                    prev_fetch_time=+new Date();
+                    $.ajax(API_URL,
+                    {
+                        data:post_data,
+                        type:"GET",
+                        dataType:"JSON",
+                        success:function(data){
+                            $.each(data.result, function(i, d){
+                                var uuid = d.competitor_id;
+                                if(competitors[uuid]){
+                                    var positions = PositionArchive.fromTks(d.encoded_route);
+                                    $.each(positions.getArray(), function(i, pt){
+                                        competitors[uuid].positions.add(pt);
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+
+                if(!is_completed){
+                    setTimeout(whileUncompleteFunction, 5*1e3);
+                } else {
+                    onComplete();
+                }
+            };
+
+            var onComplete = function(){
+                time_displayed = Date.parse(race_info.start_date);
+                play_rate = 0;
+            };
+
+            if(is_started){
+                map = new SmallWorld.Map("main", race_info.map_dataURI, race_info.calibration_points, "", "", function(){
+
+                });
+
+                whileUncompleteFunction();
+
+                (function refreshDisplay(){
+                    var now = +new Date();
+                    if(prev_display_time){
+                        time_displayed += (now - prev_display_time)*PLAY_RATES[play_rate];
+                    }
+                    if(time_displayed > clock.now()-PLAYER_DELAY){
+                        time_displayed = clock.now()-PLAYER_DELAY;
+                        play_rate = 1;
+                    }
+                    if(time_displayed > Date.parse(race_info.end_date)){
+                        time_displayed = Date.parse(race_info.start_date);
+                        play_rate = 0;
+                    }
+                    var t, tz=race_info.timezone;
+                    try{
+                        t = moment(time_displayed).tz(tz);
+                    }catch(e){
+                        tz = "UTC"
+                        t = moment(time_displayed).tz(tz);
+                    }
+                    $("#date_display").text( t.format('DD-MM-YYYY') );
+                    $("#hour_display").html( t.format('HH:mm')+"<small>:"+ t.format('ss')+"</small>");
+                    $("#tz_display").text( tz );
+                    $("#play_rate_display").text( "x"+PLAY_RATES[play_rate] );
+
+                    var t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.end_date))-Date.parse(race_info.start_date),
+                        t_perc = (time_displayed-Date.parse(race_info.start_date))/t_elapsed*100;
+                    $("#timeline_bar").css({
+                        "width":t_perc+"%"
+                    });
+
+                    $.each(competitors, function(i, runner){
+                        if(runner.is_shown && runner.positions.getPositionsCount() > 0){
+                            var position = runner.positions.getByTime(time_displayed);
+                            var latlon = new LatLon(position.coords.latitude, position.coords.longitude);
+                            if(!runner.marker){
+                                runner.marker = new SmallWorld.Marker(latlon, runner.getColor(), runner.getShortname())
+                                runner.marker.draw(map);
+                            }else{
+                                runner.marker.move(latlon);
+                            }
+                            var tail = runner.positions.extractInterval(time_displayed-60*1e3, time_displayed);
+                            var coords = $.map(
+                                tail.getArray(),
+                                function(position){
+                                    return new LatLon(position.coords.latitude, position.coords.longitude);
+                                }
+                            );
+                            if(!runner.polyline){
+                                runner.polyline = new SmallWorld.Route(coords, runner.getColor())
+                                runner.polyline.draw(map);
+                            }else{
+                                runner.polyline.set_new_path(coords);
+                            }
+
+                            runner.marker.show();
+                            runner.polyline.show();
+
+                        }else if(!runner.is_shown){
+                            runner.marker.hide();
+                            runner.polyline.hide();
+                        }
+                    });
+
+                    prev_display_time = now;
+                    setTimeout(refreshDisplay, 50-(new Date()-now))
+                })();
+                $("#controls")
+                .css({
+                    height:$(document).height()+"px"
+                })
+                $("#participant_list")
+                .css({
+                    height:($(document).height() - ($("#main_control").height()+$("#timeline_bar").height()))+"px",
+                    "overflow-x":"hidden",
+                    "overflow-y":"scroll"
+                })
+
+                $(window).resize(function(){
+                    $("#controls")
+                    .css({
+                        height:$(document).height()+"px"
+                    })
+                    $("#participant_list")
+                    .css({
+                        height:($(document).height() - ($("#main_control").height()+$("#timeline_bar").height()))+"px",
+                    })
+                })
+
+                $("#minus_button").on("click", function(e){
+                    e.preventDefault();
+                    map.zoom_out();
+                });
+                $("#plus_button").on("click", function(e){
+                    e.preventDefault();
+                    map.zoom_in();
+                });
+
+                $("#slower_button").on("click", function(e){
+                    e.preventDefault();
+                    if (play_rate-1<0){
+                        return
+                    }
+                    play_rate--;
+                });
+
+                $("#pause_button").on("click", function(e){
+                    e.preventDefault();
+                    play_rate = 0;
+                });
+                $("#play_button").on("click", function(e){
+                    e.preventDefault();
+                    play_rate = 1;
+                });
+                $("#faster_button").on("click", function(e){
+                    e.preventDefault();
+                    if (play_rate+1>PLAY_RATES.length-1){
+                        return
+                    }
+                    play_rate++;
+                });
+                $("#timeline").on("click", function(e){
+                    var w = $(this).width(),
+                        t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.end_date))-Date.parse(race_info.start_date);
+                    time_displayed = Date.parse(race_info.start_date)+e.clientX/w*t_elapsed;
+                })
+            }else{
+                $("#controls").hide();
+                setInterval(function(){
+                    var MINUTE = 60, HOUR = 60*MINUTE, DAY = 24*HOUR, YEAR = 365.25*DAY
+                        timeLeft = Math.round((Date.parse(race_info.start_date) - new Date())/1e3),
+                        years = Math.floor(timeLeft/YEAR),
+                        days = Math.floor((timeLeft-years*YEAR)/DAY),
+                        hours = Math.floor((timeLeft-years*YEAR-days*DAY)/HOUR),
+                        minutes = Math.floor((timeLeft-years*YEAR-days*DAY-hours*HOUR)/MINUTE),
+                        seconds = Math.floor(timeLeft%60);
+                        text = (years!=0?(years+" year"+(years>1?"s ":" ")):"")+
+                        (days!=0?(days+" day"+(days==1?" ":"s ")):(years==0?"":"0 days "))+
+                        (hours!=0?(hours+" hour"+(hours==1?" ":"s ")):(years==0&&days==0?"":"0 hours "))+
+                        (minutes!=0?(minutes+" minute"+(minutes==1?" ":"s ")):(years==0&&days==0&&hours==0?"":"0 minutes "))+
+                        (seconds!=0?(seconds+" second"+(seconds==1?" ":"s ")):(years==0&&days==0&&hours==0&&minutes==0?"":"0 seconds"));
+                    if(timeLeft<0){
+                        windows.location.reload();
+                    }
+                    $("#main").text(text+" left before start...");
+                }, 500)
+            }
+        });
+    </script>
+</body>
+</html>

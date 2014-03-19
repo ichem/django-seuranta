@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<title>Online GPS Tracking</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=1" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" >
+</head>
+<body>
+<div class="container">
+    <a href="{% url 'seuranta.views.tracker' %}">Web Tracker</a> - <a href="#">Manage my events (Available soon)</a>
+    <hr/>
+    <h1><i class="fa fa-trophy"></i> Events</h1>
+    <h2><i class="fa fa-bolt"></i> Live</h2>
+    <ul>
+    {% for comp in live %}
+        <li><a href="{% url "seuranta.views.races_view" comp.uuid %}">{{comp.name}}</a></li>
+    {% empty %}
+        <li>No live race</li>
+    {% endfor %}
+    </ul>
+    <h2><i class="fa fa-calendar"></i> Upcoming</h2>
+    <ul>
+    {% for comp in upcoming %}
+        <li><a href="{% url "seuranta.views.races_view" comp.uuid %}">{{comp.name}}</a></li>
+    {% empty %}
+        <li>No race upcoming</li>
+    {% endfor %}
+    </ul>
+    <h2><i class="fa fa-archive"></i> Arhived</h2>
+    <ul>
+    {% for comp in past %}
+        <li><a href="{% url "seuranta.views.races_view" comp.uuid %}">{{comp.name}}</a></li>
+    {% empty %}
+        <li>No race archived</li>
+    {% endfor %}
+    </ul>
+</div>
+<script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
+<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+</body>
+</html>

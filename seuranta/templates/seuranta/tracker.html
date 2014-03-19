@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<title>GPS Tracker</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=1" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" >
+	<style type='text/css'>
+		#error{display:none}
+	</style>
+</head>
+<body>
+<div class="container">
+	<div id="main" >
+		<h2>GPS Tracker</h2><button class="btn" id="lock_switch"></button>
+        <hr/>
+		<div>
+			<button class="btn" id="gps_switch"></button> <button class="btn" id="broadcast_switch"></button>
+		</div>
+		<hr/>
+		<div>
+			<small>Secret: <input type="text" id="uuid"/></small><br />
+		</div>
+		<hr/>
+		<div>
+			<span id="clock"></span><br/>
+			<div id="gps_output"></div>
+			<div id="broadcast_output"></div>
+			<div id="server_output"></div>
+		</div>
+
+	</div>
+	<div id="error"><span id="error_message"></span></div>
+</div>
+<script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
+<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
+<script type='text/javascript' src='{{STATIC_URL}}seuranta/js/positioning.js'></script>
+<script type='text/javascript'>//<![CDATA[
+var API_URL="{% url "seuranta.views.api" %}";
+
+var Humanize = {
+	unixTimestamp: function (x) {
+		return (moment(x).format("YYYY-MM-DD HH:mm:ss.SSS"));
+	},
+	dateTime: function (x) {
+		return (moment(x).format("YYYY-MM-DD HH:mm:ss"));
+	},
+	date: function (x) {
+		return (moment(x).format("YYYY-MM-DD"));
+	},
+	distance: function (x) {
+		if (x >= 1e3) {
+			return (x / 1e3).toFixed(1) + "km";
+		} else {
+			return x.toFixed(0) + "m";
+		}
+	},
+	speed:function(x){
+		return (x*3.6).toFixed(1) + "km/h";
+	},
+	fileSize:function(bytes, si) {
+		si = si===null?true:si;
+		var thresh = si ? 1000 : 1024;
+		if(bytes < thresh) return bytes + 'B';
+		var units = si ? ['kB','MB','GB','TB','PB','EB','ZB','YB'] : ['KiB','MiB','GiB','TiB','PiB','EiB','ZiB','YiB'];
+		var u = -1;
+		do {
+			bytes /= thresh;
+			++u;
+		} while(bytes >= thresh);
+		return bytes.toFixed(1)+units[u];
+	}
+};
+
+var Clock = function(){
+    var drift = 0;
+
+    (function syncClock(){
+        var client_request_time = +new Date();
+        $.ajax(
+	        API_URL,
+			{
+        		data:{t:+client_request_time/1e3, action:"get_time"},
+		        type:"GET",
+		        dataType:"JSON",
+		        success:function(data){
+					var now = +new Date(),
+						server_time = data.time*1e3,
+						request_drift = data.drift*1e3,
+						response_drift = now - server_time,
+						response_time = (now - client_request_time)/2,
+						avg_drift = (request_drift - response_drift) /2;
+
+					drift += avg_drift-response_time;
+		        }
+    		}
+    	);
+    	setTimeout(syncClock, 300*1e3);
+    })();
+
+    this.now = function(){
+        return +new Date()+drift;
+    }
+
+    this.getDrift = function(){
+        return drift;
+    }
+    return this;
+}
+
+function supportsLocalStorage() {
+	try {
+		return 'localStorage' in window && window['localStorage'] !== null;
+	} catch (e) {
+		return false;
+	}
+}
+
+$(window).load(function(){
+	var server_clock = new Clock(),
+		gps_switched_on = false,
+		broadcast_switched_on = false,
+		last_position = null,
+		broadcast_buffer = new PositionArchive(),
+		geoWatchId = null,
+		uuid=null,
+        assignments_count=0,
+		last_data_timestamp=null,
+		MINIMUM_ACCURACY=50,
+	    screen_locked=false;
+
+	function fatalError(text) {
+		$("#main").hide();
+		$("#error").text(text).show();
+	}
+
+	if (!('geolocation' in navigator)) {
+			fatalError("<i class='fa fa-warning'></i> Geolocation is not supported by this browser!");
+			return;
+	}
+
+	function updateUI(){
+		var date=server_clock.now();
+		$("#clock").html("<i class='fa fa-clock-o'></i> "+Humanize.dateTime(+date));
+
+		if(broadcast_switched_on || screen_locked){
+		    $("#uuid").prop("readonly", true);
+		}else{
+		    $("#uuid").prop("readonly", false);
+		}
+
+        if(screen_locked){
+            $("#lock_switch").html('Unlock Screen <i class="fa fa-lock" style="color:#0f9"></i>')
+        }else{
+            $("#lock_switch").html('Lock Screen <i class="fa fa-unlock-alt" style="color:#ccc"></i>')
+        }
+
+		if (gps_switched_on) {
+			$("#gps_switch").html('GPS <i class="fa fa-power-off" style="color:#0f9"></i>');
+		} else {
+			$("#gps_switch").html('GPS <i class="fa fa-power-off" style="color:#ccc"></i>');
+		}
+		if (broadcast_switched_on) {
+			$("#broadcast_switch").html('Broadcast <i class="fa fa-cloud-upload" style="color:#09f"></i>');
+		} else {
+			$("#broadcast_switch").html('Broadcast <i class="fa fa-cloud-upload" style="color:#ccc"></i>');
+		}
+
+		$("#broadcast_output").html(
+			"<i class='fa fa-signal'></i> "+((!last_data_timestamp)?"You did not start broadcasting yet.":("Last packet sent "+(date-last_data_timestamp<2*1e3?"about now":moment(last_data_timestamp).from(date))))
+		);
+
+		$("#gps_output").html(
+			"<i class='fa fa-globe'></i> " +
+			((!last_position)?"No GPS data received yet":(
+				last_position.coords.latitude.toFixed(5) + ", " +
+				last_position.coords.longitude.toFixed(5) + " +/-" +
+				Humanize.distance(last_position.coords.accuracy) +
+				( (date-last_position.timestamp)<2*1e3?"":( " "+moment(last_position.timestamp).from(date) ) )
+			))
+		);
+
+	}
+	updateUI();
+	function onAPIResponse(data){
+        $("#server_output").text(data)
+	}
+	(function loadUuid(){
+		if (supportsLocalStorage()) {
+            uuid = localStorage["seuranta.tracker.uuid"];
+		}
+
+		if(!uuid){
+			if (supportsLocalStorage()) {
+				localStorage["seuranta.tracker.uuid"]="";
+			}
+		}else{
+    		$('#uuid').val(uuid);
+		}
+    })();
+
+	(function onClockTick(){
+		updateUI();
+		setTimeout(onClockTick, 500);
+	})();
+
+	function onPositionUpdate(position) {
+		last_position = {coords:position.coords};
+		last_position.timestamp = position.timestamp+server_clock.getDrift();
+		var pos = new Position(last_position);
+		if(broadcast_switched_on && position.coords.accuracy<MINIMUM_ACCURACY) {
+			broadcast_buffer.add(pos);
+		}
+		updateUI();
+	}
+
+	function onPositionError(error){
+		switch (error.code){
+			case error.TIMEOUT:
+				break;
+			case error.POSITION_UNAVAILABLE:
+				break;
+			case error.PERMISSION_DENIED:
+				fatalError("<i class='fa fa-warning'></i> Location access denied.");
+				break;
+			default:
+				break;
+		}
+	}
+
+	$("#gps_switch").on(
+	    'click',
+	    function (e) {
+    	    e.preventDefault();
+    	    if(screen_locked){return;}
+    		if (!gps_switched_on) {
+    			geoWatchId = setInterval(function() {
+    				navigator.geolocation.getCurrentPosition(
+    				onPositionUpdate,
+    				onPositionError,
+    				{
+    					enableHighAccuracy:true,
+    					timeout:999,
+    					maximumAge:1
+    				});
+    			}, 1e3);
+    			gps_switched_on = true;
+    		} else {
+    			clearInterval(geoWatchId);
+    			gps_switched_on = false;
+    		}
+    		updateUI();
+    	}
+    );
+
+	//broadcast position every 5s
+	(function broadcast_position(){
+		if(broadcast_switched_on){
+			var tks = broadcast_buffer.exportTks(),
+				now = server_clock.now();
+			if( broadcast_buffer.getAge(now) > 5*1e3 ){
+				$.ajax(
+					API_URL,
+					{
+						type:"POST",
+						data:{
+							secret:uuid,
+							encoded_data:tks,
+						},
+						success:function(data){
+							onAPIResponse(data);
+							broadcast_buffer.eraseInterval(0, now);
+							last_data_timestamp = +new Date();
+							setTimeout(broadcast_position, 5*1e3);
+						},
+						error:function(){
+							setTimeout(broadcast_position, 2*1e3);
+						}
+					}
+				);
+			} else {
+				setTimeout(broadcast_position, 5*1e3-broadcast_buffer.getAge(now));
+			}
+		} else {
+			setTimeout(broadcast_position, 5*1e3);
+		}
+	})();
+
+	$("#broadcast_switch").on('click', function(e) {
+	    e.preventDefault();
+	    if(screen_locked){return;}
+		broadcast_switched_on = !broadcast_switched_on;
+		updateUI();
+	});
+
+
+    $('#lock_switch').on("click", function(e){
+        e.preventDefault();
+        screen_locked=!screen_locked;
+        updateUI();
+    })
+
+    $("#uuid").on("change", function(){
+        uuid = $("#uuid").val();
+        localStorage["seuranta.tracker.uuid"]=uuid
+    })
+});//]]>
+</script>
+</body>
+</html>

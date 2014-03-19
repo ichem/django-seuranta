@@ -295,7 +295,7 @@ $(window).load(function(){
     		    navigator.geolocation.clearWatch(geoWatchId);
     		}
     		updateUI();
-    	}
+	    }
     );
 
 	//broadcast position every 5s
@@ -313,7 +313,7 @@ $(window).load(function(){
 							encoded_data:tks,
 						},
 						success:function(data){
-							onAPIResponse(data + " " +now);
+							onAPIResponse(data);
 							broadcast_buffer.eraseInterval(-Infinity, now);
 							last_data_timestamp = now;
 							setTimeout(broadcast_position, 5*1e3);

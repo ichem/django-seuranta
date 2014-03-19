@@ -17,12 +17,19 @@ django-timezone-field
 Installation
 ------------
 
-- Add ``"seuranta"`` to your ``INSTALLED_APPS`` setting::
+1. Add ``"seuranta"`` to your ``INSTALLED_APPS`` setting::
 
     INSTALLED_APPS = (
         # …
         "seuranta",
     )
+
+
+2. Include the seuranta URLconf in your project urls.py like this::
+
+    url(r'^seuranta/', include('seuranta.urls')),
+
+3. Run `python manage.py migrate` to create the seuranta models.
 
 
 Usage

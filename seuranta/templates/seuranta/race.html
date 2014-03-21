@@ -17,6 +17,7 @@
         	height:100%;
         	z-index:-1000;
         }
+
         #controls{
         	position:absolute;
         	display:block;
@@ -28,6 +29,18 @@
         	background:#000;
         	font-family:Arial;
         }
+
+        #toggle_controls{
+            position:absolute;
+        	display:block;
+        	overflow:hidden;
+        	top:0;
+        	left:0;
+        	color:#fff;
+        	background:#000;
+        	font-family:Arial;
+        }
+
         .clock{
             font-size:2em;
         }
@@ -86,6 +99,9 @@
         </div>
         <div id="participant_list">
         </div>
+    </div>
+    <div id="toggle_controls">
+        <a href="#" id="toggle_controls_button" class="control_button"><i class="fa fa-caret-square-o-left" ></i></a>
     </div>
     <script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.2/raphael-min.js"></script>
@@ -254,6 +270,7 @@
 
             if(is_started){
                 map = new SmallWorld.Map("main", race_info.map_dataURI, race_info.calibration_points, "", "", function(){
+                    map.center(map.MapXYToLatLon({x:map.map_img.attr("width")/2, y:map.map_img.attr("height")/2}));
                     whileUncompleteFunction();
                 });
 
@@ -277,7 +294,7 @@
                         tz = "UTC"
                         t = moment(time_displayed).tz(tz);
                     }
-                    $("#date_display").text( t.format('DD-MM-YYYY') );
+                    $("#date_display").text( t.format('DD.MM.YYYY') );
                     $("#hour_display").html( t.format('HH:mm')+"<small>:"+ t.format('ss')+"</small>");
                     $("#tz_display").text( tz );
                     $("#play_rate_display").text( "x"+PLAY_RATES[play_rate] );
@@ -333,14 +350,16 @@
                 .css({
                     height:($(document).height() - ($("#main_control").height()+$("#timeline_bar").height()))+"px",
                     "overflow-x":"hidden",
-                    "overflow-y":"scroll"
+                    "overflow-y":"auto"
                 })
+
                 $("#main")
                 .css({
                     height:$(document).height()+"px",
                     width:$(document).width()-$("#controls").width()+"px",
                     left:$("#controls").width()+"px"
                 })
+
                 $(window).resize(function(){
                     $("#controls")
                     .css({
@@ -350,12 +369,21 @@
                     .css({
                         height:($(document).height() - ($("#main_control").height()+$("#timeline_bar").height()))+"px",
                     })
-                    $("#main")
-                    .css({
-                        height:$(document).height()+"px",
-                        width:$(document).width()-$("#controls").width()+"px",
-                        left:$("#controls").width()+"px"
-                    })
+                    if($("#controls").is(":visible")){
+                        $("#main")
+                        .css({
+                            height:$(document).height()+"px",
+                            width:$(document).width()-$("#controls").width()+"px",
+                            left:$("#controls").width()+"px"
+                        });
+                    }else{
+                        $("#main")
+                        .css({
+                            height:$(document).height()+"px",
+                            width:$(document).width()+"px",
+                            left:"0px"
+                        });
+                    }
                 })
 
                 $("#minus_button").on("click", function(e){
@@ -398,9 +426,32 @@
                     var w = $(this).width(),
                         t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.end_date))-Date.parse(race_info.start_date);
                     time_displayed = Date.parse(race_info.start_date)+e.clientX/w*t_elapsed;
-                })
+                });
+
+                $("#toggle_controls").css({
+                    left:$("#controls").width()+"px"
+                });
+                $("#toggle_controls_button").on("click", function(e){
+                    if($("#controls").is(":visible")){
+                        $("#controls").hide();
+                        $("#toggle_controls").css({
+                            left:"0px"
+                        });
+                        $("#toggle_controls_button").html("<i class='fa fa-caret-square-o-right'></i>");
+                        $(window).trigger('resize');
+                    }else{
+                        $("#controls").show();
+                        $("#toggle_controls").css({
+                            left:$("#controls").width()+"px"
+                        });
+                        $("#toggle_controls_button").html("<i class='fa fa-caret-square-o-left'></i>");
+                        $(window).trigger('resize');
+                    }
+                });
+
             }else{
                 $("#controls").hide();
+                $("#toggle_controls").hide();
                 setInterval(function(){
                     var MINUTE = 60, HOUR = 60*MINUTE, DAY = 24*HOUR, YEAR = 365.25*DAY
                         timeLeft = Math.round((Date.parse(race_info.start_date) - new Date())/1e3),
@@ -417,7 +468,7 @@
                     if(timeLeft<0){
                         windows.location.reload();
                     }
-                    $("#main").text(text+" left before start...");
+                    $("#main").html("<div style='text-align:center'>"+text+" left before start...</div>");
                 }, 500)
             }
         });

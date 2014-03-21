@@ -104,7 +104,7 @@ var Clock = function(){
     						response_drift = now - server_time,
     						response_time = (now - client_request_time)/2,
     						avg_drift = (request_drift - response_drift) /2;
-    
+
     					drift += avg_drift-response_time;
        		        	setTimeout(syncClock, 300*1e3);
     		        },
@@ -159,7 +159,7 @@ $(window).load(function(){
 		fatalError("<i class='fa fa-warning'></i> Geolocation is not supported by this browser!");
 		return;
 	}
-    
+
 	function updateUI(){
 		var date=server_clock.now();
 		$("#clock").html("<i class='fa fa-clock-o'></i> "+Humanize.dateTime(+date));
@@ -203,22 +203,16 @@ $(window).load(function(){
 
 	}
 	updateUI();
-	
+
 	function onAPIResponse(data){
         $("#server_output").text(data)
 	}
-	
-	
-    $("#uuid").on("change", function(){
-        uuid = $("#uuid").val();
-        localStorage["seuranta.tracker.uuid"]=uuid
-    });
-	
+
 	(function loadUuid(){
 	    var hash = window.location.hash;
 	    if(hash && hash.length>1){
 	        uuid = hash.slice(1);
-	        history.pushState("", document.title, window.location.pathname);
+	        history.replaceState("", document.title, window.location.pathname);
 	    }else if (supportsLocalStorage()) {
             uuid = localStorage["seuranta.tracker.uuid"];
 		}
@@ -231,6 +225,14 @@ $(window).load(function(){
     		$('#uuid').val(uuid);
 		}
     })();
+
+    $("#uuid").on("change", function(){
+        uuid = $("#uuid").val();
+        if (supportsLocalStorage()) {
+            localStorage["seuranta.tracker.uuid"]=uuid
+        }
+    });
+    $("#uuid").trigger("change")
 
 	(function onClockTick(){
 		updateUI();
@@ -260,7 +262,7 @@ $(window).load(function(){
 				break;
 		}
 	}
-	
+
 	$("#gps_switch").on(
 	    'click',
 	    function (e) {
@@ -272,7 +274,7 @@ $(window).load(function(){
     		        onPositionUpdate,
     		        onPositionError,
     		        {
-    		            enableHighAccuracy:true, 
+    		            enableHighAccuracy:true,
     		            maximumAge: 1
                     }
                 );

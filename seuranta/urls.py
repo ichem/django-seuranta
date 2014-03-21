@@ -10,7 +10,7 @@ urlpatterns = patterns('seuranta.views',
 	),
 
 	url(r'^web_tracker/?$',
-		"tracker",
+	    "tracker",
 	),
 
     url(r'^races/?$',

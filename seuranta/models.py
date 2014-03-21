@@ -4,7 +4,7 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.utils.translation import ugettext as _
 from django.utils.timezone import utc, now
-
+from django.core.urlresolvers import reverse
 
 from .utils import short_uuid
 from .utils.validators import validate_latitude, validate_longitude
@@ -63,6 +63,16 @@ class Tracker(models.Model):
         _("last date seen"),
         auto_now=True
     )
+
+    def get_absolute_url(self):
+        return "%s#%s"%(reverse("seuranta.views.tracker"), self.uuid)
+    get_absolute_url.short_description = _("Link")
+    absolute_url = property(get_absolute_url)
+
+    def get_html_link(self):
+        return "<a href='%s' class='tracker_link'>Link to tracker</a>"%self.absolute_url
+    get_html_link.short_description = _('tracker link')
+    get_html_link.allow_tags = _('tracker link')
 
     def __unicode__(self):
         return u"Tracker \"%s\", \"%s\""%(self.uuid, self.handle)

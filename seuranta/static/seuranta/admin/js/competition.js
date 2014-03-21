@@ -11,6 +11,6 @@ if (jQuery !== undefined) {
             e.preventDefault()
             $("#id_timezone").val(jstz.determine().name())
         })
-        .appendTo($("#id_timezone").parent())
+        .appendTo($("#id_timezone").parent());
     });
 })(django.jQuery);

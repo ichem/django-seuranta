@@ -465,8 +465,8 @@
                         (hours!=0?(hours+" hour"+(hours==1?" ":"s ")):(years==0&&days==0?"":"0 hours "))+
                         (minutes!=0?(minutes+" minute"+(minutes==1?" ":"s ")):(years==0&&days==0&&hours==0?"":"0 minutes "))+
                         (seconds!=0?(seconds+" second"+(seconds==1?" ":"s ")):(years==0&&days==0&&hours==0&&minutes==0?"":"0 seconds"));
-                    if(timeLeft<0){
-                        windows.location.reload();
+                    if(timeLeft<=0){
+                        window.location.reload();
                     }
                     $("#main").html("<div style='text-align:center'>"+text+" left before start...</div>");
                 }, 500)

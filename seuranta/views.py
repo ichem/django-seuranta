@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.timezone import utc, now
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import cache_page
 
 from .models import Competition, Competitor, RouteSection, Tracker
 from .utils import gps_codec
@@ -130,6 +131,17 @@ def races_view(request, uuid):
     if obj.publication_policy == "private" and obj.publisher != request.user:
         return HttpResponse(status=403)
 
+    tim = now()
+    if tim < obj.utc_start_date:
+        return render_to_response(
+            'seuranta/pre_race.html',
+            {
+                'object':obj,
+                'competition':obj,
+            },
+            RequestContext(request)
+        )
+
     return render_to_response(
         'seuranta/race.html',
         {
@@ -140,6 +152,7 @@ def races_view(request, uuid):
     )
 
 @csrf_exempt
+@cache_page(5)
 def api(request):
     if request.method == "POST":
         uuid = request.POST.get("secret")

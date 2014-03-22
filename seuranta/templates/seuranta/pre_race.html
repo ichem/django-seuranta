@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ competition.name }}{% endblock %}
+
+{% block extra_heads %}
+<style>
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>{{ competition.name }}</h2>
+<div id="countdown"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
+    <script>
+        var API_URL = '{% url 'seuranta.views.api' %}';
+        var Clock = function(){
+            var drift = 0;
+            (function syncClock(){
+                //Do some ajax magic to get the clock drift
+                var client_request_time = +new Date();
+		        $.ajax(
+			        API_URL,
+        			{
+		        		data:{t:+client_request_time/1e3, action:"get_time"},
+				        type:"GET",
+				        dataType:"JSON",
+				        success:function(data){
+        					var now = +new Date(),
+        						server_time = data.time*1e3,
+        						request_drift = data.drift*1e3,
+        						response_drift = now - server_time,
+        						response_time = (now - client_request_time)/2,
+        						avg_drift = (request_drift - response_drift) /2;
+
+        					drift += avg_drift-response_time;
+				        }
+	        		}
+	        	);
+	        	setTimeout(syncClock, 300*1e3);
+            })();
+
+            this.now = function(){
+                return +new Date()+drift;
+            }
+
+            this.getDrift = function(){
+                return drift;
+            }
+            return this;
+        }
+        $(function(){
+            var race_info = {{competition.as_json|safe}},
+                clock = new Clock();
+
+            setInterval(function(){
+                var MINUTE = 60, HOUR = 60*MINUTE, DAY = 24*HOUR, YEAR = 365.25*DAY
+                    timeLeft = Math.round((Date.parse(race_info.start_date) - clock.now())/1e3),
+                    years = Math.floor(timeLeft/YEAR),
+                    days = Math.floor((timeLeft-years*YEAR)/DAY),
+                    hours = Math.floor((timeLeft-years*YEAR-days*DAY)/HOUR),
+                    minutes = Math.floor((timeLeft-years*YEAR-days*DAY-hours*HOUR)/MINUTE),
+                    seconds = Math.floor(timeLeft%60);
+                    text = (years!=0?(years+" year"+(years>1?"s ":" ")):"")+
+                    (days!=0?(days+" day"+(days==1?" ":"s ")):(years==0?"":"0 days "))+
+                    (hours!=0?(hours+" hour"+(hours==1?" ":"s ")):(years==0&&days==0?"":"0 hours "))+
+                    (minutes!=0?(minutes+" minute"+(minutes==1?" ":"s ")):(years==0&&days==0&&hours==0?"":"0 minutes "))+
+                    (seconds!=0?(seconds+" second"+(seconds==1?"":"s")):(years==0&&days==0&&hours==0&&minutes==0?"":"0 seconds"));
+
+                if(timeLeft<=0){
+                    window.location.reload();
+                }
+                $("#countdown").html("<div style='text-align:center'><h2>Starts in "+text+".</h2></div>");
+            }, 500);
+        });
+    </script>
+{% endblock %}

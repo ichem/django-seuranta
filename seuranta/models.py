@@ -5,6 +5,8 @@ from django.dispatch import receiver
 from django.utils.translation import ugettext as _
 from django.utils.timezone import utc, now
 from django.core.urlresolvers import reverse
+from django.utils.safestring import mark_safe
+
 
 from .utils import short_uuid
 from .utils.validators import validate_latitude, validate_longitude
@@ -107,6 +109,12 @@ PUBLICATION_POLICY_CHOICES = (
    ("public", _('Public')),
 )
 
+INSCRIPTION_POLICY_CHOICES = (
+   ("intern", _('No')),
+   ("open", _('Yes, but require approval from you')),
+   ("anarchy", _('Yes, no need for approval')),
+)
+
 class Competition(models.Model):
     uuid = models.CharField(
         _('uuid'),
@@ -128,6 +136,13 @@ class Competition(models.Model):
         max_length=8,
         choices=PUBLICATION_POLICY_CHOICES,
         default="public"
+    )
+
+    inscription_policy = models.CharField(
+        _("open registration"),
+        max_length=8,
+        choices=INSCRIPTION_POLICY_CHOICES,
+        default="intern"
     )
 
     last_update = models.DateTimeField(_("last update"), auto_now=True)
@@ -168,7 +183,8 @@ class Competition(models.Model):
 
     calibration_string = models.CharField(
         _("calibration string"),
-        max_length=255
+        max_length=255,
+        help_text = mark_safe(_("<a href='http://rphl.net/files/calibrate_map.html'>Online tool</a>")),
     )
 
     @property
@@ -271,7 +287,7 @@ class Competition(models.Model):
             result['map_dataURI']=self.map_dataURI
             result['calibration_points']=self.calibration_points
 
-        for c in self.competitors.all():
+        for c in self.competitors.approved():
             result['competitors'].append(c.serialize())
         return result
 
@@ -298,7 +314,12 @@ def competition_post_delete_handler(sender, **kwargs):
     storage, path = competition.map.storage, competition.map.path
     storage.delete(path)
 
+class CompetitorManager(models.Manager):
+    def approved(self):
+        return self.get_queryset().filter(approved=True)
+
 class Competitor(models.Model):
+    objects = CompetitorManager()
     uuid = models.CharField(
         _("uuid"),
         max_length=36,
@@ -325,6 +346,7 @@ class Competitor(models.Model):
         blank=True
     )
 
+
     @property
     def utc_start_time(self):
         return utc.localize(self.competition.timezone.localize(self.start_time.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
@@ -346,6 +368,11 @@ class Competitor(models.Model):
         Tracker,
         verbose_name=_('tracker'),
         related_name="competitors"
+    )
+
+    approved = models.BooleanField(
+        _('approved'),
+        default=True
     )
 
     @property

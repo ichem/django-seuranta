@@ -1,5 +1,5 @@
 /*
- * @version 2012-01-10 smallWorld
+ * @version 2014-03-22 smallWorld
  * @author Raphael Stefanini
  * Small World Library
  */
@@ -35,34 +35,32 @@ LatLon = (function(){
 
 SpheroidProjection = (function(){
 	var p = "prototype",
-	pi = Math.PI,
+	m = Math,
+	pi = m.PI,
 	_180 = 180.0,
 	rad = 6378137,
-	originShift = pi * rad;
+	originShift = pi * rad,
+	pi_180 = pi/_180;
 	function S(){}
 	S[p].LatLonToMeters = function(latlon){
-		var lat = latlon.lat,
-			lon = latlon.lon,
-			mx = lon * originShift / _180,
-			my = Math.log( Math.tan((90 + lat) * Math.PI / _180 /2 )) / (pi / _180);
-		my = my * originShift / _180;
-		return new Point(mx, my);
+		return new Point(
+            latlon.lon*rad*pi_180,
+            m.log(m.tan((90+latlon.lat)*pi_180/2))*rad
+		);
 	},
 	S[p].MetersToLatLon = function(mxy){
-		var mx = mxy.x,
-			my = mxy.y,
-			lon = (mx / originShift) * _180,
-			lat = (my / originShift) * _180;
-		lat = _180 / Math.PI * (2 * Math.atan( Math.exp( lat * pi / _180)) - pi / 2.0);
-		return new LatLon(lat, lon);
+		return new LatLon(
+            (2*m.atan(m.exp(mxy.y/rad))-pi/2)/pi_180,
+            mxy.x/rad/pi_180
+		);
 	},
 	S[p].resolution = function(zoom){
-		return (2 * originShift) / (256 * Math.pow(2, zoom));
+		return (2 * originShift) / (256 * m.pow(2, zoom));
 	},
 	S[p].zoomForPixelSize = function(pixelSize ){
 		for(i=0; i<30; i++){
 			if(pixelSize > resolution(i)){
-				return Math.max(i-1,0);
+				return m.max(i-1,0);
 			}
 		}
 	},
@@ -78,7 +76,7 @@ SpheroidProjection = (function(){
 SmallWorld=(function(){
 	var p = "prototype",
 	m = Math,
-	mpow = Math.pow,
+	mpow = m.pow,
 	method_callback = function (object, method) {
 		return function() {return method.apply(object, arguments);};
 	},
@@ -103,17 +101,18 @@ SmallWorld=(function(){
 	};
 	function M(target, map_url, cal_pts, bg_url, overlay_img_url, on_loaded){
 		var cal_pts_meter = [
-            proj.LatLonToMeters(cal_pts[0]),
-			proj.LatLonToMeters(cal_pts[1]),
-			proj.LatLonToMeters(cal_pts[2])
-		];
+                proj.LatLonToMeters(cal_pts[0]),
+                proj.LatLonToMeters(cal_pts[1]),
+                proj.LatLonToMeters(cal_pts[2])
+            ],
+            map_image = new Image();
 
 		this.coordsToXy = derive(cal_pts, cal_pts_meter);
 		this.xyToCoords = derive(cal_pts_meter, cal_pts);
 
 		this.map_w = 0;
 		this.map_h = 0;
-		var map_image = new Image();
+
 		map_image.onload = method_callback(this, function() {
 			this.map_w = map_image.width;
 			this.map_h = map_image.height;
@@ -180,20 +179,20 @@ SmallWorld=(function(){
 		this._on_zoom();
 	};
 	M[p].zoom_in = function(){
-		this.view_x += this.el.width()/Math.pow(2, this.current_zoom)/4;
-		this.view_y += this.el.height()/Math.pow(2, this.current_zoom)/4;
+		this.view_x += this.el.width()/mpow(2, this.current_zoom)/4;
+		this.view_y += this.el.height()/mpow(2, this.current_zoom)/4;
 		this.current_zoom++;
 		this._on_zoom();
 	};
 	M[p].zoom_out = function(){
 		this.current_zoom--;
-		this.view_x -= this.el.width()/Math.pow(2, this.current_zoom)/4;
-		this.view_y -= this.el.height()/Math.pow(2, this.current_zoom)/4;
+		this.view_x -= this.el.width()/mpow(2, this.current_zoom)/4;
+		this.view_y -= this.el.height()/mpow(2, this.current_zoom)/4;
 		this._on_zoom();
 	};
 	M[p]._on_zoom = function(){
-		this.view_W= this.el.width()/Math.pow(2, this.current_zoom);
-		this.view_H= this.el.height()/Math.pow(2, this.current_zoom);
+		this.view_W= this.el.width()/mpow(2, this.current_zoom);
+		this.view_H= this.el.height()/mpow(2, this.current_zoom);
 		this.paper.setViewBox(this.view_x, this.view_y, this.view_W, this.view_H, false);
 
 		for(i=0;i<this.markers.length;i++){
@@ -214,8 +213,8 @@ SmallWorld=(function(){
 	};
 	M[p].ViewPortXYToLatLon = function(xy){
 		var x, y;
-		x = (xy.x/Math.pow(2, this.current_zoom) + this.view_x);
-		y = (xy.y/Math.pow(2, this.current_zoom) + this.view_y);
+		x = (xy.x/mpow(2, this.current_zoom) + this.view_x);
+		y = (xy.y/mpow(2, this.current_zoom) + this.view_y);
 		return this.MapXYToLatLon(new Point(x,y));
 	};
 	M[p].center = function(latlon){
@@ -244,7 +243,7 @@ SmallWorld=(function(){
 	};
 	K[p]._redraw = function(){
 		var xy = this.map.LatLonToMapXY(this.latlon),
-		s=Math.pow(2, this.map.current_zoom);
+		s=mpow(2, this.map.current_zoom);
 		this.circle.attr({
             cx:xy.x,
 			cy:xy.y,
@@ -271,7 +270,7 @@ SmallWorld=(function(){
 	}
 	P[p].draw = function(map){
 		this.map = map;
-		var path_val="M", i, path, xy;
+		var path_val="M", i, xy;
 		for(i=0; i<this.coords.length; i++){
 			if(i>0){
 				path_val+="L";

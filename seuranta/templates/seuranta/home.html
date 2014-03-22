@@ -6,7 +6,7 @@
     <h2><i class="fa fa-bolt"></i> {% trans "Live"%}</h2>
     <ul>
     {% for comp in live %}
-        <li><a href="{% url "seuranta.views.races_view" comp.uuid %}">{{comp.name}}</a></li>
+        <li><a href="{% url "seuranta.views.race_view" comp.uuid %}">{{comp.name}}</a></li>
     {% empty %}
         <li>{% trans "No live race"%}</li>
     {% endfor %}
@@ -14,7 +14,7 @@
     <h2><i class="fa fa-calendar"></i> {% trans "Upcoming"%}</h2>
     <ul>
     {% for comp in upcoming %}
-        <li><a href="{% url "seuranta.views.races_view" comp.uuid %}">{{comp.name}}</a></li>
+        <li><a href="{% url "seuranta.views.race_view" comp.uuid %}">{{comp.name}}</a></li>
     {% empty %}
         <li>{% trans "No race upcoming"%}</li>
     {% endfor %}
@@ -22,7 +22,7 @@
     <h2><i class="fa fa-archive"></i> {% trans "Archived"%}</h2>
     <ul>
     {% for comp in past %}
-        <li><a href="{% url "seuranta.views.races_view" comp.uuid %}">{{comp.name}}</a></li>
+        <li><a href="{% url "seuranta.views.race_view" comp.uuid %}">{{comp.name}}</a></li>
     {% empty %}
         <li>{% trans "No race archived"%}</li>
     {% endfor %}

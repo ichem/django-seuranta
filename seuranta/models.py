@@ -261,7 +261,7 @@ class Competition(models.Model):
 
     @models.permalink
     def get_absolute_url(self):
-        return ("seuranta.views.races_view", (), {'uuid':self.uuid})
+        return ("seuranta.views.race_view", (), {'uuid':self.uuid})
     absolute_url = property(get_absolute_url)
 
     @property

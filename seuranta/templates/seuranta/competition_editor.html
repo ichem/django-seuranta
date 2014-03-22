@@ -1,6 +1,40 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load crispy_forms_tags %}
 
 {% block content %}
-Sorry this function is still in development.
+<form method="post" action="." enctype="multipart/form-data" >
+<p>
+    {% csrf_token %}
+    {{ form|crispy }}
+</p>
+<fieldset>
+    <legend>Competitors</legend>
+    {{ competitor_formset.management_form }}
+    {{ competitor_formset.non_form_errors }}
+    {% for cform in competitor_formset %}
+        {{ cform.id }}
+        <div class="inline competitorform">
+            {{ cform.description.errors }}
+            {{ cform.description.label_tag }}
+            {{ cform.description }}
+            {{cform|crispy}}
+        </div>
+    {% endfor %}
+</fieldset>
+<p>
+  <input type="submit" value="{% trans 'Submit' %}" />
+</p>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ STATIC_URL }}seuranta/js/jquery.formset.min.js"></script>
+<script type="text/javascript">
+    $(function() {
+        $(".inline.competitorform").formset({
+            prefix: "competitorform",
+        })
+    })
+</script>
 {% endblock %}

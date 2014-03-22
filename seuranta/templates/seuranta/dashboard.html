@@ -1,22 +1,9 @@
+{% extends "base.html" %}
 {% load i18n %}
-<!DOCTYPE html>
-<html>
-<head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-	<title>{% trans "Manage your Events" %}</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=1" />
-	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" >
-</head>
-<body>
-<div class="container">
-    <a href="{% url 'seuranta.views.home' %}"><i class="fa fa-home"></i> {% trans "Home"%}</a> - <a href="{% url 'seuranta.views.tracker' %}"><i class="fa fa-location-arrow"></i> {% trans "Web Tracker"%}</a>
-    <hr/>
-    <h2><i class="fa fa-trophy"></i>{% trans "Your Events"%}</h2>
-    <div>
+
+{% block content %}
+<h2><i class="fa fa-trophy"></i> {% trans "Your Events"%}</h2>
+<div>
 	{% if  user.competitions.all.count %}
 	<table class="table table-striped">
 	    <thead>
@@ -47,12 +34,5 @@
     {% else %}
     <span>{% trans "You don't have any competition yet!"%}</span>
     {% endif %}
-    </div>
 </div>
-<script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
-<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
-<script>
-
-</script>
-</body>
-</html>
+{% endblock %}

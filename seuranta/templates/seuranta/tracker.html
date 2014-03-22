@@ -1,19 +1,17 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-	<title>GPS Tracker</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=1" />
-	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" >
-	<style type='text/css'>
-		#error{display:none}
-	</style>
-</head>
-<body>
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% trans "Web Tracker"%}
+{% endblock %}
+
+{% block extra_heads %}
+<style type='text/css'>
+	#error{display:none}
+</style>
+{% endblock %}
+
+{% block body %}
 <div class="container">
 	<div id="main" >
 		<h2>GPS Tracker</h2><button class="btn" id="lock_switch"></button>
@@ -44,8 +42,9 @@
 	</div>
 	<div id="error"><span id="error_message"></span></div>
 </div>
-<script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
-<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+{% endblock %}
+
+{% block extra_scripts %}
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
 <script type='text/javascript' src='{{STATIC_URL}}seuranta/js/positioning.js'></script>
 <script type='text/javascript'>//<![CDATA[
@@ -349,5 +348,4 @@ $(window).load(function(){
 
 });//]]>
 </script>
-</body>
-</html>
+{% endblock %}

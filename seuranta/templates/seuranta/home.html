@@ -1,21 +1,8 @@
+{% extends "base.html" %}
 {% load i18n %}
-<!DOCTYPE html>
-<html>
-<head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-	<title>Online GPS Tracking</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=1" />
-	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" >
-</head>
-<body>
-<div class="container">
-    <a href="{% url 'seuranta.views.tracker' %}"><i class="fa fa-location-arrow"></i> {% trans "Web Tracker"%}</a> - <a href="{% url 'seuranta.views.dashboard' %}"><i class="fa fa-cogs"></i> {% trans "Manage my events" %}</a>
-    <hr/>
-    <h1><i class="fa fa-trophy"></i> {% trans "Events"%}</h1>
+
+{% block content %}
+    <h1><i class="fa fa-trophy"></i> {% trans "Public Events"%}</h1>
     <h2><i class="fa fa-bolt"></i> {% trans "Live"%}</h2>
     <ul>
     {% for comp in live %}
@@ -40,8 +27,4 @@
         <li>{% trans "No race archived"%}</li>
     {% endfor %}
     </ul>
-</div>
-<script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
-<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
-</body>
-</html>
+{% endblock %}

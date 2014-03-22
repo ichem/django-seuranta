@@ -1,12 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ competition.name }}</title>
-    <link rel="shortcut icon" href="{{STATIC_URL}}icons/favicon.ico" type="image/x-icon" />
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
-    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
-    <style>
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ competition.name }}{% endblock %}
+
+{% block extra_heads %}
+<style>
         #main{
             position:absolute;
         	display:block;
@@ -75,8 +73,9 @@
             overflow-x:hidden;
         }
     </style>
-</head>
-<body>
+{% endblock %}
+
+{% block body %}
     <div id="main"></div>
     <div id="controls">
         <div id="main_control">
@@ -103,7 +102,9 @@
     <div id="toggle_controls">
         <a href="#" id="toggle_controls_button" class="control_button"><i class="fa fa-caret-square-o-left" ></i></a>
     </div>
-    <script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
+{% endblock %}
+
+{% block extra_scripts %}
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.2/raphael-min.js"></script>
     <script type="text/javascript" src="{{STATIC_URL}}seuranta/js/smallworldmap.js"></script>
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
@@ -432,6 +433,7 @@
                     left:$("#controls").width()+"px"
                 });
                 $("#toggle_controls_button").on("click", function(e){
+                    e.preventDefault();
                     if($("#controls").is(":visible")){
                         $("#controls").hide();
                         $("#toggle_controls").css({
@@ -473,5 +475,5 @@
             }
         });
     </script>
-</body>
-</html>
+{% endblock %}
+

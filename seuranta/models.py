@@ -6,27 +6,21 @@ from django.utils.translation import ugettext as _
 from django.utils.timezone import utc, now
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
+from django.core.validators import MinLengthValidator
 
-
-from .utils import short_uuid
+from .utils import short_uuid, slugify
 from .utils.validators import validate_latitude, validate_longitude
 from .utils import gps_codec
 
 from timezone_field import TimeZoneField
+from globetrotting.fields import GeoLocationField
 
 import datetime
 import imghdr
 import base64
 import json
 
-try:
-    from cStringIO import StringIO
-except:
-    from StringIO import StringIO
-try:
-    from PIL import Image
-except ImportError:
-    import Image
+#try:activated
 
 class Tracker(models.Model):
     uuid = models.CharField(
@@ -46,13 +40,13 @@ class Tracker(models.Model):
 
     handle = models.CharField(
         _('handle'),
-        max_length=52,
+        max_length=50,
         blank=True
     )
 
     pref_name = models.CharField(
         _('prefered name'),
-        max_length=52,
+        max_length=50,
         blank=True
     )
 
@@ -61,9 +55,32 @@ class Tracker(models.Model):
         auto_now_add=True
     )
 
-    last_seen = models.DateTimeField(
-        _("last date seen"),
-        auto_now=True
+    activated = models.BooleanField(
+        _("activated"),
+        editable = False,
+        default = False
+    )
+
+    last_location = GeoLocationField(
+        _("last location logged"),
+        editable = False,
+        blank = True,
+        null=True
+    )
+
+    _last_timestamp = models.FloatField(
+        blank=True, null=True,
+        editable=False
+    )
+
+    _last_latitude = models.FloatField(
+        blank=True, null=True,
+        validators=[validate_latitude], editable=False
+    )
+
+    _last_longitude = models.FloatField(
+        blank=True, null=True,
+        validators=[validate_longitude], editable=False
     )
 
     def get_absolute_url(self):
@@ -75,6 +92,14 @@ class Tracker(models.Model):
         return "<a href='%s' class='tracker_link'>Link to tracker</a>"%self.absolute_url
     get_html_link.short_description = _('tracker link')
     get_html_link.allow_tags = _('tracker link')
+
+    def save(self, *args, **kwargs):
+        if self.last_location is not None:
+            self._last_timestamp = self.last_location.timestamp
+            self._last_latitude = self.last_location.coords.latitude
+            self._last_longitude = self.last_location.coords.longitude
+
+        super(Competition, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return u"Tracker \"%s\", \"%s\""%(self.uuid, self.handle)
@@ -112,7 +137,7 @@ PUBLICATION_POLICY_CHOICES = (
 INSCRIPTION_POLICY_CHOICES = (
    ("intern", _('No')),
    ("open", _('Yes, but require approval from you')),
-   ("anarchy", _('Yes, no need for approval')),
+   ("free", _('Yes, no need for approval')),
 )
 
 class Competition(models.Model):
@@ -149,8 +174,17 @@ class Competition(models.Model):
 
     name = models.CharField(
         _('name'),
-        max_length=52,
-        default="Untitled"
+        max_length = 50,
+        default="Untitled",
+        validators = [MinLengthValidator(4)]
+    )
+
+    slug = models.SlugField(
+        _('slug'),
+        validators = [MinLengthValidator(4)],
+        editable = False,
+        max_length = 50,
+        unique=True
     )
 
     map = models.ImageField(
@@ -202,56 +236,32 @@ class Competition(models.Model):
             ]
         return []
 
-    start_date = models.DateTimeField(
-        _("start date"),
-        default=lambda:now()
-    )
-
-    end_date = models.DateTimeField(
-        _("end date"),
-        default=lambda:now()+datetime.timedelta(days=1)
-    )
-
     timezone = TimeZoneField(verbose_name=_("timezone"), default="UTC")
 
-    @property
-    def utc_start_date(self):
-        return utc.localize(self.timezone.localize(self.start_date.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
-
-    @utc_start_date.setter
-    def utc_start_date(self, value):
-        self.start_date = utc.localize(utc.localize(value.replace(tzinfo=None)).astimezone(self.timezone).replace(tzinfo=None))
-    _utc_start_date = models.DateTimeField(
-        _("start date (utc)"),
+    starting_date = models.DateTimeField(
+        _("opening date"),
         editable=False
     )
 
-    @property
-    def utc_end_date(self):
-        return utc.localize(self.timezone.localize(self.end_date.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
-
-    @utc_end_date.setter
-    def utc_end_date(self, value):
-        self.end_date = utc.localize(utc.localize(value.replace(tzinfo=None)).astimezone(self.timezone).replace(tzinfo=None))
-    _utc_end_date = models.DateTimeField(
-        _("end date (utc)"),
+    closing_date = models.DateTimeField(
+        _("closing date"),
         editable=False
     )
 
     @property
     def is_started(self):
-        return self.utc_start_date<now()
+        return self.starting_date<now()
 
     @property
     def is_completed(self):
-        return self.utc_end_date<now()
+        return self.closing_date<now()
 
     @property
     def is_current(self):
         return self.is_started and not self.is_completed
 
-    def end_competition(self):
-        self.utc_end_date = now()
+    def close_competition(self):
+        self.closing_date = now()
 
     tile_url_template = models.URLField(
         _('tile url field'),
@@ -265,20 +275,22 @@ class Competition(models.Model):
     absolute_url = property(get_absolute_url)
 
     @property
-    def iso_start_date(self):
-        return self.utc_start_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+    def iso_starting_date(self):
+        return (self.starting_date.astimezone(utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     @property
-    def iso_end_date(self):
-        return self.utc_end_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+    def iso_closing_date(self):
+        return (self.closing_date.astimezone(utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def serialize(self):
         result = {
             'uuid':self.uuid,
             'name':self.name,
-            'start_date':self.iso_start_date,
-            'end_date':self.iso_end_date,
             'timezone':str(self.timezone),
+            'schedule':{
+                'opening_date':self.iso_opening_date,
+                'closing_date':self.iso_closing_date,
+            },
             'tile_url_template':self.tile_url_template,
             'url':self.absolute_url,
             'competitors':[]
@@ -296,15 +308,22 @@ class Competition(models.Model):
         return json.dumps(self.serialize())
 
     def save(self, *args, **kwargs):
-        self._utc_start_date = self.utc_start_date
-        self._utc_end_date = self.utc_end_date
+        orig_slug = slugify(self.name)
+        desired_slug = orig_slug
+        next = 2
+        while Competition.objects.filter(slug = desired_slug)[:1]:
+            desired_slug = "%s%-%d"%(orig_slug[:48], next)
+            next += 1
+
+        self.slug = desired_slug
+
         super(Competition, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return u"Competition \"%s\", \"%s\""%(self.uuid, self.name)
 
     class Meta:
-        ordering = ["-_utc_start_date"]
+        ordering = ["-starting_date"]
         verbose_name = _("competition")
         verbose_name_plural = _("competitions")
 
@@ -327,42 +346,34 @@ class Competitor(models.Model):
         default=lambda:short_uuid(),
         unique=True
     )
+
     competition = models.ForeignKey(
         Competition,
         verbose_name=_('competition'),
         related_name="competitors"
     )
+
     name = models.CharField(
         _('name'),
-        max_length=52
+        max_length=50
     )
+
     shortname = models.CharField(
         _('short name'),
-        max_length=52
+        max_length=50
     )
-    start_time = models.DateTimeField(
-        _('start time'),
+
+    starting_time = models.DateTimeField(
+        _('starting time'),
         null=True,
         blank=True
     )
 
-
     @property
-    def utc_start_time(self):
-        return utc.localize(self.competition.timezone.localize(self.start_time.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
-
-    @utc_start_time.setter
-    def utc_start_time(self, value):
-        self.start_time = utc.localize(utc.localize(value.replace(tzinfo=None)).astimezone(self.competition.timezone).replace(tzinfo=None))
-    _utc_start_time = models.DateTimeField(
-        _("start time (utc)"),
-        editable=False,
-        default=lambda:now()
-    )
-
-    @property
-    def iso_start_time(self):
-        return self.utc_start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+    def iso_starting_time(self):
+        if self.starting_time is not None:
+            return (self.starting_time).astimezone(utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return None
 
     tracker = models.ForeignKey(
         Tracker,
@@ -388,22 +399,18 @@ class Competitor(models.Model):
             'uuid':self.uuid,
             'name':self.name,
             'shortname':self.shortname,
-            'start_time':self.iso_start_time,
+            'starting_time':self.iso_starting_time,
         }
 
     @property
     def as_json(self):
         return json.dumps(self.serialize())
 
-    def save(self, *args, **kwargs):
-        self._utc_start_time = self.utc_start_time
-        super(Competitor, self).save(*args, **kwargs)
-
     def __unicode__(self):
         return u"Competitor \"%s\" in %s"%(self.name, self.competition)
 
     class Meta:
-        ordering = ["competition", "start_time", "name"]
+        ordering = ["competition", "starting_time", "name"]
         verbose_name = _("competitor")
         verbose_name_plural = _("competitors")
 
@@ -425,11 +432,8 @@ class RouteSection(models.Model):
 
     last_update = models.DateTimeField(_("last update"), auto_now=True)
 
-    @property
-    def start_time(self):
-        return self.bounds
-    _start_time = models.DateTimeField(blank=True, null=True, editable=False)
-    _end_time = models.DateTimeField(blank=True, null=True, editable=False)
+    _start_datetime = models.DateTimeField(blank=True, null=True, editable=False)
+    _finish_datetime = models.DateTimeField(blank=True, null=True, editable=False)
 
     _north = models.FloatField(
         blank=True, null=True,
@@ -461,8 +465,8 @@ class RouteSection(models.Model):
         south=90
         east=-180
         west=180
-        start=float('inf')
-        end=0
+        start_t=float('inf')
+        end_t=-float('inf')
         for p in route:
             if p['lat']>north:
                 north=p['lat']
@@ -472,14 +476,14 @@ class RouteSection(models.Model):
                 west=p['lon']
             if p['lon']>east:
                 east=p['lon']
-            if p['t']<start:
-                start=p['t']
-            if p['t']>end:
-                end=p['t']
+            if p['t']<start_t:
+                start_t=p['t']
+            if p['t']>end_t:
+                end_t=p['t']
 
         return {
-            'start_time':start,
-            'end_time':end,
+            'start_timestamp':start_t,
+            'finish_timestamp':end_t,
             'north':north,
             'south':south,
             'west':west,
@@ -489,8 +493,8 @@ class RouteSection(models.Model):
     def save(self, *args, **kwargs):
         bounds = self.bounds
         if bounds:
-            self._start_time=utc.localize(datetime.datetime.fromtimestamp(bounds['start_time']))
-            self._end_time=utc.localize(datetime.datetime.fromtimestamp(bounds['end_time']))
+            self._start_datetime=utc.localize(datetime.datetime.fromtimestamp(bounds['start_timestamp']))
+            self._finish_datetime=utc.localize(datetime.datetime.fromtimestamp(bounds['finish_timestamp']))
             self._north=bounds['north']
             self._south=bounds['south']
             self._west=bounds['west']

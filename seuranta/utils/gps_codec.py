@@ -58,7 +58,7 @@ def encode(pts):
 
 class GpsPoint(dict):
 	def __hash__(self):
-		return hash(self['t'])
+		return hash(self['timestamp'])
 
 def decode(route, since=0):
 	r = set([])

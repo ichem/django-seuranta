@@ -10,6 +10,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import cache_page
 from django.views.decorators.cache import never_cache
 
+from geoposition import Geoposition
+
 from .models import Competition, Competitor, RouteSection, Tracker
 from .utils import gps_codec
 from .forms import CompetitionForm, CompetitorForm, CompetitorFormSet
@@ -22,18 +24,18 @@ def home(request):
     tim = now()
 
     live = Competition.objects.filter(
-        _utc_start_date__lte=tim,
-        _utc_end_date__gte=tim,
+        utc_start_date__lte=tim,
+        utc_end_date__gte=tim,
         publication_policy="public"
     )
     upcoming = Competition.objects.filter(
-        _utc_start_date__gt=tim,
-        _utc_end_date__gt=tim,
+        utc_start_date__gt=tim,
+        utc_end_date__gt=tim,
         publication_policy="public"
     )
     past = Competition.objects.filter(
-        _utc_start_date__lt=tim,
-        _utc_end_date__lt=tim,
+        utc_start_date__lt=tim,
+        utc_end_date__lt=tim,
         publication_policy="public"
     )
     return render_to_response(
@@ -62,28 +64,38 @@ def dashboard(request):
 
 @login_required
 @never_cache
-def dashboard_edit_race(request, uuid):
-	obj = get_object_or_404(
-		Competition,
-		uuid = uuid,
-		publisher = request.user
-	)
-	if request.method == "POST":
-		competition_form = CompetitionForm(request.POST, request.FILES, instance=obj)
-		competitor_formset = CompetitorFormSet(request.POST, instance=obj)
-		if competition_form.is_valid() and competitor_formset.is_valid():
-			competition_form.save()
-			competitor_formset.save()
-			return HttpResponseRedirect(reverse('seuranta.views.dashboard'))
-	else:
-		competition_form = CompetitionForm(instance=obj)
-		competitor_formset = CompetitorFormSet(instance=obj)
+def dashboard_edit_race(request, uuid=None):
+    obj=None
+    if uuid is not None:
+    	obj = get_object_or_404(
+	    	Competition,
+		    uuid = uuid,
+		)
+        if obj.publisher != request.user:
+            return HttpResponse(status=403)
 
-	return render_to_response(
+    	if request.method == "POST":
+	    	competition_form = CompetitionForm(request.POST, request.FILES, instance=obj)
+	    	competitor_formset = CompetitorFormSet(request.POST, instance=obj)
+	    	if competition_form.is_valid() and competitor_formset.is_valid():
+	    	    competition_form.save()
+	    	    competitor_formset.save()
+	    	    return HttpResponseRedirect(reverse('seuranta.views.dashboard'))
+        else:
+		    competition_form = CompetitionForm(instance=obj)
+		    competitor_formset = CompetitorFormSet(instance=obj)
+
+    else:
+        competition_form = CompetitionForm()
+        competitor_formset = CompetitorFormSet()
+
+    competitor_form = CompetitorForm()
+    return render_to_response(
 		'seuranta/competition_editor.html',
 		{
 		    'competition':obj,
-		    'form':competition_form,
+		    'competition_form':competition_form,
+		    'competitor_form':competitor_form,
 		    'competitor_formset':competitor_formset,
 		},
 		RequestContext(request)
@@ -135,59 +147,143 @@ def race_view(request, uuid):
 @csrf_exempt
 @cache_page(5)
 def api(request, action="update_track"):
-    if request.method == "POST":
+    response = {
+        "status":"K0",
+        "code":400,
+        "msg":"Invalid api request",
+        "data":{
+            "help":""
+        }
+    }
+    if request.method == "POST" and 'uuid' in request.POST:
         if action == "delete_race":
-            if not request.user.is_authenticated():
-                return HttpResponse(status=403)
-
             uuid = request.POST.get('uuid')
-            obj = get_object_or_404(
-                Competition,
-                uuid = uuid,
-            )
-            if obj.publisher != request.user:
-                return HttpResponse(status=403)
-
-            obj.delete()
-            return HttpResponse("OK")
-
+            try:
+                obj = Competition.objects.get(uuid = uuid)
+            except Competiton.DoesNotExist:
+                response = {
+                    "status":"K0",
+                    "code":404,
+                    "msg":"Race do not exist",
+                    "data":{
+                        "uuid":uuid
+                    }
+                }
+            else:
+                if request.user.is_authenticated() and obj.publisher == request.user:
+                    obj.delete()
+                    response = {
+                        "status":"OK",
+                        "msg":"Race deleted",
+                        "data":{
+                            "uuid":uuid
+                        }
+                    }
+                else:
+                    response = {
+                        "status":"K0",
+                        "code":403,
+                        "msg":"Unauthorized api call",
+                        "data":{
+                            "uuid":uuid
+                        }
+                    }
+    # if request.method == "POST" and 'uuid' in request.POST:
+    	# if action == "delete_race":
+            # ...
     	elif action == "update_track":
-            uuid = request.POST.get("secret")
-            encoded_data = request.POST.get("encoded_data")
+            uuid = request.POST.get("uuid")
+            try:
+                tracker = Tracker.objects.get(uuid=uuid)
+            except Tracker.DoesNotExist:
+                response = {
+                    "status":"K0",
+                    "code":404,
+                    "msg":"Tracker do not exist",
+                    "data":{
+                        "uuid":"uuid"
+                }
+            else:
+                if 'encoded_data' in request.POST:
+                    encoded_data = request.POST.get("encoded_data")
 
-            if encoded_data is None or len(encoded_data)==0:
-                try:
-                    lat = float(request.POST.get("latitude"))
-                    lon = float(request.POST.get("longitude"))
-                    tim = time.time()
-                    route = [{'t':tim, 'lat':lat, 'lon':lon}]
+                    try:
+                        route = gps_codec.decode(encoded_data)
+                    except:
+                        response = {
+                            "status":"K0",
+                            "code":404,
+                            "msg":"Tracker do not exist",
+                            "data":{
+                                "uuid":"uuid"
+                        }
+                elif 'latitude' in request.POST and 'longitude' in request.POST:
+                   try:
+                        lat = float(request.POST.get("latitude"))
+                        lon = float(request.POST.get("longitude"))
+                        tim = time.time()
+                        route = [{'timestamp':tim, 'coords':GeoPosition(lat, lon)}]
+                    except Value:
+                        route = None
+                finally:
+
+                if encoded_data is None or len(encoded_data)==0:
+                    try:
+                        lat = float(request.POST.get("latitude"))
+                        lon = float(request.POST.get("longitude"))
+                        tim = time.time()
+                        route = [{'t':tim, 'lat':lat, 'lon':lon}]
                 except:
                     route = None
             else:
                 try:
-                    route = gps_codec.decode(encoded_data)
+
                 except:
                     route = None
 
             if route is None:
-                return HttpResponse("No route data")
-
-            if uuid is not None and route is not None:
+                response = {
+                    "status":"K0",
+                    "code":400,
+                    "msg":"Invalid route data",
+                    "data":None
+                }
+            elif uuid is not None:
                 try:
                     tracker = Tracker.objects.get(uuid=uuid)
                 except Tracker.DoesNotExist:
-                    return HttpResponse("Secret do not match any tracker")
+                    response = {
+                        "status":"K0",
+                        "code":404,
+                        "msg":"Tracker do not exist",
+                        "data":{
+                            "uuid":"uuid"
+                    }
+                else:
+                    tim = now()
 
-                tim = now()
-                competitors = tracker.competitors.filter(
-                    competition___utc_start_date__lt=tim,
-                    competition___utc_end_date__gt=tim
-                )
+                    coords = route[len(route)-1]
+                    tracker.last_seen = now
 
-                if len(competitors)==0:
-                    return HttpResponse("No competitor assigned")
+                    tracker.last_position = Geoposition(coords['latitude'], coords['longitude'])
 
-                for c in competitors:
+                    live_competitors = tracker.competitors.filter(
+                        competition__utc_start_date__lt=tim,
+                        competition__utc_end_date__gt=tim,
+                        approved=True
+                    )
+
+                    if len(live_competitors)==0:
+                        response = {
+                            "status":"0K",
+                            "code":200,
+                            "msg":"Data received",
+                            "data":{
+                                "info":"No competitor currently assigned"
+                            }
+                        }
+
+                for c in valid_competitors:
                     section = RouteSection(competitor=c)
                     section.route = route
                     section.save()
@@ -260,4 +356,11 @@ def api(request, action="update_track"):
                     })
                 return HttpResponse(json.dumps(result), content_type='application/json')
 
-    return HttpResponse("")
+
+    response_json = json.dumps(response)
+
+    if 'callback' in request.GET:
+        data = '%s(%s);' % (request.REQUEST['callback'], response_json)
+        HttpResponse(response_json, content_type='application/json')
+    return HttpResponse(response_json, content_type='application/json')
+

@@ -9,7 +9,7 @@ urlpatterns = patterns('seuranta.views',
 		"dashboard",
 	),
 
-	url(r'^dashboard/race/(?P<uuid>[0-9a-zA-Z_-]+)/?$',
+	url(r'^dashboard/race/(?P<uuid>[0-9a-zA-Z_-]+)?/?$',
 		"dashboard_edit_race",
 	),
 

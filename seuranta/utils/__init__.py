@@ -1,3 +1,12 @@
+def slugify(s):
+    from django.template.defaultfilters import slugify as _slugify
+    try:
+        from unidecode import unidecode
+        s = unidecode(s)
+    except:
+        pass
+    return _slugify(s)
+
 def formatSize(bytes, si=True):
     thresh = 1000 if si else 1024
     unit = "B" if si else "iB"

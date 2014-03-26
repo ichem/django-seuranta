@@ -1,3 +1,7 @@
+def format_date_iso(val):
+    from django.utils.timezone import utc
+    return (val.astimezone(utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
 def slugify(s):
     from django.template.defaultfilters import slugify as _slugify
     try:
@@ -23,6 +27,10 @@ def formatSize(bytes, si=True):
 def short_uuid():
     import uuid
     return uuid.uuid4().bytes.encode('base64').rstrip('=\n').replace('/', '_').replace('+', '-')
+
+def short_sha256(val):
+    from hashlib import sha256
+    return sha256(val).bytes.encode('base64').rstrip('=\n').replace('/', '_').replace('+', '-')
 
 def cmp_float(a,b):
     if abs(a-b)<1e-9:
@@ -60,3 +68,4 @@ def remoteFileExist(url):
         return True
     except:
         return False
+

@@ -1,3 +1,5 @@
+from globetrotting import GeoLocation
+
 def encodeNumber(num):
 	encoded = "";
 	while (num >= 0x20):
@@ -32,15 +34,16 @@ def decodeNumber(encoded):
 YEAR2000=946684800
 
 def encode(pts):
-	sorted_pts = sorted(pts, key=lambda pt: pt['t'])
+	sorted_pts = sorted(pts, key=lambda pt: pt.timestamp)
 	p_lat = 0
 	p_lon = 0
 	p_t = YEAR2000
 	encoded_route = ""
+
 	for pt in sorted_pts:
-		t = int(pt['t'])
-		lat = int(pt['lat']*1e5)
-		lon = int(pt['lon']*1e5)
+		t = int(pt.timestamp)
+		lat = int(float(pt.coordinates.latitude)*1e5)
+		lon = int(float(pt.coordinates.longitude)*1e5)
 
 		dt = t - p_t
 		dlat = lat - p_lat
@@ -56,14 +59,11 @@ def encode(pts):
 
 	return encoded_route
 
-class GpsPoint(dict):
-	def __hash__(self):
-		return hash(self['timestamp'])
-
-def decode(route, since=0):
-	r = set([])
+def decode(route, since=None):
 	if not route:
-		return r
+		return None
+
+	r = set([])
 
 	lat = 0
 	lon = 0
@@ -78,6 +78,7 @@ def decode(route, since=0):
 		lon += dlon
 		t += dt
 
-		if t >= since:
-			r.add(GpsPoint({'t':t, 'lat':lat/1e5, 'lon':lon/1e5}))
-	return r
+		if not since or t >= since:
+			r.add(GeoLocation(t, (lat/1e5, lon/1e5)))
+
+	return sorted(r, key=lambda pt: pt.timestamp)

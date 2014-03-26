@@ -48,7 +48,7 @@ class CompetitorInlineAdmin(admin.TabularInline):
 	prepopulated_fields = {'shortname':('name',),}
 
 class TrackerAdmin(PublisherAdmin):
-	list_display = ('uuid', 'handle', 'pref_name', 'creation_date', 'last_seen', 'get_html_link')
+	list_display = ('uuid', 'creation_date', 'get_html_link')
 	class Media:
 	    js = {
             "//code.jquery.com/jquery-2.1.0.min.js",
@@ -57,7 +57,7 @@ class TrackerAdmin(PublisherAdmin):
         }
 
 class CompetitionAdmin(PublisherAdmin):
-    list_display = ('uuid', 'name', '_utc_start_date', '_utc_end_date', 'map_format', "is_started", "is_completed", "is_current")
+    list_display = ('uuid', 'name', 'opening_date', 'closing_date', 'map_format', "is_started", "is_completed", "is_current")
 
     inlines = [
         CompetitorInlineAdmin,

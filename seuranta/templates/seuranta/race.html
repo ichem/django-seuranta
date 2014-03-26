@@ -104,15 +104,16 @@
 </div>
 {% endblock %}
 
-{% block extra_scripts %}
-<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.2/raphael-min.js"></script>
-<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/smallworldmap.min.js"></script>
-<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/server_clock.min.js"></script>
-<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
-<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.0.3/moment-timezone.min.js"></script>
-<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/moment-timezone-data.min.js"></script>
-<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/positioning.min.js"></script>
-<script>
+{% block extra_scripts %} 
+<script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script> 
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.2/raphael-min.js"></script> 
+<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/smallworldmap.js"></script> 
+<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/server_clock.js"></script> 
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script> 
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.0.3/moment-timezone.min.js"></script> 
+<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/moment-timezone-data.min.js"></script> 
+<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/positioning.min.js"></script> 
+<script> 
 var COLORS = new function(){
 	var colors = ["#09F","#9F0","#F09","#F90","#90F","#FF0","#7FF","#F00","#F99","#00F","#FF7","#BFB"];
     $t = this;
@@ -143,9 +144,9 @@ var Competitor = function(options){
 </script>
 <script>
 $(function(){
-    var race_info = {{competition.as_json|safe}},
-        ROUTES_API_URL = '{% url 'seuranta.views.api' 'get_route' %}',
-        TIME_API_URL = '{% url 'seuranta.views.api' 'get_time' %}',
+    var race_info = {{competition.dump_json|safe}},
+        ROUTES_API_URL = '{% url 'seuranta.views.api' 'competitor/routes' %}',
+        TIME_API_URL = '{% url 'seuranta.views.api' 'clock/drift' %}',
         is_started=false,
         is_completed=false,
         PLAYER_DELAY=30e3,
@@ -157,8 +158,8 @@ $(function(){
         map=null,
         prev_fetch_time=null;
 
-    is_started = (clock.now() - Date.parse(race_info.start_date))>0;
-    is_completed = (clock.now() - Date.parse(race_info.end_date))>0;
+    is_started = (clock.now() - Date.parse(race_info.schedule.opening_date))>0;
+    is_completed = (clock.now() - Date.parse(race_info.schedule.closing_date))>0;
 
     var competitors = {};
     $.each(race_info.competitors, function(i, el){
@@ -183,7 +184,7 @@ $(function(){
     });
 
     var whileUncompleteFunction = function(){
-        is_completed = (clock.now() - Date.parse(race_info.end_date))>0;
+        is_completed = (clock.now() - Date.parse(race_info.schedule.closing_date))>0;
 
         var list_uuids = $.map(race_info.competitors, function(el){
             return el.uuid;
@@ -204,16 +205,18 @@ $(function(){
                 data:query_args,
                 dataType:"json",
             })
-            .done(function(data){
-                $.each(data.result, function(i, d){
-                    var uuid = d.competitor_id;
-                    if(competitors[uuid]){
-                        var positions = PositionArchive.fromTks(d.encoded_route);
-                        $.each(positions.getArray(), function(i, pt){
-                            competitors[uuid].positions.add(pt);
-                        });
-                    }
-                });
+            .done(function(response){
+                if(response.status=="OK"){
+                    $.each(response.data.routes, function(i, d){
+                        var uuid = d.competitor.uuid;
+                        if(competitors[uuid]){
+                            var positions = PositionArchive.fromTks(d.encoded_route);
+                            $.each(positions.getArray(), function(i, pt){
+                                competitors[uuid].positions.add(pt);
+                            });
+                        }
+                    });
+                }
             });
         }
 
@@ -225,15 +228,15 @@ $(function(){
     };
 
     var onComplete = function(){
-        time_displayed = Date.parse(race_info.start_date);
+        time_displayed = Date.parse(race_info.schedule.opening_date);
         play_rate = 0;
     };
 
     if(is_started){
-        map = new SmallWorld.Map("main", race_info.map_dataURI, race_info.calibration_points, "", "", function(){
+        map = new SmallWorld.Map("main", race_info.map.image_data_uri, race_info.map.calibration_points, "", "", function(){
             map.center(map.MapXYToLatLon({x:map.map_w/2, y:map.map_h/2}));
             whileUncompleteFunction();
-        });
+        }, false);
 
         (function refreshDisplay(){
             var now = +new Date();
@@ -244,8 +247,8 @@ $(function(){
                 time_displayed = clock.now()-PLAYER_DELAY;
                 play_rate = 1;
             }
-            if(time_displayed > Date.parse(race_info.end_date)){
-                time_displayed = Date.parse(race_info.start_date);
+            if(time_displayed > Date.parse(race_info.schedule.closing_date)){
+                time_displayed = Date.parse(race_info.schedule.opening_date);
                 play_rate = 0;
             }
             var t, tz=race_info.timezone;
@@ -260,8 +263,8 @@ $(function(){
             $("#tz_display").text( tz );
             $("#play_rate_display").text( "x"+PLAY_RATES[play_rate] );
 
-            var t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.end_date))-Date.parse(race_info.start_date),
-                t_perc = (time_displayed-Date.parse(race_info.start_date))/t_elapsed*100;
+            var t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.schedule.closing_date))-Date.parse(race_info.schedule.opening_date),
+                t_perc = (time_displayed-Date.parse(race_info.schedule.start_date))/t_elapsed*100;
             $("#timeline_bar").css({
                 "width":t_perc+"%"
             });
@@ -385,8 +388,8 @@ $(function(){
         });
         $("#timeline").on("click", function(e){
             var w = $(this).width(),
-                t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.end_date))-Date.parse(race_info.start_date);
-            time_displayed = Date.parse(race_info.start_date)+e.clientX/w*t_elapsed;
+                t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.schedule.closing_date))-Date.parse(race_info.schedule.opening_date);
+            time_displayed = Date.parse(race_info.schedule.opening_date)+e.clientX/w*t_elapsed;
         });
 
         $("#toggle_controls").css({

@@ -18,6 +18,12 @@ setup(
     author='Raphael Stefanini',
     author_email='rphl@rphl.net',
     zip_safe=False,
+    package_data={
+        'seuranta': [
+            'templates/seuranta/*.html',
+            'static/seuranta/*',
+        ],
+    },
     classifiers=[
       'Development Status :: Beta',
       'Environment :: Web Environment',
@@ -27,5 +33,5 @@ setup(
       'Operating System :: OS Independent',
       'Programming Language :: Python',
     ],
-    install_requires=['django-timezone-field >= 1.0', 'django-geoposition'],
+    install_requires=['django-timezone-field >= 1.0', 'django-country', 'django-globetrotting', 'requests', 'simplejson'],
 )

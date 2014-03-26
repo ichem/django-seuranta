@@ -1,0 +1,45 @@
+{% load i18n %}<!DOCTYPE html> 
+<html lang="en"> 
+<head> 
+{% block head %}
+    <title>{% block title %}Seuranta - GPS Tracking{% endblock %}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" > {% endblock %} {% block extra_heads %} {% endblock %} 
+</head> 
+<body> 
+{% block body %} 
+<div class="container">
+    <div id="header">
+        {% block header %}
+        <a href="{% url 'seuranta.views.home' %}"><i class="fa fa-home" ></i> {% trans "Home" %}</a> -
+        <a href="{% url 'seuranta.views.tracker' %}"><i class="fa fa-location-arrow" ></i> {% trans "Web Tracker" %}</a> -
+        <a href="{% url 'seuranta.views.dashboard' %}"><i class="fa fa-cogs"></i> {% trans "My events" %}</a> -
+        <hr />
+        {% endblock %}
+    </div>
+    <div id="content">
+        {% block content %}{% endblock %}
+    </div>
+    <div id="footer">
+        {% block footer %}
+         <hr />
+        <p>
+            <i class="fa fa-info-circle"></i> This site is currently in it's develoment phase and is free to use.<br/>
+            This site make use of the django-seuranta application which source is availabe on github <a href="https://github.com/rphlo/django-seuranta">https://github.com/rphlo/django-seuranta</a>.<br/>
+            If you wish to add your event or host a similar site on your own server and need help please send an email to seuranta(at)rphl.net.
+        </p>
+        {% endblock %}
+    </div> 
+</div> 
+{% block default_scripts %} 
+<script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script> 
+<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script> 
+{% endblock %} 
+{% endblock %}
+{% block extra_scripts %} 
+{% endblock %}
+</body> 
+</html>

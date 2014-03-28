@@ -9,14 +9,14 @@ from django.utils.safestring import mark_safe
 from django.core.validators import MinLengthValidator
 
 from .utils import short_uuid, slugify, format_date_iso
-
+from .utils.validators import validate_short_uuid
 from .utils import gps_codec
 
-from timezone_field import TimeZoneField
-from django_countries.fields import CountryField
+from .fields import ShortUUIDField
 
-from globetrotting import GeoCoordinates
-from globetrotting.fields import GeoLocationField, GeoCoordinatesField
+from timezone_field import TimeZoneField
+
+from globetrotting.fields import GeoLocationField
 from globetrotting.validators import validate_latitude, validate_longitude
 
 import datetime
@@ -24,13 +24,12 @@ import imghdr
 import base64
 import json
 
+import pytz
+
 class Tracker(models.Model):
-    uuid = models.CharField(
+    uuid = ShortUUIDField(
         _("uuid"),
-        max_length=36,
-        editable=False,
-        default=lambda:short_uuid(),
-        unique=True
+        primary_key = True
     )
 
     creation_date = models.DateTimeField(
@@ -66,16 +65,30 @@ class Tracker(models.Model):
         blank=True, null=True,
         validators=[validate_longitude], editable=False
     )
-
+    
+    @models.permalink
     def get_absolute_url(self):
-        return "%s#%s"%(reverse("seuranta.views.tracker"), self.uuid)
-    get_absolute_url.short_description = _("Link")
+        kwargs = {'uuid':self.uuid}
+        return ("seuranta.views.tracker", (), kwargs)
     absolute_url = property(get_absolute_url)
-
-    def get_html_link(self):
+    
+    def get_html_link_tag(self):
         return "<a href='%s' class='tracker_link'>Link to tracker</a>"%self.absolute_url
-    get_html_link.short_description = _('tracker link')
-    get_html_link.allow_tags = _('tracker link')
+    get_html_link_tag.short_description = _('tracker link')
+    get_html_link_tag.allow_tags = _('tracker link')
+
+    def get_competitor_list_tag(self):
+        competitors = self.competitors.filter(competition__closing_date__gt=now())
+        r = []
+        for c in competitors:
+            cc = c.competition
+            if not cc.is_started:
+                r.append("<span>&qout;%s&qout; in &qout;%s&quot;. Starting in <span class='countdown'>%s to %s</span>"%(c.name, cc.name, format_date_iso(cc.opening_date)))
+            else:
+                r.append("<span>&qout;%s&qout; in &qout;%s&quot;. Until in <span class='countdown'>%s to %s</span>"%(c.name, cc.name, format_date_iso(cc.closing_date)))
+        return '<br/>'.join(r)
+    get_competitor_list_tag.short_description = _('current & future tracking jobs')
+    get_competitor_list_tag.allow_tags = _('current & future tracking jobs')
 
     def save(self, *args, **kwargs):
         if self.last_location is not None:
@@ -113,12 +126,9 @@ def map_upload_path(instance=None, filename=None):
 
 
 class Competition(models.Model):
-    uuid = models.CharField(
-        _('uuid'),
-        max_length=36,
-        editable=False,
-        default=lambda:short_uuid(),
-        unique=True
+    uuid = ShortUUIDField(
+        _("uuid"),
+        primary_key = True
     )
 
     last_update = models.DateTimeField(_("last update"), auto_now=True)
@@ -158,24 +168,9 @@ class Competition(models.Model):
         unique=True
     )    
     
-    timezone = TimeZoneField(verbose_name=_("timezone"), default="UTC")
-
-    INSCRIPTION_METHOD_CHOICES = (
-       ("intern", _('Closed')),
-       ("mail", _('Require Approval')),
-       ("open", _('Open')),
-    )
-
-    inscription_method = models.CharField(
-        _("inscription method"),
-        max_length=8,
-        choices=INSCRIPTION_METHOD_CHOICES,
-        default="intern"
-    )
-    
-    inscription_deadline = models.DateTimeField(
-        _("inscription deadline"),
-        blank=True, null=True,
+    timezone = TimeZoneField(
+        verbose_name=_("timezone"), 
+        default="UTC", 
     )
 
     map = models.ImageField(
@@ -205,6 +200,7 @@ class Competition(models.Model):
             return self.BLANK_SIZE     
         else:
             return {'width':self.map_width, 'height':self.map_height}
+
     BLANK_FORMAT = "image/gif"
     @property
     def map_format(self):
@@ -311,7 +307,10 @@ class Competition(models.Model):
 
     @models.permalink
     def get_absolute_url(self):
-        return ("seuranta.views.race_view", (), {'uuid':self.uuid})
+        kwargs = {'username':self.publisher.username, 'slug':self.slug}
+        if self.publication_policy == 'secret':
+            kwargs['uuid']=self.uuid
+        return ("seuranta.views.race_view", (), kwargs)
     absolute_url = property(get_absolute_url)
 
     def serialize(self, include_private_data = False):
@@ -345,13 +344,10 @@ class Competition(models.Model):
             result['map']['size']=self.BLANK_SIZE
             result['map']['format']=self.BLANK_FORMAT
             
-        if include_private_data:
-            competitor_set = self.competitors.all()
-        else:
-            competitor_set =  self.competitors.approved()
+        competitor_set = self.competitors.all()
         
         for c in competitor_set:
-            result['competitors'].append(c.serialize(include_private_data))
+            result['competitors'].append(c.serialize())
         
         return result
 
@@ -363,16 +359,22 @@ class Competition(models.Model):
         return True
 
     def save(self, *args, **kwargs):
-        if self.slug is None:
-            orig_slug = slugify(self.name)
-            desired_slug = orig_slug
-            next = 2
-            ending = ""
-            while Competition.objects.filter(slug = desired_slug)[:1]:
-                desired_slug = "%s%s"%(orig_slug[:21-len(ending)], ending)
-                ending = "-%d"%next
-                next += 1
-            self.slug = desired_slug
+        orig_slug = slugify(self.name)
+        desired_slug = orig_slug
+        next = 2
+        ending = ""
+        
+        qs = Competition.objects.all()
+        if self.pk:
+            qs.exclude(pk=self.pk)
+
+        qs.filter(publisher_id=self.publisher_id)
+
+        while qs.filter(slug = desired_slug)[:1]:
+            desired_slug = "%s%s"%(orig_slug[:21-len(ending)], ending)
+            ending = "-%d"%next
+            next += 1
+        self.slug = desired_slug
         super(Competition, self).save(*args, **kwargs)
 
     def __unicode__(self):
@@ -389,18 +391,10 @@ def competition_post_delete_handler(sender, **kwargs):
     storage, path = competition.map.storage, competition.map.path
     storage.delete(path)
 
-class CompetitorManager(models.Manager):
-    def approved(self):
-        return self.get_queryset().filter(is_approved=True)
-
 class Competitor(models.Model):
-    objects = CompetitorManager()
-    uuid = models.CharField(
+    uuid = ShortUUIDField(
         _("uuid"),
-        max_length=36,
-        editable=False,
-        default=lambda:short_uuid(),
-        unique=True
+        primary_key = True
     )
 
     competition = models.ForeignKey(
@@ -424,18 +418,14 @@ class Competitor(models.Model):
         null=True,
         blank=True
     )
-
+    
     tracker = models.ForeignKey(
         Tracker,
         verbose_name=_('tracker'),
-        related_name="competitors"
+        related_name="competitors",
+        editable=False,
     )
-
-    is_approved = models.BooleanField(
-        _('is approved?'),
-        default=True
-    )
-
+    
     @property
     def route(self):
         route_sections = self.route_sections.all()
@@ -443,8 +433,8 @@ class Competitor(models.Model):
         for route_section in route_sections:
             route = route.union(route_section.route)
         return sorted(route)
-
-    def serialize(self, include_private_data):
+    
+    def serialize(self):
         result = {
             'uuid':self.uuid,
             'data':{
@@ -453,16 +443,15 @@ class Competitor(models.Model):
                 'starting_time':format_data_iso(self.starting_time),
             }
         }
-        if include_private_data:
-            result['data']['approved']=self.is_approved
     
     def dump_json(self):
         return json.dumps(self.serialize())
-
+    
     def __unicode__(self):
         return u"Competitor \"%s\" in %s"%(self.name, self.competition)
-
+    
     class Meta:
+        unique_together = (("tracker", "competition"),)
         ordering = ["competition", "starting_time", "name"]
         verbose_name = _("competitor")
         verbose_name_plural = _("competitors")
@@ -558,88 +547,3 @@ class RouteSection(models.Model):
         ordering = ["-last_update"]
         verbose_name = _("route section")
         verbose_name_plural = _("route sections")
-
-class UserSettings(models.Model):
-    MALE = 'Male'
-    FEMALE = 'Female'
-    AGENDER = '-'
-    METRIC = 'Metric'
-    IMPERIAL = 'Imperial'
-
-    SEX_CHOICES = (
-        ('M', MALE),
-        ('F', FEMALE),
-        ('-', AGENDER)
-    )
-
-    UNITS_CHOICES = (
-        ('M', METRIC),
-        ('I', IMPERIAL),
-    )
-    
-    user = models.ForeignKey(
-        User,
-        related_name="_seuranta_settings",
-        unique=True,
-        editable=False
-    )
-
-    fullname = models.CharField(
-        _('full name'),
-        max_length=50,
-        blank=True,
-        help_text = _("the name you want to see appear when you compete."),
-    )
-
-    d_o_b = models.DateField(
-        _('Date of birth'),
-        default=lambda:(now()-timedelta(days=int(365.25*30)))
-    )
-    
-    sex = models.CharField(
-        _('sex'),
-        max_length=1,
-        choices=SEX_CHOICES,
-        default=AGENDER
-    )
-    
-    use_metrics = models.BooleanField(
-        _('use the metric system'),
-        default=True
-    )
-    
-    home = GeoCoordinatesField(
-        _('home location'), 
-        default=GeoCoordinates(60.16666, 22.75)
-    )
-
-    timezone = TimeZoneField(
-        verbose_name=_("timezone"), 
-        default='UTC'
-    )
-    
-    nationality = CountryField(
-        _('nationality'),
-        blank=True, null=True,
-    ),    
-
-    default_tracker_uuid = models.CharField(
-        _("default tracker uuid"),
-        max_length=36,
-        editable=False,
-        default=lambda:short_uuid(),
-        unique=True
-    )
-    
-    def __unicode__(self):
-        return self.user.username
-
-    class Meta:
-        verbose_name='settings'
-        verbose_name_plural='settings'
-
-def retrieve_settings(user):
-    user_settings, created = UserSettings.get_or_create(user_id=u.id)
-    return user_settings
-
-User.seuranta_settings = property(retrieve_settings)

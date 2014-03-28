@@ -21,7 +21,6 @@
 {% block content %}
 	<div id="main" >
 		<h2>GPS Tracker</h2>
-        <hr/>
 		<div>
 			<button class="btn btn-default" id="gps_switch"></button> <button class="btn btn-default" id="lock_switch"></button>
 		</div>
@@ -57,9 +56,9 @@
 <script>
 var UUID = new (function(){
     this.uuid4 = function(){
-        var d = +new Date();
+        var d = +new Date(), r;
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            var r = (d + Math.random()*16)%16 | 0;
+            r = (d + Math.random()*16)%16 | 0;
             d = Math.floor(d/16);
             return (c=='x' ? r : (r&0x7|0x8)).toString(16);
         });
@@ -78,7 +77,9 @@ var UUID = new (function(){
 </script>
 <script>
 var TIME_API_URL="{% url 'seuranta.views.api' 'clock/drift' %}",
-    UPDATE_TRACK_API_URL="{% url 'seuranta.views.api' 'tracker/update' %}";
+    UPDATE_TRACK_API_URL="{% url 'seuranta.views.api' 'tracker/update' %}",
+    TRACKER_URL="{% url 'seuranta.views.tracker' %}",
+    TRACKER_UUID = {% if tracker %}'{{ tracker.uuid }}'{% else %}null{% endif %};
 </script>
 <script>
 var HUMANIZER = new function(){
@@ -123,7 +124,7 @@ $(window).load(function(){
 		last_position = null,
 		broadcast_buffer = new PositionArchive(),
 		geoWatchId = null,
-		uuid=null,
+		uuid=TRACKER_UUID,
         assignments_count=0,
 		last_data_timestamp=null,
 		MINIMUM_ACCURACY=50,
@@ -144,6 +145,31 @@ $(window).load(function(){
 	    	fatalError("<i class='fa fa-warning'></i> Geolocation is not supported by this browser!");
 		    return;
 	    }
+
+	(function load_uuid(){
+	    if (!uuid && supportsLocalStorage()) {
+            uuid = localStorage["seuranta.tracker.uuid"];
+		}
+
+		if(!uuid){
+			if (supportsLocalStorage()) {
+				localStorage["seuranta.tracker.uuid"]="";
+			}
+		}else{
+    		$('#uuid').val(uuid);
+		}
+    })();
+
+    $("#uuid").on("change", function(){
+        uuid = $("#uuid").val();
+        $('#uuid_display').text(uuid);
+        $('#uuid_qr').qrcode(uuid);
+        history.replaceState("", document.title, TRACKER_URL+"/"+uuid);
+        if (supportsLocalStorage()) {
+            localStorage["seuranta.tracker.uuid"]=uuid
+        }
+    });
+    $("#uuid").trigger("change");
 
 	function updateUI(){
 		var current_timestamp = server_clock.now();
@@ -192,34 +218,6 @@ $(window).load(function(){
 	function onAPIResponse(data){
         $("#server_output").text("Server responded: "+data.msg)
 	}
-
-	(function loadUuid(){
-	    var hash = window.location.hash;
-	    if(hash && hash.length>1){
-	        uuid = hash.slice(1);
-	        history.replaceState("", document.title, window.location.pathname);
-	    }else if (supportsLocalStorage()) {
-            uuid = localStorage["seuranta.tracker.uuid"];
-		}
-
-		if(!uuid){
-			if (supportsLocalStorage()) {
-				localStorage["seuranta.tracker.uuid"]="";
-			}
-		}else{
-    		$('#uuid').val(uuid);
-            $('#uuid_display').text(uuid);
-            $('#uuid_qr').qrcode(uuid);
-		}
-    })();
-
-    $("#uuid").on("change", function(){
-        uuid = $("#uuid").val();
-        if (supportsLocalStorage()) {
-            localStorage["seuranta.tracker.uuid"]=uuid
-        }
-    });
-    $("#uuid").trigger("change");
 
 	(function onClockTick(){
 		updateUI();

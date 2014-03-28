@@ -5,19 +5,11 @@ urlpatterns = patterns('seuranta.views',
 		"home",
 	),
 
-	url(r'^dashboard/?$',
-		"dashboard",
-	),
-
-	url(r'^dashboard/race/(?P<uuid>[0-9a-zA-Z_-]+)?/?$',
-		"dashboard_edit_race",
-	),
-
-	url(r'^web_tracker/?$',
+	url(r'^web_tracker/(?P<uuid>[-a-zA-Z0-9_]+)?$',
 	    "tracker",
 	),
 
-	url(r'^race/(?P<uuid>[0-9a-zA-Z_-]+)/?$',
+	url(r'^race/(?P<username>[^/]+)/(?P<slug>[-a-zA-Z0-9_]+)(/(?P<uuid>[-a-zA-Z0-9_]))?\.html$',
 		"race_view",
 	),
 

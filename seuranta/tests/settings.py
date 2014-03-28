@@ -15,6 +15,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'timezone_field',
     'globetrotting',
     'seuranta',
 )
@@ -37,11 +38,13 @@ DATABASES = {
     }
 }
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en-en'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
+DATETIME_FORMAT = 'r'
 
 STATIC_URL = '/static/'
+

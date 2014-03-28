@@ -19,6 +19,8 @@ from .utils import gps_codec
 import datetime, time
 import simplejson as json
 
+from .utils.validators import validate_short_uuid
+
 # Create your views here.
 def home(request):
     tim = now()
@@ -48,39 +50,26 @@ def home(request):
         RequestContext(request)
     )
 
-@login_required
-@never_cache
-def dashboard(request):
-	return render_to_response(
-		'seuranta/dashboard.html',
-		{},
-		RequestContext(request)
-	)
-
-@login_required
-@never_cache
-def dashboard_edit_race(request, uuid=None):
-    obj=None
+def tracker(request, uuid=None):
+    tracker = None
     if uuid is not None:
-    	obj = get_object_or_404(
-	    	Competition,
-		    uuid = uuid,
-		)
-        if obj.publisher != request.user:
-            return HttpResponse(status=403)
-
-    return render_to_response(
-		'seuranta/competition_editor.html',
-		{
-		    'competition':obj,
-		},
-		RequestContext(request)
-	)
-
-def tracker(request):
+        validate_short_uuid(uuid)
+        try:
+            validate_short_uuid(uuid)
+        except:
+            raise
+            return HttpResponse(status=404)
+        else:
+            if request.user.is_authenticated:
+                tracker, created = Tracker.objects.get_or_create(uuid=uuid, defaults={'publisher_id':request.user.id})
+                if created:
+                    tracker.save()
+            else:
+                tracker = get_object_or_404(Tracker, uuid=uuid)
+    
     return render_to_response(
         'seuranta/tracker.html',
-        {},
+        {'tracker':tracker},
         RequestContext(request)
     )
 
@@ -105,7 +94,6 @@ def race_view(request, uuid):
         return render_to_response(
             'seuranta/pre_race.html',
             {
-                'object':obj,
                 'competition':obj,
             },
             RequestContext(request)
@@ -114,7 +102,6 @@ def race_view(request, uuid):
     return render_to_response(
         'seuranta/race.html',
         {
-            'object':obj,
             'competition':obj,
         },
         RequestContext(request)
@@ -122,7 +109,7 @@ def race_view(request, uuid):
 
 @csrf_exempt
 @cache_page(5)
-def api(request, action="tracker/update"):
+def api(request, action):
     response = {
         "status":"KO",
         "code":400,
@@ -131,176 +118,116 @@ def api(request, action="tracker/update"):
             "help":""
         }
     }
-
-    if request.method == "POST":
-        if action == "race/delete":
-            uuid = request.POST.get('uuid')
-            try:
-                obj = Competition.objects.get(uuid = uuid)
-            except Competiton.DoesNotExist:
-                response = {
-                    "status":"KO",
-                    "code":404,
-                    "msg":"Race do not exist",
-                    "data":{
-                        "uuid":uuid
-                    }
+    
+    if action == "tracker/update":
+        uuid = request.REQUEST.get("uuid")
+        try:
+            tracker = Tracker.objects.get(uuid=uuid)
+        except Tracker.DoesNotExist:
+            response = {
+                "status":"KO",
+                "code":404,
+                "msg":"Tracker do not exist",
+                "data":{
+                    "uuid":uuid
                 }
-            else:
-                if request.user.is_authenticated() and obj.publisher == request.user:
-                    obj.delete()
+            }
+        else:
+            route = None
+            if 'encoded_data' in request.REQUEST:
+                encoded_data = request.REQUEST.get("encoded_data")
+                    
+                try:
+                    route = gps_codec.decode(encoded_data)
+                except:
                     response = {
-                        "status":"OK",
-                        "msg":"Race deleted",
+                        "status":"KO",
+                        "code":400,
+                        "msg":"Invalid data",
                         "data":{
-                            "uuid":uuid
+                            "uuid":uuid,
+                            "encoded_data":encoded_data,
+                        }
+                    }
+            elif 'latitude' in request.REQUEST and 'longitude' in request.REQUEST:
+                try:
+                    lat = float(request.REQUEST.get("latitude"))
+                    lon = float(request.REQUEST.get("longitude"))
+                    tim = time.time()
+                except:
+                    response = {
+                        "status":"KO",
+                        "code":400,
+                        "msg":"Invalid data",
+                        "data":{
+                            "uuid":uuid,
+                            "encoded_data":encoded_data,
                         }
                     }
                 else:
-                    response = {
-                        "status":"KO",
-                        "code":403,
-                        "msg":"Unauthorized api call",
-                        "data":{
-                            "uuid":uuid
-                        }
-                    }
-    # if request.method == "POST":
-    	# if action == ...:
-            # ...
-    	elif action == "tracker/update":
-            uuid = request.POST.get("uuid")
-            try:
-                tracker = Tracker.objects.get(uuid=uuid)
-            except Tracker.DoesNotExist:
-                response = {
-                    "status":"KO",
-                    "code":404,
-                    "msg":"Tracker do not exist",
-                    "data":{
-                        "uuid":uuid
-                    }
-                }
-            else:
-                route = None
-                if 'encoded_data' in request.POST:
+                    location = GeoLocation(tim, (lat, lon))
+                    route = [location]
 
-                    encoded_data = request.POST.get("encoded_data")
-                    
-                    try:
-                        route = gps_codec.decode(encoded_data)
-                    except:
-                        response = {
-                            "status":"KO",
-                            "code":400,
-                            "msg":"Invalid data",
-                            "data":{
-                                "uuid":uuid,
-                                "encoded_data":encoded_data,
-                            }
-                        }
+            if route is not None and len(route)>0:
+                tim = now()
+                tracker.last_location = route[len(route)-1]
+                tracker.save()
+                
+                live_competitors = tracker.competitors.filter(
+                    competition__opening_date__lt=tim,
+                    competition__closing_date__gt=tim,
+                )
 
-                elif 'latitude' in request.POST and 'longitude' in request.POST:
-                    try:
-                        lat = float(request.POST.get("latitude"))
-                        lon = float(request.POST.get("longitude"))
-                        tim = time.time()
-                    except:
-                        response = {
-                            "status":"KO",
-                            "code":400,
-                            "msg":"Invalid data",
-                            "data":{
-                                "uuid":uuid,
-                                "encoded_data":encoded_data,
-                            }
-                        }
-                    else:
-                        location = GeoLocation(tim, (lat, lon))
-                        route = [location]
+                futur_competitor = tracker.competitors.filter(
+                    competition__opening_date__gt=tim,
+                )
 
-                if route is not None and len(route)>0:
-                    tim = now()
+                next_event_registered_opening = None
+                if len(futur_competitor)>0:
+                    next_event_registered_opening = futur_competitor.competition.opening_date
+                    for f in futur_competitor:
+                        if next_event_registered_opening > f.competition.opening_date:
+                            next_event_registered_opening = f.competition.opening_date
+                    next_event_registered_opening = format_date_iso(next_event_registered_opening)
 
-                    tracker.last_location = route[len(route)-1]
-                    tracker.save()
-                    
-                    live_competitors = tracker.competitors.approved().filter(
-                        competition__opening_date__lt=tim,
-                        competition__closing_date__gt=tim,
-                    )
-
-                    need_approval_competitors = tracker.competitors.filter(
-                        competition__opening_date__lt=tim,
-                        competition__closing_date__gt=tim,
-                        is_approved=False
-                    )
-                    
-                    futur_competitor = tracker.competitors.approved().filter(
-                        competition__opening_date__gt=tim,
-                    )
-
-                    next_event_registered_opening = None
-                    if len(futur_competitor)>0:
-                        next_event_registered_opening = futur_competitor.competition.opening_date
-                        for f in futur_competitor:
-                            if next_event_registered_opening > f.competition.opening_date:
-                                next_event_registered_opening = f.competition.opening_date
-                        next_event_registered_opening = format_date_iso(next_event_registered_opening)
-
-                    for c in live_competitors:
-                        section = RouteSection(competitor=c)
-                        section.route = route
-                        section.save()
-
-                    response = {
-                        "status":"OK",
-                        "code":200,
-                        "msg":"Data received",
-                        "data":{
-                            "uuid":uuid,
-                            "last_location":{
-                                "timestamp":tracker.last_location.timestamp,
-                                "coordinates":{
-                                    "latitude":tracker.last_location.coordinates.latitude,
-                                    "longitude":tracker.last_location.coordinates.longitude,
-                                }
-                            },
-                            "locations_received_count":len(route),
-                            "live_competitors":len(live_competitors),
-                            "pending_approvals":len(need_approval_competitors),
-                            "next_competitor_opening":next_event_registered_opening,
-                        }
-                    }
-        elif action == "clock/drift":
-            try:
-                timestamp = float(request.POST.get('timestamp'))
-            except:
-                response = {
-                    "status":"KO",
-                    "code":400,
-                    "msg":"Invalid data",
-                    "data":{
-                        "timestamp":request.POST.get('timestamp'),
-                    }
-                }
-            else:
-                tim = time.time()
-                drift = tim-timestamp
+                for c in live_competitors:
+                    section = RouteSection(competitor=c)
+                    section.route = route
+                    section.save()
 
                 response = {
                     "status":"OK",
                     "code":200,
-                    "msg":"",
+                    "msg":"Data received",
                     "data":{
-                        "server_time":tim,
-                        "timestamp":timestamp,
-                        "drift":tim-timestamp,
+                        "uuid":uuid,
+                        "last_location":{
+                            "timestamp":tracker.last_location.timestamp,
+                            "coordinates":{
+                                "latitude":tracker.last_location.coordinates.latitude,
+                                "longitude":tracker.last_location.coordinates.longitude,
+                            }
+                        },
+                        "locations_received_count":len(route),
+                        "live_competitors_count":len(live_competitors),
+                        "next_competitor_opening":next_event_registered_opening,
                     }
-                }            
-    else:
-        if action == "clock/time":
+                }
+    elif action == "clock/drift":
+        try:
+            timestamp = float(request.REQUEST.get('timestamp'))
+        except:
+            response = {
+                "status":"KO",
+                "code":400,
+                "msg":"Invalid data",
+                "data":{
+                    "timestamp":request.REQUEST.get('timestamp'),
+                }
+            }
+        else:
             tim = time.time()
+            drift = tim-timestamp
 
             response = {
                 "status":"OK",
@@ -308,63 +235,69 @@ def api(request, action="tracker/update"):
                 "msg":"",
                 "data":{
                     "server_time":tim,
+                    "timestamp":timestamp,
+                    "drift":tim-timestamp,
                 }
             }
 
-        elif action == "competitor/routes":
-            uuids = request.GET.getlist('competitor_uuid[]')
+    elif action == "competitors/routes":
+        uuids = request.REQUEST.getlist('uuid[]')
 
-            last_update_timestamp = request.GET.get("last_update_timestamp",None)
+        last_update_timestamp = request.REQUEST.get("last_update_timestamp",None)
             
-            min_timestamp = request.GET.get("min_timestamp",None)
-            max_timestamp = request.GET.get("max_timestamp",None)
+        min_timestamp = request.REQUEST.get("min_timestamp",None)
+        max_timestamp = request.REQUEST.get("max_timestamp",None)
 
-            last_update_datetime = None
-            if last_update_timestamp is not None:
-                try:
-                    las_update_timestamp = float(last_update_timestamp)
-                    last_update_datetime = utc.localize(datetime.datetime.fromtimestamp(last_update_timestamp))
-                except ValueError:
-                    pass
+        last_update_datetime = None
+        if last_update_timestamp is not None:
+            try:
+                las_update_timestamp = float(last_update_timestamp)
+                last_update_datetime = utc.localize(datetime.datetime.fromtimestamp(last_update_timestamp))
+            except ValueError:
+                pass
 
-            max_datetime = None
-            if max_timestamp is not None:
-                try:
-                    max_timestamp = float(max_timestamp)
-                    max_datetime = utc.localize(datetime.datetime.fromtimestamp(max_timestamp))
-                except ValueError:
-                    pass
+        max_datetime = None
+        if max_timestamp is not None:
+            try:
+                max_timestamp = float(max_timestamp)
+                max_datetime = utc.localize(datetime.datetime.fromtimestamp(max_timestamp))
+            except ValueError:
+                pass
 
-            min_datetime = None
-            if min_timestamp is not None:
-                try:
-                    mix_timestamp = float(mix_timestamp)
-                    min_datetime = utc.localize(datetime.datetime.fromtimestamp(float(time_end_raw)/1e3))
-                except ValueError:
-                    pass
+        min_datetime = None
+        if min_timestamp is not None:
+            try:
+                mix_timestamp = float(mix_timestamp)
+                min_datetime = utc.localize(datetime.datetime.fromtimestamp(float(time_end_raw)/1e3))
+            except ValueError:
+                pass
 
-            if len(uuids)>0:
-                query = reduce(lambda query,uuid:query|Q(uuid=uuid), uuids, Q())
+        if len(uuids)>0:
+            # http://www.ibm.com/developerworks/opensource/library/os-django-models/index.html?ca=drs
+            
+            #query = reduce(lambda query,uuid:query|Q(uuid=uuid), uuids, Q())
 
-                competitors = Competitor.objects.approved().filter(query)
-                
-                response = {
-                    "status":"OK",
-                    "code":200,
-                    "msg":"",
-                    "data":{
-                        "routes":[]
-                    }
+            competitors_id = Competitor.objects.filter(uuid__in=uuids).values_list('pk', flat=True)
+               
+            response = {
+                "status":"OK",
+                "code":200,
+                "msg":"",
+                "data":{
+                    "routes":[]
                 }
+            }
 
-                if len(competitors)>0:
-                    query = reduce(lambda q,competitor:q|Q(competitor_id=competitor.id), competitors, Q())
-
-                    if last_update_datetime is not None:
-                        query &= Q(last_update_date_time__gte=last_update)
-
-                route_sections = RouteSection.objects.filter(query)
-
+            if len(competitors_id)>0:
+                # extra param as view bound, last update...
+                extra_query = Q()
+                #query &= reduce(lambda q,competitor:q|Q(competitor_id=competitor.id), competitors, Q())
+                if last_update_datetime is not None:
+                    query &= Q(last_update_date_time__gte=last_update)
+                
+            
+                route_sections = RouteSection.objects.filter(extra_query, competitor_id__in=competitors_id)
+    
                 for route_section in route_sections:
                     timestamp = (route_section.last_update.replace(tzinfo=None) - datetime.datetime.utcfromtimestamp(0)).total_seconds()
                     response['routes'].append({
@@ -375,9 +308,13 @@ def api(request, action="tracker/update"):
                         'encoded_data':route_section.encoded_data
                     })
 
+    else:
+        response['msg']="API endpoint does not exist."
+        response['data']['endpoint']=action
+    
     response_json = json.dumps(response, use_decimal=True)
 
-    if 'callback' in request.GET:
+    if 'callback' in request.REQUEST:
         data = '%s(%s);' % (request.REQUEST['callback'], response_json)
         HttpResponse(response_json, content_type='application/json')
     return HttpResponse(response_json, content_type='application/json')

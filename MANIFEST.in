@@ -1,4 +1,4 @@
 include LICENSE
-include README.rst
+include REAkDME.rst
 recursive-include seuranta/static/ *
 recursive-include seuranta/templates/ *

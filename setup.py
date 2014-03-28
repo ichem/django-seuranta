@@ -21,7 +21,9 @@ setup(
     package_data={
         'seuranta': [
             'templates/seuranta/*.html',
-            'static/seuranta/*',
+            'static/seuranta/admin/js/*',
+            'static/seuranta/css/*',
+            'static/seuranta/js/*',
         ],
     },
     classifiers=[

@@ -18,7 +18,7 @@
 <script type="text/javascript" src="{{STATIC_URL}}seuranta/js/server_clock.min.js"></script>
 <script>
 $(function(){
-    var race_info = {{competition.as_json|safe}},
+    var race_info = {{competition.dump_json|safe}},
         TIME_API_URL = '{% url 'seuranta.views.api' 'get_time' %}',
         clock = new ServerClock({time_api_url:TIME_API_URL});
 

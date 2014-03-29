@@ -145,7 +145,7 @@ var Competitor = function(options){
 <script>
 $(function(){
     var race_info = {{competition.dump_json|safe}},
-        ROUTES_API_URL = '{% url 'seuranta.views.api' 'competitor/routes' %}',
+        ROUTES_API_URL = '{% url 'seuranta.views.api' 'competitors/routes' %}',
         TIME_API_URL = '{% url 'seuranta.views.api' 'clock/drift' %}',
         is_started=false,
         is_completed=false,
@@ -193,7 +193,7 @@ $(function(){
         if(list_uuids.length>0){
             // rounded to 5 sec for cache optimization
             var now =Math.floor(+clock.now()/5e3)*5e3;
-            var query_args = {action:"get_route", "uuids[]":list_uuids, now:now}
+            var query_args = {action:"get_route", "uuid[]":list_uuids, now:now}
             if(prev_fetch_time !== null){
                 query_args["last_update"]=prev_fetch_time;
             }

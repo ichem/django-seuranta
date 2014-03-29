@@ -305,24 +305,24 @@ $(window).load(function(){
 				    type:"POST",
 				    url:UPDATE_TRACK_API_URL,
 					dataType:"json",
-                    data:{
+                                        data:{
 						uuid:uuid,
 						encoded_data:tks,
 					},
 				})
 				.done(function(response){
   					onAPIResponse(response);
-                    if(response.status=="OK"){
-    					broadcast_buffer.eraseInterval(-Infinity, now);
-	    				last_data_timestamp = now;
-		    			setTimeout(broadcast_position, 5e3);
-                    }else{
-    					setTimeout(broadcast_position, 2e3);                    
-                    }
-			    })
+                                        if(response.status=="OK"){
+    					    broadcast_buffer.eraseInterval(-Infinity, now);
+	    				    last_data_timestamp = now;
+		    			    setTimeout(broadcast_position, 5e3);
+                                        }else{
+    					    setTimeout(broadcast_position, 2e3);                    
+                                        }
+			        })
 				.fail(function(){
 					onAPIResponse({msg:"Broadcast failed..."})
-                    setTimeout(broadcast_position, 2e3);
+                                        setTimeout(broadcast_position, 2e3);
 				});
 			} else {
 				setTimeout(broadcast_position, Math.max(5e3-broadcast_buffer.getAge(now), 1e3));

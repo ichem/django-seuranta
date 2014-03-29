@@ -310,8 +310,8 @@ class Competition(models.Model):
     @models.permalink
     def get_absolute_url(self):
         kwargs = {'publisher':self.publisher.username, 'slug':self.slug}
-        if self.publication_policy == 'secret':
-            kwargs['uuid']=self.uuid
+#        if self.publication_policy == 'secret':
+#            kwargs['uuid']=self.uuid
         return ("seuranta.views.race_view", (), kwargs)
     absolute_url = property(get_absolute_url)
 
@@ -366,10 +366,10 @@ class Competition(models.Model):
         ending = ""
         
         qs = Competition.objects.all()
-        if self.pk:
-            qs.exclude(pk=self.pk)
+        if self.pk is not None:
+            qs = qs.exclude(pk=self.pk)
 
-        qs.filter(publisher_id=self.publisher_id)
+        qs = qs.filter(publisher_id=self.publisher_id)
 
         while qs.filter(slug = desired_slug)[:1]:
             desired_slug = "%s%s"%(orig_slug[:21-len(ending)], ending)
@@ -441,7 +441,7 @@ class Competitor(models.Model):
             'data':{
                 'name':self.name,
                 'shortname':self.shortname,
-                'starting_time':format_date_iso(self.starting_time),
+                'starting_time':format_date_iso(self.starting_time) if self.starting_time is not None else None,
             }
         }
         return result
@@ -512,18 +512,18 @@ class RouteSection(models.Model):
         start_t=float('inf')
         end_t=-float('inf')
         for p in route:
-            if p['lat']>north:
-                north=p['lat']
-            if p['lat']<south:
-                south=p['lat']
-            if p['lon']<west:
-                west=p['lon']
-            if p['lon']>east:
-                east=p['lon']
-            if p['t']<start_t:
-                start_t=p['t']
-            if p['t']>end_t:
-                end_t=p['t']
+            if p.coordinates.latitude>north:
+                north=p.coordinates.latitude
+            if p.coordinates.latitude<south:
+                south=p.coordinates.latitude
+            if p.coordinates.longitude<west:
+                west=p.coordinates.longitude
+            if p.coordinates.longitude>east:
+                east=p.coordinates.longitude
+            if p.timestamp<start_t:
+                start_t=p.timestamp
+            if p.timestamp>end_t:
+                end_t=p.timestamp
 
         return {
             'start_timestamp':start_t,

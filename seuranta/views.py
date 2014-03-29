@@ -73,7 +73,7 @@ def tracker(request, uuid=None):
         RequestContext(request)
     )
 
-def latest_competition_mod(request, publisher, slug, uuid=None):
+def latest_competition_mod(request, publisher, slug):
     c = Competition.objects.filter(slug=slug, publisher__username=publisher)
         
     if len(c)>0:
@@ -85,12 +85,10 @@ def latest_competition_mod(request, publisher, slug, uuid=None):
     return None
 
 @condition(last_modified_func=latest_competition_mod, etag_func=None)
-def race_view(request, publisher, slug, uuid=None):
+def race_view(request, publisher, slug):
     obj = get_object_or_404(Competition, slug=slug, publisher__username=publisher)
     
-    if obj.publication_policy=='secret' and (uuid==None or obj.uuid!=uuid):
-        return HttpResponse(status=403)  
-    elif obj.publication_policy == 'private' and obj.publisher != request.user:
+    if obj.publication_policy == 'private' and obj.publisher != request.user:
         return HttpResponse(status=403)
 
     tim = now()
@@ -255,7 +253,7 @@ def api(request, action):
         last_update_datetime = None
         if last_update_timestamp is not None:
             try:
-                las_update_timestamp = float(last_update_timestamp)
+                last_update_timestamp = float(last_update_timestamp)
                 last_update_datetime = utc.localize(datetime.datetime.fromtimestamp(last_update_timestamp))
             except ValueError:
                 pass
@@ -304,7 +302,7 @@ def api(request, action):
     
                 for route_section in route_sections:
                     timestamp = (route_section.last_update.replace(tzinfo=None) - datetime.datetime.utcfromtimestamp(0)).total_seconds()
-                    response['routes'].append({
+                    response['data']['routes'].append({
                         'competitor':{
                             'uuid':route_section.competitor.uuid,
                         },

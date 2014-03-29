@@ -210,7 +210,7 @@ $(function(){
                     $.each(response.data.routes, function(i, d){
                         var uuid = d.competitor.uuid;
                         if(competitors[uuid]){
-                            var positions = PositionArchive.fromTks(d.encoded_route);
+                            var positions = PositionArchive.fromTks(d.encoded_data);
                             $.each(positions.getArray(), function(i, pt){
                                 competitors[uuid].positions.add(pt);
                             });
@@ -323,32 +323,32 @@ $(function(){
 
         $("#main")
         .css({
-            height:$(document).height()+"px",
-            width:$(document).width()-$("#controls").width()+"px",
+            height:$(window).height()+"px",
+            width:$(window).width()-$("#controls").width()+"px",
             left:$("#controls").width()+"px"
         })
 
         $(window).resize(function(){
             $("#controls")
             .css({
-                height:$(document).height()+"px"
+                height:$(window).height()+"px"
             })
             $("#participant_list")
             .css({
-                height:($(document).height() - ($("#main_control").height()+$("#timeline_bar").height()))+"px",
+                height:($(window).height() - ($("#main_control").height()+$("#timeline_bar").height()))+"px",
             })
             if($("#controls").is(":visible")){
                 $("#main")
                 .css({
-                    height:$(document).height()+"px",
-                    width:$(document).width()-$("#controls").width()+"px",
+                    height:$(window).height()+"px",
+                    width:$(window).width()-$("#controls").width()+"px",
                     left:$("#controls").width()+"px"
                 });
             }else{
                 $("#main")
                 .css({
-                    height:$(document).height()+"px",
-                    width:$(document).width()+"px",
+                    height:$(window).height()+"px",
+                    width:$(window).width()+"px",
                     left:"0px"
                 });
             }

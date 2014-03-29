@@ -5,6 +5,8 @@ if (jQuery !== undefined) {
 }
 (function($) {
     $(document).ready(function() {
+	$.getScript('//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.0.3/moment-timezone.min.js', function(){
+	$.getScript('/static/seuranta/js/moment-timezone-data.min.js', function(){
         if( $("#id_timezone").length>0 ){
             $("<button/>")
             .text("Detect")
@@ -29,5 +31,7 @@ if (jQuery !== undefined) {
                 }
             })
         }
+	});
+	});
     });
 })(django.jQuery);

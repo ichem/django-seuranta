@@ -69,10 +69,10 @@ class CompetitionAdmin(PublisherAdmin):
         if obj.publisher_id is None:
             obj.publisher = request.user
         tz = obj.timezone
-        if obj.opening_date:
+        if obj.opening_date is not None:
             obj.opening_date = utc.localize(tz.localize(obj.opening_date.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
         
-        if obj.closing_date:
+        if obj.closing_date is not None:
             obj.closing_date = utc.localize(tz.localize(obj.closing_date.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
         obj.save()
 
@@ -83,28 +83,26 @@ class CompetitionAdmin(PublisherAdmin):
     
         if len(instances)>0:
             tz = instances[0].competition.timezone
+
         for instance in instances:
             if not instance.tracker_id:
                 tracker = Tracker(publisher_id=request.user.pk)
                 tracker.save()
                 instance.tracker_id = tracker.pk
 
-            if instance.starting_time:
+            if instance.starting_time is not None:
                 instance.starting_time = utc.localize(tz.localize(instance.starting_time.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
 
             instance.save()
+	
         formset.save_m2m()
 
 
     class Media:
         js = {
-            "//code.jquery.com/jquery-2.1.0.min.js",
-            "//cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js",
             "//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js",
-            "//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.0.3/moment-timezone.min.js",
-            "seuranta/js/moment-timezone-data.min.js",
             "seuranta/js/jstz-1.0.5.min.js",
-            "seuranta/admin/js/competition.js"
+            "seuranta/admin/js/competition.js",
         }
 
 admin.site.register(Tracker, TrackerAdmin)

@@ -9,7 +9,7 @@ urlpatterns = patterns('seuranta.views',
 	    "tracker",
 	),
 
-	url(r'^race/(?P<publisher>[^/]+)/(?P<slug>[-a-zA-Z0-9_]+)(/(?P<uuid>[-a-zA-Z0-9_]))?\.html$',
+	url(r'^race/(?P<publisher>[^/]+)/(?P<slug>[-a-zA-Z0-9_]+)\.html$',
 		"race_view",
 	),
 

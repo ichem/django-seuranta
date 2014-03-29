@@ -15,11 +15,11 @@
 
 {% block extra_scripts %}
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
-<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/server_clock.min.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/server_clock.js"></script>
 <script>
 $(function(){
     var race_info = {{competition.dump_json|safe}},
-        TIME_API_URL = '{% url 'seuranta.views.api' 'get_time' %}',
+        TIME_API_URL = '{% url 'seuranta.views.api' 'clock/drift' %}',
         clock = new ServerClock({time_api_url:TIME_API_URL});
 
     setInterval(function(){

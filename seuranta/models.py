@@ -78,17 +78,19 @@ class Tracker(models.Model):
     get_html_link_tag.allow_tags = _('tracker link')
 
     def get_competitor_list_tag(self):
-        competitors = self.competitors.filter(competition__closing_date__gt=now())
+        competitors = self.competitors.all()
         r = []
         for c in competitors:
             cc = c.competition
             if not cc.is_started:
-                r.append("<span>&qout;%s&qout; in &qout;%s&quot;. Starting in <span class='countdown'>%s to %s</span>"%(c.name, cc.name, format_date_iso(cc.opening_date)))
+                r.append("<span>&quot;%s&quot; in &quot;%s&quot;<br/>Starting <span class='countdown'>%s</span>"%(c.name, cc.name, format_date_iso(cc.opening_date)))
+            elif cc.is_completed:
+                r.append("<span>&quot;%s&quot; in &quot;%s&quot;<br/>Completed <span class='countdown'>%s</span>"%(c.name, cc.name, format_date_iso(cc.closing_date)))
             else:
-                r.append("<span>&qout;%s&qout; in &qout;%s&quot;. Until in <span class='countdown'>%s to %s</span>"%(c.name, cc.name, format_date_iso(cc.closing_date)))
+                r.append("<span>&quot;%s&quot; in &quot;%s&quot;<br/>Until <span class='countdown'>%s</span>"%(c.name, cc.name, format_date_iso(cc.closing_date)))
         return '<br/>'.join(r)
-    get_competitor_list_tag.short_description = _('current & future tracking jobs')
-    get_competitor_list_tag.allow_tags = _('current & future tracking jobs')
+    get_competitor_list_tag.short_description = _('tracking jobs')
+    get_competitor_list_tag.allow_tags = _('tracking jobs')
 
     def save(self, *args, **kwargs):
         if self.last_location is not None:
@@ -307,7 +309,7 @@ class Competition(models.Model):
 
     @models.permalink
     def get_absolute_url(self):
-        kwargs = {'username':self.publisher.username, 'slug':self.slug}
+        kwargs = {'publisher':self.publisher.username, 'slug':self.slug}
         if self.publication_policy == 'secret':
             kwargs['uuid']=self.uuid
         return ("seuranta.views.race_view", (), kwargs)
@@ -321,7 +323,6 @@ class Competition(models.Model):
             'slug':self.slug,
             'publisher':self.publisher.username,
             'publication_policy':self.publication_policy,
-            'inscription_method':self.inscription_method,
             'timezone':str(self.timezone),
             'schedule':{
                 'opening_date':format_date_iso(self.opening_date),
@@ -440,9 +441,10 @@ class Competitor(models.Model):
             'data':{
                 'name':self.name,
                 'shortname':self.shortname,
-                'starting_time':format_data_iso(self.starting_time),
+                'starting_time':format_date_iso(self.starting_time),
             }
         }
+        return result
     
     def dump_json(self):
         return json.dumps(self.serialize())

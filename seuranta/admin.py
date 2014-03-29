@@ -58,25 +58,6 @@ class TrackerAdmin(PublisherAdmin):
             "seuranta/admin/js/tracker.js",
         }
 
-	def queryset(self, request):
-		qs = super(TrackerAdmin, self).queryset(request)
-		if request.user.is_superuser:
-			return qs
-		return []
-
-    def has_add_permission(self, request, obj=None):
-        return True
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        return False
-
 class CompetitionAdmin(PublisherAdmin):
     list_display = ('uuid', 'name', 'opening_date', 'closing_date', 'publication_policy')
     

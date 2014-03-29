@@ -1,4 +1,7 @@
 include LICENSE
-include REAkDME.rst
-recursive-include seuranta/static/ *
+include README.rst
+recursive-include seuranta/static/seuranta/admin/js/ *
+recursive-include seuranta/static/seuranta/css/ *
+recursive-include seuranta/static/seuranta/js/ *
 recursive-include seuranta/templates/ *
+recursive-include seuranta/templates/seuranta/ *

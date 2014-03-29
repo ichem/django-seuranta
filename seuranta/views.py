@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import cache_page
 from django.views.decorators.cache import never_cache
 
-from geoposition import Geoposition
+from globetrotting import GeoCoordinates, GeoLocation
 
 from .models import Competition, Competitor, RouteSection, Tracker
 from .utils import format_date_iso
@@ -73,8 +73,9 @@ def tracker(request, uuid=None):
         RequestContext(request)
     )
 
-def latest_competition_mod(request, uuid):
-    c = Competition.objects.filter(uuid=uuid)
+def latest_competition_mod(request, publisher, slug, uuid=None):
+    c = Competition.objects.filter(slug=slug, publisher__username=publisher)
+        
     if len(c)>0:
         c = c[0]
         tim = now()
@@ -84,9 +85,12 @@ def latest_competition_mod(request, uuid):
     return None
 
 @condition(last_modified_func=latest_competition_mod, etag_func=None)
-def race_view(request, uuid):
-    obj = get_object_or_404(Competition, uuid=uuid)
-    if obj.publication_policy == "private" and obj.publisher != request.user:
+def race_view(request, publisher, slug, uuid=None):
+    obj = get_object_or_404(Competition, slug=slug, publisher__username=publisher)
+    
+    if obj.publication_policy=='secret' and (uuid==None or obj.uuid!=uuid):
+        return HttpResponse(status=403)  
+    elif obj.publication_policy == 'private' and obj.publisher != request.user:
         return HttpResponse(status=403)
 
     tim = now()

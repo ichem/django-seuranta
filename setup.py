@@ -35,5 +35,11 @@ setup(
       'Operating System :: OS Independent',
       'Programming Language :: Python',
     ],
-    install_requires=['django-timezone-field >= 1.0', 'django-globetrotting', 'requests', 'simplejson'],
+    install_requires=[
+        'django-timezone-field >= 1.0', 
+     #   'django-globetrotting', 
+        'requests', 
+        'simplejson'
+    ],
 )
+

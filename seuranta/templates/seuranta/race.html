@@ -63,7 +63,7 @@
 	white-space:nowrap;
 }
 #timeline_bar{
-	background:#aaa;
+	background:#f00;
 	width:0px;
 	height:100%;
 	white-space:nowrap;
@@ -129,9 +129,9 @@ var COLORS = new function(){
 <script>
 var Competitor = function(options){
     var color = options.color,
-        name = options.name,
-        shortname = options.shortname,
-        start_time = options.start_time;
+        name = options.data.name,
+        shortname = options.data.shortname,
+        starting_time = options.data.starting_time;
     this.uuid = options.uuid;
     this.getColor = function(){return color};
     this.getName = function(){return name};
@@ -264,9 +264,9 @@ $(function(){
             $("#play_rate_display").text( "x"+PLAY_RATES[play_rate] );
 
             var t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.schedule.closing_date))-Date.parse(race_info.schedule.opening_date),
-                t_perc = (time_displayed-Date.parse(race_info.schedule.start_date))/t_elapsed*100;
+                t_perc = (time_displayed-Date.parse(race_info.schedule.opening_date))/t_elapsed*100;
             $("#timeline_bar").css({
-                "width":t_perc+"%"
+                "width":Math.round(t_perc)+"%"
             });
 
             $.each(competitors, function(i, runner){
@@ -297,8 +297,12 @@ $(function(){
                     runner.polyline.show();
 
                 }else if(map && !runner.is_shown){
-                    runner.marker.hide();
-                    runner.polyline.hide();
+                    if(runner.marker){
+                        runner.marker.hide();
+                    }
+                    if(runner.polyline){
+                        runner.polyline.hide();
+                    }
                 }
             });
 

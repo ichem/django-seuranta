@@ -22,7 +22,7 @@
 	<div id="main" >
 		<h2>GPS Tracker</h2>
 		<div>
-			<button class="btn btn-default" id="gps_switch"></button> <button class="btn btn-default" id="lock_switch"></button>
+    		<button class="btn btn-default" id="gps_switch"></button> <button class="btn btn-default" id="lock_switch"></button>
 		</div>
 		<hr/>
 		<div>
@@ -138,7 +138,7 @@ $(window).load(function(){
         },
         fatalError = function(text) {
 		    $("#main").hide();
-		    $("#error").text(text).show();
+		    $("#error").html(text).show();
 	    }
 
     	if (!('geolocation' in navigator)) {
@@ -155,6 +155,7 @@ $(window).load(function(){
 			if (supportsLocalStorage()) {
 				localStorage["seuranta.tracker.uuid"]="";
 			}
+			$('#uuid').val("");
 		}else{
     		$('#uuid').val(uuid);
 		}
@@ -162,11 +163,18 @@ $(window).load(function(){
 
     $("#uuid").on("change", function(){
         uuid = $("#uuid").val();
-        $('#uuid_display').text(uuid);
-        $('#uuid_qr').qrcode(uuid);
-        history.replaceState("", document.title, TRACKER_URL+"/"+uuid);
-        if (supportsLocalStorage()) {
-            localStorage["seuranta.tracker.uuid"]=uuid
+        if(uuid.length>0 && uuid.length==22){
+            $('#uuid_display').text(uuid);
+            $('#uuid_qr').qrcode(uuid);
+            history.replaceState("", document.title, TRACKER_URL+"/"+uuid);
+            if (supportsLocalStorage()) {
+                localStorage["seuranta.tracker.uuid"]=uuid
+            }
+        }else{
+            fatalError('<i class="fa fa-warning"></i> You need to request a tracker id from an organizer.')
+            if (supportsLocalStorage()) {
+                localStorage["seuranta.tracker.uuid"]=null
+            }
         }
     });
     $("#uuid").trigger("change");

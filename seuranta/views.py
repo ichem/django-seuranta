@@ -66,7 +66,7 @@ def tracker(request, uuid=None):
                     tracker.save()
             else:
                 tracker = get_object_or_404(Tracker, uuid=uuid)
-    
+
     return render_to_response(
         'seuranta/tracker.html',
         {'tracker':tracker},
@@ -75,7 +75,7 @@ def tracker(request, uuid=None):
 
 def latest_competition_mod(request, publisher, slug):
     c = Competition.objects.filter(slug=slug, publisher__username=publisher)
-        
+
     if len(c)>0:
         c = c[0]
         tim = now()
@@ -87,7 +87,7 @@ def latest_competition_mod(request, publisher, slug):
 @condition(last_modified_func=latest_competition_mod, etag_func=None)
 def race_view(request, publisher, slug):
     obj = get_object_or_404(Competition, slug=slug, publisher__username=publisher)
-    
+
     if obj.publication_policy == 'private' and obj.publisher != request.user:
         return HttpResponse(status=403)
 
@@ -120,7 +120,7 @@ def api(request, action):
             "help":""
         }
     }
-    
+
     if action == "tracker/update":
         uuid = request.REQUEST.get("uuid")
         try:
@@ -138,7 +138,7 @@ def api(request, action):
             route = None
             if 'encoded_data' in request.REQUEST:
                 encoded_data = request.REQUEST.get("encoded_data")
-                    
+
                 try:
                     route = gps_codec.decode(encoded_data)
                 except:
@@ -174,7 +174,7 @@ def api(request, action):
                 tim = now()
                 tracker.last_location = route[len(route)-1]
                 tracker.save()
-                
+
                 live_competitors = tracker.competitors.filter(
                     competition__opening_date__lt=tim,
                     competition__closing_date__gt=tim,
@@ -229,7 +229,6 @@ def api(request, action):
             }
         else:
             tim = time.time()
-            drift = tim-timestamp
 
             response = {
                 "status":"OK",
@@ -246,7 +245,7 @@ def api(request, action):
         uuids = request.REQUEST.getlist('uuid[]')
 
         last_update_timestamp = request.REQUEST.get("last_update_timestamp",None)
-            
+
         min_timestamp = request.REQUEST.get("min_timestamp",None)
         max_timestamp = request.REQUEST.get("max_timestamp",None)
 
@@ -269,18 +268,18 @@ def api(request, action):
         min_datetime = None
         if min_timestamp is not None:
             try:
-                mix_timestamp = float(mix_timestamp)
-                min_datetime = utc.localize(datetime.datetime.fromtimestamp(float(time_end_raw)/1e3))
+                min_timestamp = float(min_timestamp)
+                min_datetime = utc.localize(datetime.datetime.fromtimestamp(min_timestamp))
             except ValueError:
                 pass
 
         if len(uuids)>0:
             # http://www.ibm.com/developerworks/opensource/library/os-django-models/index.html?ca=drs
-            
+
             #query = reduce(lambda query,uuid:query|Q(uuid=uuid), uuids, Q())
 
             competitors_id = Competitor.objects.filter(uuid__in=uuids).values_list('pk', flat=True)
-               
+
             response = {
                 "status":"OK",
                 "code":200,
@@ -295,11 +294,11 @@ def api(request, action):
                 extra_query = Q()
                 #query &= reduce(lambda q,competitor:q|Q(competitor_id=competitor.id), competitors, Q())
                 if last_update_datetime is not None:
-                    query &= Q(last_update_date_time__gte=last_update)
-                
-            
+                    extra_query &= Q(last_update__gte=last_update_datetime)
+
+
                 route_sections = RouteSection.objects.filter(extra_query, competitor_id__in=competitors_id)
-    
+
                 for route_section in route_sections:
                     timestamp = (route_section.last_update.replace(tzinfo=None) - datetime.datetime.utcfromtimestamp(0)).total_seconds()
                     response['data']['routes'].append({
@@ -313,10 +312,10 @@ def api(request, action):
     else:
         response['msg']="API endpoint does not exist."
         response['data']['endpoint']=action
-    
+
     response_json = json.dumps(response, use_decimal=True)
 
     if 'callback' in request.REQUEST:
         data = '%s(%s);' % (request.REQUEST['callback'], response_json)
-        HttpResponse(response_json, content_type='application/json')
+        return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')

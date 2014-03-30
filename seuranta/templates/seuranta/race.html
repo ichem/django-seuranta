@@ -104,16 +104,16 @@
 </div>
 {% endblock %}
 
-{% block extra_scripts %} 
-<script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script> 
-<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.2/raphael-min.js"></script> 
-<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/smallworldmap.js"></script> 
-<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/server_clock.js"></script> 
-<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script> 
-<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.0.3/moment-timezone.min.js"></script> 
-<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/moment-timezone-data.min.js"></script> 
-<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/positioning.min.js"></script> 
-<script> 
+{% block extra_scripts %}
+<script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.2/raphael-min.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/smallworldmap.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/server_clock.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.0.3/moment-timezone.min.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/moment-timezone-data.min.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/positioning.min.js"></script>
+<script>
 var COLORS = new function(){
 	var colors = ["#09F","#9F0","#F09","#F90","#90F","#FF0","#7FF","#F00","#F99","#00F","#FF7","#BFB"];
     $t = this;
@@ -193,9 +193,9 @@ $(function(){
         if(list_uuids.length>0){
             // rounded to 5 sec for cache optimization
             var now =Math.floor(+clock.now()/5e3)*5e3;
-            var query_args = {action:"get_route", "uuid[]":list_uuids, now:now}
+            var query_args = {"uuid[]":list_uuids, now:now}
             if(prev_fetch_time !== null){
-                query_args["last_update"]=prev_fetch_time;
+                query_args["last_update_timestamp"]=Math.round(prev_fetch_time/1e3);
             }
             // Caching Optimization
             prev_fetch_time = now;
@@ -210,7 +210,8 @@ $(function(){
                     $.each(response.data.routes, function(i, d){
                         var uuid = d.competitor.uuid;
                         if(competitors[uuid]){
-                            var positions = PositionArchive.fromTks(d.encoded_data);
+                            var enc_data = d.encoded_data,
+                                positions = PositionArchive.fromTks(enc_data);
                             $.each(positions.getArray(), function(i, pt){
                                 competitors[uuid].positions.add(pt);
                             });

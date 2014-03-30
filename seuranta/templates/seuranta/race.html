@@ -197,8 +197,6 @@ $(function(){
             if(prev_fetch_time !== null){
                 query_args["last_update_timestamp"]=Math.round(prev_fetch_time/1e3);
             }
-            // Caching Optimization
-            prev_fetch_time = now;
             $.ajax({
                 type:"GET",
                 url:ROUTES_API_URL,
@@ -217,6 +215,8 @@ $(function(){
                             });
                         }
                     });
+
+                    prev_fetch_time = now;
                 }
             });
         }

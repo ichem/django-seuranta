@@ -6,12 +6,12 @@
 {% endblock %}
 
 {% block extra_heads %}
-<link href='http://fonts.googleapis.com/css?family=PT+Mono' rel='stylesheet' type='text/css'>
+<link href="//fonts.googleapis.com/css?family=PT+Mono:400" rel="stylesheet">
 <style type='text/css'>
 	#error{display:none}
     #uuid_display{
-        font-weight:bold; 
-        font-family: 'PT Mono';
+        font-weight: bold;
+        font-family: 'PT Mono', 'PTMono-Regular';
         font-size:15px;
         padding:0 15px;
     }
@@ -166,7 +166,7 @@ $(window).load(function(){
         if(uuid.length>0 && uuid.length==22){
             $('#uuid_display').text(uuid);
             $('#uuid_qr').qrcode(uuid);
-            history.replaceState("", document.title, TRACKER_URL+"/"+uuid);
+            history.replaceState("", document.title, TRACKER_URL+uuid);
             if (supportsLocalStorage()) {
                 localStorage["seuranta.tracker.uuid"]=uuid
             }
@@ -182,12 +182,6 @@ $(window).load(function(){
 	function updateUI(){
 		var current_timestamp = server_clock.now();
 		$("#clock").html("<i class='fa fa-clock-o'></i> "+HUMANIZER.dateTime(+current_timestamp));
-
-		if(broadcast_switched_on || screen_locked){
-		    $("#uuid").prop("readonly", true);
-		}else{
-		    $("#uuid").prop("readonly", false);
-		}
 
         if(screen_locked){
             $("#lock_switch").html('Unlock Screen <i class="fa fa-lock" style="color:#0f9"></i>')
@@ -212,12 +206,14 @@ $(window).load(function(){
 
 		$("#gps_output").html(
 			"<i class='fa fa-globe'></i> " +
-			((!last_position)?"No GPS data received yet":(
-				last_position.coords.latitude.toFixed(5) + ", " +
-				last_position.coords.longitude.toFixed(5) + " +/-" +
-				HUMANIZER.distance(last_position.coords.accuracy) +
-				( (current_timestamp-last_position.timestamp)<2e3?"":( " "+moment(last_position.timestamp).from(current_timestamp) ) )
-			))
+			((!last_position)?"No GPS data received yet":
+			    (
+				    last_position.coords.latitude.toFixed(5) + ", " +
+				    last_position.coords.longitude.toFixed(5) + " +/-" +
+				    HUMANIZER.distance(last_position.coords.accuracy) +
+				    ( (current_timestamp-last_position.timestamp)<2e3?"":( " "+moment(last_position.timestamp).from(current_timestamp) ) )
+			    )
+			)
 		);
 
 	}
@@ -233,8 +229,14 @@ $(window).load(function(){
 	})();
 
 	function onPositionUpdate(position) {
-		last_position = {coords:position.coords};
-		last_position.timestamp = position.timestamp+server_clock.getDrift();
+		last_position = {
+		    timestamp:position.timestamp+server_clock.getDrift(),
+		    coords:{
+		        latitude:position.coords.latitude,
+		        longitude:position.coords.longitude
+		        accuracy:position.coords.accuracy
+		    }
+		};
 		var pos = new Position(last_position);
 		if(broadcast_switched_on && position.coords.accuracy<MINIMUM_ACCURACY) {
 			broadcast_buffer.add(pos);
@@ -269,7 +271,8 @@ $(window).load(function(){
     		        onPositionError,
     		        {
     		            enableHighAccuracy:true,
-    		            maximumAge:1
+    		            timeout:999,
+    		            maximumAge:1000
                     }
                 );
 		        (function positionRequestor(){
@@ -279,11 +282,11 @@ $(window).load(function(){
     				    {
     					    enableHighAccuracy:true,
     					    timeout:999,
-    					    maximumAge:1
+    					    maximumAge:1000
     				    }
     				);
     				if(gps_switched_on){
-                        setTimeout(positionRequestor, 1e3);
+    				    setTimeout(positionRequestor, 1e3);
     				}
 		        })();
     		} else {
@@ -294,7 +297,7 @@ $(window).load(function(){
     		updateUI();
 	    }
     );
-    
+
 	// broadcast position every 5s
 	(function broadcast_position(){
 		if(broadcast_switched_on){
@@ -317,7 +320,7 @@ $(window).load(function(){
 	    				    last_data_timestamp = now;
 		    			    setTimeout(broadcast_position, 5e3);
                                         }else{
-    					    setTimeout(broadcast_position, 2e3);                    
+    					    setTimeout(broadcast_position, 2e3);
                                         }
 			        })
 				.fail(function(){

@@ -53,15 +53,13 @@ def home(request):
 def tracker(request, uuid=None):
     tracker = None
     if uuid is not None:
-        validate_short_uuid(uuid)
         try:
             validate_short_uuid(uuid)
         except:
-            raise
             return HttpResponse(status=404)
         else:
             if request.user.is_authenticated:
-                tracker, created = Tracker.objects.get_or_create(uuid=uuid, defaults={'publisher_id':request.user.id})
+                tracker, created = Tracker.objects.get_or_create(uuid=uuid, defaults={'publisher_id':request.user.pk})
                 if created:
                     tracker.save()
             else:

@@ -386,8 +386,9 @@ class Competition(models.Model):
 @receiver(post_delete, sender=Competition)
 def competition_post_delete_handler(sender, **kwargs):
     competition = kwargs['instance']
-    storage, path = competition.map.storage, competition.map.path
-    storage.delete(path)
+    if competition.map is not None:
+        storage, path = competition.map.storage, competition.map.path
+        storage.delete(path)
 
 class Competitor(models.Model):
     uuid = ShortUUIDField(

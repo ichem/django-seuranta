@@ -4,12 +4,10 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.utils.translation import ugettext as _
 from django.utils.timezone import utc, now
-from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 from django.core.validators import MinLengthValidator
 
 from .utils import short_uuid, slugify, format_date_iso
-from .utils.validators import validate_short_uuid
 from .utils import gps_codec
 
 from .fields import ShortUUIDField
@@ -24,7 +22,6 @@ import imghdr
 import base64
 import json
 
-import pytz
 
 class Tracker(models.Model):
     uuid = ShortUUIDField(
@@ -65,13 +62,13 @@ class Tracker(models.Model):
         blank=True, null=True,
         validators=[validate_longitude], editable=False
     )
-    
+
     @models.permalink
     def get_absolute_url(self):
         kwargs = {'uuid':self.uuid}
         return ("seuranta.views.tracker", (), kwargs)
     absolute_url = property(get_absolute_url)
-    
+
     def get_html_link_tag(self):
         return "<a href='%s' class='tracker_link'>Link to tracker</a>"%self.absolute_url
     get_html_link_tag.short_description = _('tracker link')
@@ -168,11 +165,11 @@ class Competition(models.Model):
         editable = False,
         max_length = 21,
         unique=True
-    )    
-    
+    )
+
     timezone = TimeZoneField(
-        verbose_name=_("timezone"), 
-        default="UTC", 
+        verbose_name=_("timezone"),
+        default="UTC",
     )
 
     map = models.ImageField(
@@ -198,24 +195,24 @@ class Competition(models.Model):
     BLANK_SIZE = {'width':1, 'height':1}
     @property
     def map_size(self):
-        if self.map is None or not self.is_map_calibrated:
-            return self.BLANK_SIZE     
+        if not self.map or not self.is_map_calibrated:
+            return self.BLANK_SIZE
         else:
             return {'width':self.map_width, 'height':self.map_height}
 
     BLANK_FORMAT = "image/gif"
     @property
     def map_format(self):
-        if self.map is None or not self.is_map_calibrated:
+        if not self.map or not self.is_map_calibrated:
             return self.BLANK_FORMAT
         type = imghdr.what(self.map.file)
         return "image/%s"%type
 
-    
+
     BLANK_DATA_URI = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
     @property
     def map_dataURI(self):
-        if self.map is None or not self.is_map_calibrated:
+        if not self.map or not self.is_map_calibrated:
             return self.BLANK_DATA_URI
         return "data:%s;base64,%s"%(self.map_format, base64.b64encode(self.map.file.read()))
 
@@ -225,7 +222,7 @@ class Competition(models.Model):
         blank=True, null=True,
         help_text = mark_safe(_("<a href='http://rphl.net/files/calibrate_map.html'>Online tool</a>")),
     )
-    
+
     @property
     def is_map_calibrated(self):
         if self.calibration_string is not None:
@@ -244,7 +241,7 @@ class Competition(models.Model):
         {"lat":-45, "lon":0, "x":0.5, "y":.75},
         {"lat":0, "lon":180, "x":1, "y":0.5},
     ]
-    
+
     @property
     def calibration_points(self):
         if self.map is not None and self.is_map_calibrated:
@@ -344,17 +341,17 @@ class Competition(models.Model):
             result['map']['calibration_points']=self.BLANK_CALIBRATION_POINTS
             result['map']['size']=self.BLANK_SIZE
             result['map']['format']=self.BLANK_FORMAT
-            
+
         competitor_set = self.competitors.all()
-        
+
         for c in competitor_set:
             result['competitors'].append(c.serialize())
-        
+
         return result
 
     def dump_json(self, include_private_data = False):
         return json.dumps(self.serialize())
-    
+
     def load_json(self, value):
         obj = json.load(value)
         return True
@@ -364,7 +361,7 @@ class Competition(models.Model):
         desired_slug = orig_slug
         next = 2
         ending = ""
-        
+
         qs = Competition.objects.all()
         if self.pk is not None:
             qs = qs.exclude(pk=self.pk)
@@ -419,14 +416,14 @@ class Competitor(models.Model):
         null=True,
         blank=True
     )
-    
+
     tracker = models.ForeignKey(
         Tracker,
         verbose_name=_('tracker'),
         related_name="competitors",
         editable=False,
     )
-    
+
     @property
     def route(self):
         route_sections = self.route_sections.all()
@@ -434,7 +431,7 @@ class Competitor(models.Model):
         for route_section in route_sections:
             route = route.union(route_section.route)
         return sorted(route)
-    
+
     def serialize(self):
         result = {
             'uuid':self.uuid,
@@ -445,13 +442,13 @@ class Competitor(models.Model):
             }
         }
         return result
-    
+
     def dump_json(self):
         return json.dumps(self.serialize())
-    
+
     def __unicode__(self):
         return u"Competitor \"%s\" in %s"%(self.name, self.competition)
-    
+
     class Meta:
         unique_together = (("tracker", "competition"),)
         ordering = ["competition", "starting_time", "name"]

@@ -58,8 +58,8 @@ def tracker(request, uuid=None):
         except:
             return HttpResponse(status=404)
         else:
-            if request.user.is_authenticated:
-                tracker, created = Tracker.objects.get_or_create(uuid=uuid, defaults={'publisher_id':request.user.pk})
+            if request.user.is_authenticated():
+                tracker, created = Tracker.objects.get_or_create(uuid=uuid, defaults={'publisher_id':request.user.id})
                 if created:
                     tracker.save()
             else:

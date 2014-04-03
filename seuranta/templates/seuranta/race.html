@@ -112,11 +112,11 @@
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.0.3/moment-timezone.min.js"></script>
 <script type="text/javascript" src="{{STATIC_URL}}seuranta/js/moment-timezone-data.min.js"></script>
-<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/positioning.min.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}seuranta/js/positioning.js"></script>
 <script>
 var COLORS = new function(){
-	var colors = ["#09F","#9F0","#F09","#F90","#90F","#FF0","#7FF","#F00","#F99","#00F","#FF7","#BFB"];
-    $t = this;
+	var colors = ["#09F","#9F0","#F09","#F90","#90F","#FF0","#7FF","#F00","#F99","#00F","#FF7","#BFB"],
+        $t = this;
     $t.cnt = -1;
     $t.get = function(){
     	this.cnt++;

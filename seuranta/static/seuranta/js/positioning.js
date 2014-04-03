@@ -288,7 +288,7 @@ PositionArchive.fromTks=function(encoded){
             r = IntValCodec.decodeValueFromString(encoded);
             vals[i] = prev_vals[i] + r[0];
             encoded = r[1];
-            prev_vals[i];
+            prev_vals[i] = prev_vals[i] + r[0];
         }
 
         pts.add(new Position({

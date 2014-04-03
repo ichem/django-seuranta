@@ -51,7 +51,7 @@
 {% block extra_scripts %}
 <script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js'></script>
 <script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js'></script>
-<script type='text/javascript' src='{{STATIC_URL}}seuranta/js/positioning.min.js'></script>
+<script type='text/javascript' src='{{STATIC_URL}}seuranta/js/positioning.js'></script>
 <script type='text/javascript' src='{{STATIC_URL}}seuranta/js/server_clock.js'></script>
 <script>
 var UUID = new (function(){
@@ -118,7 +118,7 @@ var HUMANIZER = new function(){
 };
 
 $(window).load(function(){
-	var server_clock = new ServerClock(),
+	var server_clock = new ServerClock({time_api_url:TIME_API_URL}),
 		gps_switched_on = false,
 		broadcast_switched_on = false,
 		last_position = null,
@@ -181,7 +181,7 @@ $(window).load(function(){
 
 	function updateUI(){
 		var current_timestamp = server_clock.now();
-		$("#clock").html("<i class='fa fa-clock-o'></i> "+HUMANIZER.dateTime(+current_timestamp));
+		$("#clock").html("<i class='fa fa-clock-o'></i> "+HUMANIZER.dateTime(+current_timestamp) + " drift:"+ Math.round(server_clock.getDrift())+"ms");
 
         if(screen_locked){
             $("#lock_switch").html('Unlock Screen <i class="fa fa-lock" style="color:#0f9"></i>')
@@ -230,7 +230,7 @@ $(window).load(function(){
 
 	function onPositionUpdate(position) {
 		last_position = {
-		    timestamp:position.timestamp+server_clock.getDrift(),
+		    timestamp:+position.timestamp+server_clock.getDrift(),
 		    coords:{
 		        latitude:position.coords.latitude,
 		        longitude:position.coords.longitude,
@@ -303,7 +303,7 @@ $(window).load(function(){
 		if(broadcast_switched_on){
 			var tks = broadcast_buffer.exportTks(),
 				now = server_clock.now();
-			if( broadcast_buffer.getAge(now) > 5e3 && navigator.onLine && tks != ""){
+			if( broadcast_buffer.getAge(now) > 5e3 && tks != ""){
 				$.ajax({
 				    type:"POST",
 				    url:UPDATE_TRACK_API_URL,
@@ -315,17 +315,17 @@ $(window).load(function(){
 				})
 				.done(function(response){
   					onAPIResponse(response);
-                                        if(response.status=="OK"){
-    					    broadcast_buffer.eraseInterval(-Infinity, now);
-	    				    last_data_timestamp = now;
-		    			    setTimeout(broadcast_position, 5e3);
-                                        }else{
-    					    setTimeout(broadcast_position, 2e3);
-                                        }
-			        })
+                    if(response.status=="OK"){
+    				    broadcast_buffer.eraseInterval(-Infinity, now);
+	    			    last_data_timestamp = now;
+		    		    setTimeout(broadcast_position, 5e3);
+                    }else{
+    			        setTimeout(broadcast_position, 2e3);
+                    }
+			    })
 				.fail(function(){
-					onAPIResponse({msg:"Broadcast failed..."})
-                                        setTimeout(broadcast_position, 2e3);
+					onAPIResponse({msg:"Broadcast failed..."});
+                    setTimeout(broadcast_position, 2e3);
 				});
 			} else {
 				setTimeout(broadcast_position, Math.max(5e3-broadcast_buffer.getAge(now), 1e3));

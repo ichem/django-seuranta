@@ -277,7 +277,7 @@ PositionArchive = function(){
     };
 };
 PositionArchive.fromTks=function(encoded){
-    var YEAR2000=Date.parse("2000-01-01T00:00:00Z"),
+    var YEAR2000=946684800000,// = Date.parse("2000-01-01T00:00:00Z"),
         vals = [],
         prev_vals = [YEAR2000/1e3, 0, 0],
         enc_len = encoded.length,

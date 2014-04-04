@@ -224,7 +224,7 @@ PositionArchive = function(){
         if(positions.length===0) {
             return "";
         }
-        var YEAR2000=Date.parse("2000-01-01T00:00:00Z"),
+        var YEAR2000=946684800000,// = Date.parse("2000-01-01T00:00:00Z"),
             prev_pos = new Position({
                 timestamp:YEAR2000,
                 coords:{latitude:0, longitude:0, accuracy:0}

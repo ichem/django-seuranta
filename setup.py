@@ -20,6 +20,7 @@ setup(
     zip_safe=False,
     package_data={
         'seuranta': [
+            'utils/*'
             'templates/seuranta/*.html',
             'static/seuranta/admin/js/*',
             'static/seuranta/css/*',

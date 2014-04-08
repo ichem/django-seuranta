@@ -326,7 +326,7 @@ def rerun_time(request):
     
     response['time'] = "%f"%tim
     
-    response_json = json.dumps(response, use_decimal=True)
+    response_json = json.dumps(response)
 
     if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
@@ -359,7 +359,7 @@ def rerun_init(request):
             
             domain = (get_current_site(request)).domain
             
-            response['mapurl'] = "%s://%s/%s?id=%s"%(
+            response['mapurl'] = "%s://%s%s?id=%s"%(
                 proto, 
                 domain, 
                 reverse("seuranta.views.rerun_map"), 
@@ -384,16 +384,16 @@ def rerun_init(request):
                 n += 1
                 stime = cc.starting_time
                 if stime is None:
-                    stime = s.opening_date
+                    stime = c.opening_date
                 comps.append(";".join([
-                    "xx%2d"%n, 
-                    cc.name,
-                    stime.strftime("%Y%m%d%H%M%S")
+                    "sv%02d"%n, 
+                    stime.strftime("%Y%m%d%H%M%S"),
+                    cc.name
                 ]))
             
             response['competitors'] = ":".join(comps)
             
-    response_json = json.dumps(response, use_decimal=True)
+    response_json = json.dumps(response)
 
     if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
@@ -419,7 +419,7 @@ def rerun_data(request):
             cuuids = []
             for cc in comp:
                 n += 1
-                cids[cc.uuid] = "xx%2d"%n
+                cids[cc.uuid] = "sv%02d"%n
                 cuuids.append(cc.uuid)
 
             pts_count = 0
@@ -446,7 +446,7 @@ def rerun_data(request):
             response['data'] = ":".join(data[offset:])
             response['lastpos'] = "%d"%pts_count
             
-    response_json = json.dumps(response, use_decimal=True)
+    response_json = json.dumps(response)
 
     if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)

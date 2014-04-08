@@ -14,6 +14,7 @@ INSTALLED_APPS = (
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.sites',
     'django.contrib.staticfiles',
     'timezone_field',
     'globetrotting',
@@ -48,3 +49,4 @@ DATETIME_FORMAT = 'r'
 
 STATIC_URL = '/static/'
 
+SITE_ID = 1

@@ -9,6 +9,7 @@ from django.utils.timezone import utc, now
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import cache_page
 from django.views.decorators.cache import never_cache
+from django.contrib.sites.models import get_current_site
 
 from globetrotting import GeoCoordinates, GeoLocation
 
@@ -313,7 +314,154 @@ def api(request, action):
 
     response_json = json.dumps(response, use_decimal=True)
 
-    if 'callback' in request.REQUEST:
+    if 'callback' in request.REQUEST and request.REQUEST['callback'] != "":
         data = '%s(%s);' % (request.REQUEST['callback'], response_json)
         return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')
+
+def rerun_time(request):
+    response = {}
+    
+    tim = time.time()
+    
+    response['time'] = "%f"%tim
+    
+    response_json = json.dumps(response, use_decimal=True)
+
+    if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
+        data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
+        return HttpResponse(data, content_type='application/javascript')
+    return HttpResponse(response_json, content_type='application/json')
+
+def rerun_init(request):
+    response = {}
+    
+    if 'id' in request.REQUEST:
+        id = request.REQUEST['id']
+        try:
+            c = Competition.objects.get(uuid=id, opening_date__lte=now())
+        except Competition.DoesNotExist:
+            pass
+        else:
+            response['status'] = "OK"
+            response['caltype'] = "3point"
+            
+            if c.map is None or not c.is_map_calibrated:
+                response['mapw'] = "1"
+                response['maph'] = "1"
+            else:
+                response['mapw'] = "%d"%c.map_width
+                response['maph'] = "%d"%c.map_height
+            
+            proto = "http"
+            if request.is_secure():
+                proto += "s"
+            
+            domain = (get_current_site(request)).domain
+            
+            response['mapurl'] = "%s://%s/%s?id=%s"%(
+                proto, 
+                domain, 
+                reverse("seuranta.views.rerun_map"), 
+                id
+            )
+            
+            cp = c.calibration_points
+            
+            response['calibration'] = ";".join([
+                "%f"%cp[0]['lon'], "%f"%cp[0]['lat'],
+                "%f"%cp[0]['x'], "%f"%cp[0]['y'],
+                "%f"%cp[1]['lon'], "%f"%cp[1]['lat'],
+                "%f"%cp[1]['x'], "%f"%cp[1]['y'],
+                "%f"%cp[2]['lon'], "%f"%cp[2]['lat'],
+                "%f"%cp[2]['x'], "%f"%cp[2]['y']
+            ])
+            
+            comp = c.competitors.all().order_by('uuid')
+            comps = []
+            n = 0
+            for cc in comp:
+                n += 1
+                stime = cc.starting_time
+                if stime is None:
+                    stime = s.opening_date
+                comps.append(";".join([
+                    "xx%2d"%n, 
+                    cc.name,
+                    stime.strftime("%Y%m%d%H%M%S")
+                ]))
+            
+            response['competitors'] = ":".join(comps)
+            
+    response_json = json.dumps(response, use_decimal=True)
+
+    if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
+        data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
+        return HttpResponse(data, content_type='application/javascript')
+    return HttpResponse(response_json, content_type='application/json')
+
+def rerun_data(request):
+    response = {}
+    
+    if 'id' in request.REQUEST:
+        id = request.REQUEST['id']
+        try:
+            c = Competition.objects.get(uuid=id, opening_date__lte=now())
+        except:
+            pass
+        else:
+            response['status'] = "OK"
+            
+            comp = c.competitors.all().order_by('uuid')
+            
+            n = 0
+            cids={}
+            cuuids = []
+            for cc in comp:
+                n += 1
+                cids[cc.uuid] = "xx%2d"%n
+                cuuids.append(cc.uuid)
+
+            pts_count = 0
+            data = []            
+            rss = RouteSection.objects.filter(competitor_id__in=cuuids).order_by('last_update')
+            
+            for rs in rss:
+                pts = rs.route
+                
+                for pt in pts:
+                    pts_count += 1
+                    data.append(";".join([
+                        cids[rs.competitor_id], 
+                        "%f"%pt.timestamp, 
+                        "%f"%pt.coordinates.latitude, 
+                        "%f"%pt.coordinates.longitude
+                    ]))
+                    
+            try:
+                offset = int(request.REQUEST.get('p', 0))
+            except:
+                offset = 0
+            
+            response['data'] = ":".join(data[offset:])
+            response['lastpos'] = "%d"%pts_count
+            
+    response_json = json.dumps(response, use_decimal=True)
+
+    if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
+        data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
+        return HttpResponse(data, content_type='application/javascript')
+    return HttpResponse(response_json, content_type='application/json')
+
+def rerun_map(request):
+    id = request.REQUEST.get('id', None)
+    
+    c = get_object_or_404(Competition, uuid=id, opening_date__lte=now())
+    
+    if c.map is None or not c.is_map_calibrated:
+        response = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==".decode('base64')
+    else:
+        response = c.map.file
+        
+    return HttpResponse(response, content_type=c.map_format)
+    

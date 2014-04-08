@@ -16,4 +16,9 @@ urlpatterns = patterns('seuranta.views',
 	url(r'^api/(?P<action>.*)/?$',
 		"api",
 	),
+	
+	url(r'^rerun/$', "rerun_data"),
+	url(r'^rerun/map$', "rerun_map"),
+	url(r'^rerun/init\.php$', "rerun_init"),
+	url(r'^rerun/time\.php$', "rerun_time"),
 )

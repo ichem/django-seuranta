@@ -386,7 +386,7 @@ def rerun_init(request):
                 if stime is None:
                     stime = c.opening_date
                 comps.append(";".join([
-                    "sv%02d"%n, 
+                    "xx%02d"%n, 
                     stime.strftime("%Y%m%d%H%M%S"),
                     cc.name
                 ]))
@@ -419,7 +419,7 @@ def rerun_data(request):
             cuuids = []
             for cc in comp:
                 n += 1
-                cids[cc.uuid] = "sv%02d"%n
+                cids[cc.uuid] = "xx%02d"%n
                 cuuids.append(cc.uuid)
 
             pts_count = 0

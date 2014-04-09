@@ -14,8 +14,8 @@ from .fields import ShortUUIDField
 
 from timezone_field import TimeZoneField
 
-from globetrotting.fields import GeoLocationField
 from globetrotting.validators import validate_latitude, validate_longitude
+from .utils.validators import validate_nice_slug
 
 from userena.models import UserenaLanguageBaseProfile
 
@@ -80,7 +80,7 @@ class Competition(models.Model):
 
     slug = models.SlugField(
         _('slug'),
-        validators = [MinLengthValidator(4)],
+        validators = [validate_nice_slug],
         editable = False,
         max_length = 21,
         unique=True
@@ -225,9 +225,7 @@ class Competition(models.Model):
 
     @models.permalink
     def get_absolute_url(self):
-        kwargs = {'publisher':self.publisher.profile.slug, 'slug':self.slug}
-#        if self.publication_policy == 'secret':
-#            kwargs['uuid']=self.uuid
+        kwargs = {'publisher':self.publisher.username, 'slug':self.slug}
         return ("seuranta.views.race_view", (), kwargs)
     absolute_url = property(get_absolute_url)
 
@@ -272,12 +270,35 @@ class Competition(models.Model):
         return json.dumps(self.serialize())
 
     def load_json(self, value):
-        obj = json.load(value)
+        #obj = json.load(value)
         return True
 
     def save(self, *args, **kwargs):
         orig_slug = slugify(self.name)
         desired_slug = orig_slug
+
+        while desired_slug[0] in '-_':
+            desired_slug = desired_slug[1:]
+
+        while desired_slug[-1] in '-_':
+            desired_slug = desired_slug[:-1]
+
+        while ('--' or '__' or '-_' or '_-') in desired_slug:
+            desired_slug = desired_slug.replace(
+                '--', '-'
+            ).replace(
+                '__', '_'
+            ).replace(
+                '-_', '-'
+            ).replace(
+                '_-', '_'
+            )
+
+        if len(desired_slug)==0:
+            desired_slug = "noname"
+        elif len(desired_slug)<5:
+            desired_slug = "%s-%d"%(desired_slug, self.opening_date.year)
+
         next = 2
         ending = ""
 
@@ -291,6 +312,7 @@ class Competition(models.Model):
             desired_slug = "%s%s"%(orig_slug[:21-len(ending)], ending)
             ending = "-%d"%next
             next += 1
+
         self.slug = desired_slug
         super(Competition, self).save(*args, **kwargs)
 
@@ -432,18 +454,12 @@ class RouteSection(models.Model):
         start_t=float('inf')
         end_t=-float('inf')
         for p in route:
-            if p.coordinates.latitude>north:
-                north=p.coordinates.latitude
-            if p.coordinates.latitude<south:
-                south=p.coordinates.latitude
-            if p.coordinates.longitude<west:
-                west=p.coordinates.longitude
-            if p.coordinates.longitude>east:
-                east=p.coordinates.longitude
-            if p.timestamp<start_t:
-                start_t=p.timestamp
-            if p.timestamp>end_t:
-                end_t=p.timestamp
+            north = max(north, p.coordinates.latitude)
+            south = min(south, p.coordinates.latitude)
+            west = min(west, p.coordinates.longitude)
+            east = max(east, p.coordinates.longitude)
+            start_t = min(start_t, p.timestamp)
+            end_t   = max(end_t,   p.timestamp)
 
         return {
             'start_timestamp':start_t,
@@ -477,12 +493,6 @@ class UserProfile(UserenaLanguageBaseProfile):
         unique=True,
         verbose_name=_('user'),
         related_name='profile'
-    )
-    
-    slug = models.SlugField(
-        _('slug'),
-        validators = [MinLengthValidator(4)],
-        max_length=21
     )
 
     timezone = TimeZoneField(

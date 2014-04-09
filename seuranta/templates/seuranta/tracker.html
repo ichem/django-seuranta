@@ -35,7 +35,7 @@
 		<div>
             <div id="uuid_qr"></div>
             <span id="uuid_display"></span>
-			<input type="hidden" id="uuid"/><br />
+			<input type="hidden" id="uuid" value="XXXX"/><br />
 		</div>
 		<hr/>
         <div>
@@ -77,9 +77,9 @@ var UUID = new (function(){
 </script>
 <script>
 var TIME_API_URL="{% url 'seuranta.views.api' 'clock/drift' %}",
-    UPDATE_TRACK_API_URL="{% url 'seuranta.views.api' 'tracker/update' %}",
+    UPDATE_TRACK_API_URL="{% url 'seuranta.views.api' 'competitor/update' %}",
     TRACKER_URL="{% url 'seuranta.views.tracker' %}",
-    TRACKER_UUID = {% if tracker %}'{{ tracker.uuid }}'{% else %}null{% endif %};
+    TRACKER_UUID = {% if tracker_id %}'{{ tracker_id }}'{% else %}null{% endif %};
 </script>
 <script>
 var HUMANIZER = new function(){
@@ -116,7 +116,8 @@ var HUMANIZER = new function(){
 	}
 	return $$
 };
-
+</script>
+<script>
 $(window).load(function(){
 	var server_clock = new ServerClock({time_api_url:TIME_API_URL}),
 		gps_switched_on = false,
@@ -146,38 +147,40 @@ $(window).load(function(){
 		    return;
 	    }
 
+    $("#uuid").on("change", function(){
+        uuid = $("#uuid").val();
+        if(uuid.search(/[^-a-zA-Z0-9_]/g)!=-1 || uuid.length!=22){
+ 	    	fatalError("<i class='fa fa-warning'></i> Ask an organizer for a proper traker url!");
+       	    return;
+        }
+        $('#uuid_display').text(uuid);
+        $('#uuid_qr').qrcode(uuid);
+        history.replaceState("", document.title, TRACKER_URL+uuid);
+        if (supportsLocalStorage()) {
+            localStorage["seuranta.tracker.uuid"]=uuid
+        }
+    });
+
 	(function load_uuid(){
 	    if (!uuid && supportsLocalStorage()) {
             uuid = localStorage["seuranta.tracker.uuid"];
 		}
 
-		if(!uuid){
-			if (supportsLocalStorage()) {
-				localStorage["seuranta.tracker.uuid"]="";
-			}
-			$('#uuid').val("");
+		if(uuid.search(/[^-a-zA-Z0-9_]/g)!=-1 || uuid.length!=22){
+            try{
+                uuid = UUID.short_uuid4();
+            }catch(e){
+                uuid = "";
+            }finally{
+    			if (supportsLocalStorage()) {
+	    			localStorage["seuranta.tracker.uuid"]="";
+		    	}
+			    $('#uuid').val("");
+            }
 		}else{
     		$('#uuid').val(uuid);
 		}
     })();
-
-    $("#uuid").on("change", function(){
-        uuid = $("#uuid").val();
-        if(uuid.length>0 && uuid.length==22){
-            $('#uuid_display').text(uuid);
-            $('#uuid_qr').qrcode(uuid);
-            history.replaceState("", document.title, TRACKER_URL+uuid);
-            if (supportsLocalStorage()) {
-                localStorage["seuranta.tracker.uuid"]=uuid
-            }
-        }else{
-            fatalError('<i class="fa fa-warning"></i> You need to request a tracker id from an organizer.')
-            if (supportsLocalStorage()) {
-                localStorage["seuranta.tracker.uuid"]=null
-            }
-        }
-    });
-    $("#uuid").trigger("change");
 
 	function updateUI(){
 		var current_timestamp = server_clock.now();
@@ -309,7 +312,7 @@ $(window).load(function(){
 				    url:UPDATE_TRACK_API_URL,
 					dataType:"json",
                                         data:{
-						uuid:uuid,
+						secret:uuid,
 						encoded_data:tks,
 					},
 				})

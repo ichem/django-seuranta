@@ -1,5 +1,5 @@
 import pytz
-from .models import Tracker, Competition, Competitor, RouteSection
+from .models import Competition, Competitor, RouteSection
 from django.contrib import admin
 
 from django.utils.timezone import utc, now
@@ -45,18 +45,7 @@ class PublisherAdmin(admin.ModelAdmin):
 
 class CompetitorInlineAdmin(admin.TabularInline):
     model = Competitor
-    raw_id_fields = ("tracker",)
     prepopulated_fields = {'shortname':('name',),}
-
-class TrackerAdmin(PublisherAdmin):
-    list_display = ('uuid', 'creation_date', 'get_competitor_list_tag', 'get_html_link_tag')
-
-    class Media:
-        js = {
-            "//code.jquery.com/jquery-2.1.0.min.js",
-            "//cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js",
-            "seuranta/admin/js/tracker.js",
-        }
 
 class CompetitionAdmin(PublisherAdmin):
     list_display = ('uuid', 'name', 'opening_date', 'closing_date', 'publication_policy')
@@ -85,11 +74,6 @@ class CompetitionAdmin(PublisherAdmin):
             tz = instances[0].competition.timezone
 
         for instance in instances:
-            if not instance.tracker_id:
-                tracker = Tracker(publisher_id=request.user.pk)
-                tracker.save()
-                instance.tracker_id = tracker.pk
-
             if instance.starting_time is not None:
                 instance.starting_time = utc.localize(tz.localize(instance.starting_time.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
 
@@ -105,5 +89,4 @@ class CompetitionAdmin(PublisherAdmin):
             "seuranta/admin/js/competition.js",
         }
 
-admin.site.register(Tracker, TrackerAdmin)
 admin.site.register(Competition, CompetitionAdmin)

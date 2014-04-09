@@ -18,6 +18,10 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'timezone_field',
     'globetrotting',
+
+    'userena','guardian','easy_thumbnails',
+    #'accounts',
+
     'seuranta',
 )
 
@@ -29,6 +33,37 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
+
+AUTHENTICATION_BACKENDS = (
+    'userena.backends.UserenaAuthenticationBackend',
+    'guardian.backends.ObjectPermissionBackend',
+    'django.contrib.auth.backends.ModelBackend',
+)
+ANONYMOUS_USER_ID = -1
+AUTH_PROFILE_MODULE = 'seuranta.UserProfile'
+LOGIN_REDIRECT_URL = '/accounts/%(username)s/'
+LOGIN_URL = '/accounts/signin/'
+LOGOUT_URL = '/accounts/signout/'
+
+USERENA_ACTIVATION_REQUIRED=False
+USERENA_SIGNIN_AFTER_SIGNUP=True
+USERENA_FORBIDDEN_USERNAMES=(
+    'tracker',
+    'dashboard', 
+    'api', 
+    'accounts', 
+    'admin', 
+    'signup', 
+    'signout', 
+    'signin', 
+    'activate', 
+    'me', 
+    'password'
+)
+USERENA_DISABLE_PROFILE_LIST=True
+USERENA_USE_MESSAGES=False
+USERENA_WITHOUT_USERNAMES=True
+USERENA_HIDE_EMAIL=True
 
 ROOT_URLCONF = 'seuranta.tests.urls'
 

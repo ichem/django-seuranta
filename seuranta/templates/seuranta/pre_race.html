@@ -22,7 +22,7 @@ $(function(){
         TIME_API_URL = '{% url 'seuranta.views.api' 'clock/drift' %}',
         clock = new ServerClock({time_api_url:TIME_API_URL});
 
-    setInterval(function(){
+    (function countdown(){
         var MINUTE = 60, HOUR = 60*MINUTE, DAY = 24*HOUR, YEAR = 365.25*DAY,
             timeLeft = Math.round((Date.parse(race_info.schedule.opening_date) - clock.now())/1e3),
             years = Math.floor(timeLeft/YEAR),
@@ -30,18 +30,22 @@ $(function(){
             hours = Math.floor((timeLeft-years*YEAR-days*DAY)/HOUR),
             minutes = Math.floor((timeLeft-years*YEAR-days*DAY-hours*HOUR)/MINUTE),
             seconds = Math.floor(timeLeft%60),
-            text = (years!=0?(years+" year"+(years>1?"s ":" ")):"")+
+            text = "in "+(years!=0?(years+" year"+(years>1?"s ":" ")):"")+
                 (days!=0?(days+" day"+(days==1?" ":"s ")):(years==0?"":"0 days "))+
                 (hours!=0?(hours+" hour"+(hours==1?" ":"s ")):(years==0&&days==0?"":"0 hours "))+
                 (minutes!=0?(minutes+" minute"+(minutes==1?" ":"s ")):(years==0&&days==0&&hours==0?"":"0 minutes "))+
                 (seconds!=0?(seconds+" second"+(seconds==1?"":"s")):(years==0&&days==0&&hours==0&&minutes==0?"":"0 seconds"));
 
         if(timeLeft<=0){
+            text = "now. Please wait while the page reloads<i class='fa fa-spinner fa-spin'></i>"
+        }
+        $("#countdown").html("<div style='text-align:center'><h2>Starts "+text+".</h2></div>");
+        if(timeLeft>0){
+            setTiemout(countdown, 500)
+        }else{
             window.location.reload();
         }
-
-        $("#countdown").html("<div style='text-align:center'><h2>Starts in "+text+".</h2></div>");
-    }, 500);
+    })();
 });
 </script>
 {% endblock %}

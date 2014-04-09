@@ -1,4 +1,3 @@
-from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
@@ -6,6 +5,7 @@ from django.utils.translation import ugettext as _
 from django.utils.timezone import utc, now
 from django.utils.safestring import mark_safe
 from django.core.validators import MinLengthValidator
+from django.conf import settings
 
 from .utils import short_uuid, slugify, format_date_iso
 from .utils import gps_codec
@@ -17,93 +17,12 @@ from timezone_field import TimeZoneField
 from globetrotting.fields import GeoLocationField
 from globetrotting.validators import validate_latitude, validate_longitude
 
+from userena.models import UserenaLanguageBaseProfile
+
 import datetime
 import imghdr
 import base64
 import json
-
-
-class Tracker(models.Model):
-    uuid = ShortUUIDField(
-        _("uuid"),
-        primary_key = True
-    )
-
-    creation_date = models.DateTimeField(
-        _("creation date"),
-        auto_now_add=True
-    )
-
-    publisher = models.ForeignKey(
-        User,
-        verbose_name=_("publisher"),
-        related_name="trackers",
-        editable=False
-    )
-
-    last_location = GeoLocationField(
-        _("last location logged"),
-        editable = False,
-        blank = True,
-        null=True
-    )
-
-    _last_timestamp = models.FloatField(
-        blank=True, null=True,
-        editable=False
-    )
-
-    _last_latitude = models.FloatField(
-        blank=True, null=True,
-        validators=[validate_latitude], editable=False
-    )
-
-    _last_longitude = models.FloatField(
-        blank=True, null=True,
-        validators=[validate_longitude], editable=False
-    )
-
-    @models.permalink
-    def get_absolute_url(self):
-        kwargs = {'uuid':self.uuid}
-        return ("seuranta.views.tracker", (), kwargs)
-    absolute_url = property(get_absolute_url)
-
-    def get_html_link_tag(self):
-        return "<a href='%s' class='tracker_link'>Link to tracker</a>"%self.absolute_url
-    get_html_link_tag.short_description = _('tracker link')
-    get_html_link_tag.allow_tags = _('tracker link')
-
-    def get_competitor_list_tag(self):
-        competitors = self.competitors.all()
-        r = []
-        for c in competitors:
-            cc = c.competition
-            if not cc.is_started:
-                r.append("<span>&quot;%s&quot; in &quot;%s&quot;<br/>Starting <span class='countdown'>%s</span>"%(c.name, cc.name, format_date_iso(cc.opening_date)))
-            elif cc.is_completed:
-                r.append("<span>&quot;%s&quot; in &quot;%s&quot;<br/>Completed <span class='countdown'>%s</span>"%(c.name, cc.name, format_date_iso(cc.closing_date)))
-            else:
-                r.append("<span>&quot;%s&quot; in &quot;%s&quot;<br/>Until <span class='countdown'>%s</span>"%(c.name, cc.name, format_date_iso(cc.closing_date)))
-        return '<br/>'.join(r)
-    get_competitor_list_tag.short_description = _('tracking jobs')
-    get_competitor_list_tag.allow_tags = _('tracking jobs')
-
-    def save(self, *args, **kwargs):
-        if self.last_location is not None:
-            self._last_timestamp = self.last_location.timestamp
-            self._last_latitude = self.last_location.coordinates.latitude
-            self._last_longitude = self.last_location.coordinates.longitude
-
-        super(Tracker, self).save(*args, **kwargs)
-
-    def __unicode__(self):
-        return u"Tracker \"%s\""%(self.uuid)
-
-    class Meta:
-        ordering = ["-_last_timestamp", "-creation_date"]
-        verbose_name = _("tracker")
-        verbose_name_plural = _("trackers")
 
 def map_upload_path(instance=None, filename=None):
     import os.path
@@ -133,7 +52,7 @@ class Competition(models.Model):
     last_update = models.DateTimeField(_("last update"), auto_now=True)
 
     publisher = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         verbose_name=_("publisher"),
         related_name="competitions",
         editable=False
@@ -306,7 +225,7 @@ class Competition(models.Model):
 
     @models.permalink
     def get_absolute_url(self):
-        kwargs = {'publisher':self.publisher.username, 'slug':self.slug}
+        kwargs = {'publisher':self.publisher.profile.slug, 'slug':self.slug}
 #        if self.publication_policy == 'secret':
 #            kwargs['uuid']=self.uuid
         return ("seuranta.views.race_view", (), kwargs)
@@ -418,11 +337,9 @@ class Competitor(models.Model):
         blank=True
     )
 
-    tracker = models.ForeignKey(
-        Tracker,
-        verbose_name=_('tracker'),
-        related_name="competitors",
-        editable=False,
+    tracker_id = ShortUUIDField(
+        _("tracker uuid"),
+        editable=False
     )
 
     @property
@@ -447,11 +364,16 @@ class Competitor(models.Model):
     def dump_json(self):
         return json.dumps(self.serialize())
 
+    def save(self, *args, **kwargs):
+        if self.tracker_id is None:
+            self.tracker_id = short_uuid()
+        super(Competitor, self).save(*args, **kwargs)
+
     def __unicode__(self):
         return u"Competitor \"%s\" in %s"%(self.name, self.competition)
 
     class Meta:
-        unique_together = (("tracker", "competition"),)
+        unique_together = (("tracker_id", "competition"),)
         ordering = ["competition", "starting_time", "name"]
         verbose_name = _("competitor")
         verbose_name_plural = _("competitors")
@@ -547,3 +469,23 @@ class RouteSection(models.Model):
         ordering = ["-last_update"]
         verbose_name = _("route section")
         verbose_name_plural = _("route sections")
+
+
+class UserProfile(UserenaLanguageBaseProfile):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        unique=True,
+        verbose_name=_('user'),
+        related_name='profile'
+    )
+    
+    slug = models.SlugField(
+        _('slug'),
+        validators = [MinLengthValidator(4)],
+        max_length=21
+    )
+
+    timezone = TimeZoneField(
+        verbose_name=_("timezone"),
+        default="UTC",
+    )

@@ -13,7 +13,7 @@ from django.contrib.sites.models import get_current_site
 
 from globetrotting import GeoCoordinates, GeoLocation
 
-from .models import Competition, Competitor, RouteSection, Tracker
+from .models import Competition, Competitor, RouteSection, UserProfile
 from .utils import format_date_iso
 from .utils import gps_codec
 
@@ -25,18 +25,61 @@ from .utils.validators import validate_short_uuid
 # Create your views here.
 def home(request):
     tim = now()
-
-    live = Competition.objects.filter(
+    
+    qs = Competition.objects.all()
+    
+    live = qs.filter(
         opening_date__lte=tim,
         closing_date__gte=tim,
         publication_policy="public"
     )
-    upcoming = Competition.objects.filter(
+    upcoming = qs.filter(
         opening_date__gt=tim,
         closing_date__gt=tim,
         publication_policy="public"
     )
-    past = Competition.objects.filter(
+    past = qs.filter(
+        opening_date__lt=tim,
+        closing_date__lt=tim,
+        publication_policy="public"
+    )
+    return render_to_response(
+        'seuranta/home.html',
+        {
+            'live':live,
+            'upcoming':upcoming,
+            'past':past,
+        },
+        RequestContext(request)
+    )
+
+def dashboard(request):
+    return render_to_response(
+        'seuranta/dashboard.html',
+        {
+        },
+        RequestContext(request)
+    )
+    
+
+def user_home(request, publisher):
+    tim = now()
+    
+    profile = get_object_or_404(UserProfile, slug=publisher)
+    
+    qs = Competition.objects.filter(publisher=profile.user)
+    
+    live = qs.filter(
+        opening_date__lte=tim,
+        closing_date__gte=tim,
+        publication_policy="public"
+    )
+    upcoming = qs.filter(
+        opening_date__gt=tim,
+        closing_date__gt=tim,
+        publication_policy="public"
+    )
+    past = qs.filter(
         opening_date__lt=tim,
         closing_date__lt=tim,
         publication_policy="public"
@@ -52,40 +95,53 @@ def home(request):
     )
 
 def tracker(request, uuid=None):
-    tracker = None
     if uuid is not None:
         try:
             validate_short_uuid(uuid)
         except:
             return HttpResponse(status=404)
         else:
-            if request.user.is_authenticated():
-                tracker, created = Tracker.objects.get_or_create(uuid=uuid, defaults={'publisher_id':request.user.id})
-                if created:
-                    tracker.save()
-            else:
-                tracker = get_object_or_404(Tracker, uuid=uuid)
+            tracker_id = uuid
+    else:
+        tracker_id = None
 
     return render_to_response(
         'seuranta/tracker.html',
-        {'tracker':tracker},
+        {'tracker_id':tracker_id},
         RequestContext(request)
     )
 
-def latest_competition_mod(request, publisher, slug):
-    c = Competition.objects.filter(slug=slug, publisher__username=publisher)
+def race_latest_mod(request, publisher, slug):
+    try:
+        profile = UserProfile.objects.get(slug=publisher)
+    except UserProfile.DoesNotExist:
+        return None
+    
+    try:
+        c = Competition.objects.get(
+            publisher=profile.user,
+            slug=slug, 
+        )
+    except:
+        return None
 
-    if len(c)>0:
-        c = c[0]
-        tim = now()
-        if c.last_update < c.opening_date and tim > c.opening_date:
-            return c.opening_date
-        return c.last_update
-    return None
+    tim = now()
+    if c.last_update < c.opening_date and tim > c.opening_date:
+        return c.opening_date
+    return c.last_update
 
-@condition(last_modified_func=latest_competition_mod, etag_func=None)
+@condition(last_modified_func=race_latest_mod, etag_func=None)
 def race_view(request, publisher, slug):
-    obj = get_object_or_404(Competition, slug=slug, publisher__username=publisher)
+    user = get_object_or_404(
+        UserProfile,
+        slug=publisher
+    )
+
+    obj = get_object_or_404(
+        Competition, 
+        slug=slug, 
+        publisher=user
+    )
 
     if obj.publication_policy == 'private' and obj.publisher != request.user:
         return HttpResponse(status=403)
@@ -110,7 +166,7 @@ def race_view(request, publisher, slug):
 
 @csrf_exempt
 @cache_page(5)
-def api(request, action):
+def api_v1(request, action):
     response = {
         "status":"KO",
         "code":400,
@@ -120,17 +176,17 @@ def api(request, action):
         }
     }
 
-    if action == "tracker/update":
-        uuid = request.REQUEST.get("uuid")
+    if action == "competitor/update":
+        uuid = request.REQUEST.get("secret")
         try:
-            tracker = Tracker.objects.get(uuid=uuid)
-        except Tracker.DoesNotExist:
+            validate_short_uuid(uuid)
+        except:
             response = {
                 "status":"KO",
                 "code":404,
-                "msg":"Tracker do not exist",
+                "msg":"Invalid secret",
                 "data":{
-                    "uuid":uuid
+                    "secret":uuid
                 }
             }
         else:
@@ -144,12 +200,13 @@ def api(request, action):
                     response = {
                         "status":"KO",
                         "code":400,
-                        "msg":"Invalid data",
+                        "msg":"Invalid encoded data",
                         "data":{
-                            "uuid":uuid,
+                            "secret":uuid,
                             "encoded_data":encoded_data,
                         }
                     }
+
             elif 'latitude' in request.REQUEST and 'longitude' in request.REQUEST:
                 try:
                     lat = float(request.REQUEST.get("latitude"))
@@ -161,8 +218,7 @@ def api(request, action):
                         "code":400,
                         "msg":"Invalid data",
                         "data":{
-                            "uuid":uuid,
-                            "encoded_data":encoded_data,
+                            "secret":uuid,
                         }
                     }
                 else:
@@ -171,24 +227,21 @@ def api(request, action):
 
             if route is not None and len(route)>0:
                 tim = now()
-                tracker.last_location = route[len(route)-1]
-                tracker.save()
 
-                live_competitors = tracker.competitors.filter(
-                    competition__opening_date__lt=tim,
-                    competition__closing_date__gt=tim,
+                live_competitors = Competitor.objects.filter(
+                    tracker_id = uuid,
+                    competition__opening_date__lte=tim,
+                    competition__closing_date__gte=tim,
                 )
 
-                futur_competitor = tracker.competitors.filter(
+                futur_competitor = Competitors.objects.filter(
+                    tracker_id = uuid,
                     competition__opening_date__gt=tim,
                 )
 
                 next_event_registered_opening = None
                 if len(futur_competitor)>0:
-                    next_event_registered_opening = futur_competitor.competition.opening_date
-                    for f in futur_competitor:
-                        if next_event_registered_opening > f.competition.opening_date:
-                            next_event_registered_opening = f.competition.opening_date
+                    next_event_registered_opening_date = futur_competitor.order_by('competition__opening_date')[0]
                     next_event_registered_opening = format_date_iso(next_event_registered_opening)
 
                 for c in live_competitors:
@@ -196,21 +249,23 @@ def api(request, action):
                     section.route = route
                     section.save()
 
+                last_location = route[-1]
+
                 response = {
                     "status":"OK",
                     "code":200,
                     "msg":"Data received",
                     "data":{
-                        "uuid":uuid,
+                        "secret":uuid,
                         "last_location":{
-                            "timestamp":tracker.last_location.timestamp,
+                            "timestamp":last_location.timestamp,
                             "coordinates":{
-                                "latitude":tracker.last_location.coordinates.latitude,
-                                "longitude":tracker.last_location.coordinates.longitude,
+                                "latitude":last_location.coordinates.latitude,
+                                "longitude":last_location.coordinates.longitude,
                             }
                         },
                         "locations_received_count":len(route),
-                        "live_competitors_count":len(live_competitors),
+                        "live_competitors_count":live_competitors.count(),
                         "next_competitor_opening":next_event_registered_opening,
                     }
                 }

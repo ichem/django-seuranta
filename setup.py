@@ -40,7 +40,9 @@ setup(
         'django-timezone-field >= 1.0', 
      #   'django-globetrotting', 
         'requests', 
-        'simplejson'
+        'simplejson',
+        'django-userena',
+        'unidecode',
     ],
 )
 

@@ -145,8 +145,8 @@ var Competitor = function(options){
 <script>
 $(function(){
     var race_info = {{competition.dump_json|safe}},
-        ROUTES_API_URL = '{% url 'seuranta.views.api' 'competitors/routes' %}',
-        TIME_API_URL = '{% url 'seuranta.views.api' 'clock/drift' %}',
+        ROUTES_API_URL = '{% url 'seuranta_api_v1' 'competitors/routes' %}',
+        TIME_API_URL = '{% url 'seuranta_api_v1' 'clock/drift' %}',
         is_started=false,
         is_completed=false,
         PLAYER_DELAY=30e3,

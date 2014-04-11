@@ -22,7 +22,7 @@
     <h2><i class="fa fa-archive"></i> {% trans "Archived"%}</h2>
     <ul>
     {% for comp in past %}
-        <li><a href="{{ comp.absolute_url }}">{{comp.name}}</a></li>
+        <li><a href="{{ comp.absolute_url }}">{{comp.name}}</a> - <a href="{% url 'seuranta_rerun' comp.publisher.username comp.slug %}">On 2D rerun (Experimental)</a></li>
     {% empty %}
         <li>{% trans "No race archived"%}</li>
     {% endfor %}

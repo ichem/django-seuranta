@@ -17,8 +17,6 @@ from timezone_field import TimeZoneField
 from globetrotting.validators import validate_latitude, validate_longitude
 from .utils.validators import validate_nice_slug
 
-from userena.models import UserenaLanguageBaseProfile
-
 import datetime
 import imghdr
 import base64
@@ -174,11 +172,11 @@ class Competition(models.Model):
         return self.BLANK_CALIBRATION_POINTS
 
     opening_date = models.DateTimeField(
-        _("opening date"),
+        _("opening date (UTC)"),
     )
 
     closing_date = models.DateTimeField(
-        _("closing date"),
+        _("closing date (UTC)"),
     )
 
     @property
@@ -354,13 +352,13 @@ class Competitor(models.Model):
     )
 
     starting_time = models.DateTimeField(
-        _('starting time'),
+        _('starting time (UTC)'),
         null=True,
         blank=True
     )
 
-    tracker_id = ShortUUIDField(
-        _("tracker uuid"),
+    tracker = ShortUUIDField(
+        _("secret"),
         editable=False
     )
 
@@ -387,15 +385,15 @@ class Competitor(models.Model):
         return json.dumps(self.serialize())
 
     def save(self, *args, **kwargs):
-        if self.tracker_id is None:
-            self.tracker_id = short_uuid()
+        if self.tracker is None:
+            self.tracker = short_uuid()
         super(Competitor, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return u"Competitor \"%s\" in %s"%(self.name, self.competition)
 
     class Meta:
-        unique_together = (("tracker_id", "competition"),)
+        unique_together = (("tracker", "competition"),)
         ordering = ["competition", "starting_time", "name"]
         verbose_name = _("competitor")
         verbose_name_plural = _("competitors")
@@ -485,17 +483,3 @@ class RouteSection(models.Model):
         ordering = ["-last_update"]
         verbose_name = _("route section")
         verbose_name_plural = _("route sections")
-
-
-class UserProfile(UserenaLanguageBaseProfile):
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        unique=True,
-        verbose_name=_('user'),
-        related_name='profile'
-    )
-
-    timezone = TimeZoneField(
-        verbose_name=_("timezone"),
-        default="UTC",
-    )

@@ -49,39 +49,39 @@ class CompetitorInlineAdmin(admin.TabularInline):
 
 class CompetitionAdmin(PublisherAdmin):
     list_display = ('uuid', 'name', 'opening_date', 'closing_date', 'publication_policy')
-    
+
     inlines = [
         CompetitorInlineAdmin,
     ]
 
-    def save_model(self, request, obj, form, change):
-        if obj.publisher_id is None:
-            obj.publisher = request.user
-        tz = obj.timezone
-        if obj.opening_date is not None:
-            obj.opening_date = utc.localize(tz.localize(obj.opening_date.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
-        
-        if obj.closing_date is not None:
-            obj.closing_date = utc.localize(tz.localize(obj.closing_date.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
-        obj.save()
+#    def save_model(self, request, obj, form, change):
+#        if obj.publisher_id is None:
+#            obj.publisher = request.user
+#        tz = obj.timezone
+#        if obj.opening_date is not None:
+#            obj.opening_date = utc.localize(tz.localize(obj.opening_date.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
+#
+#        if obj.closing_date is not None:
+#            obj.closing_date = utc.localize(tz.localize(obj.closing_date.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
+#        obj.save()
 
-    def save_formset(self, request, form, formset, change):
-        if formset.model != Competitor:
-            return super(CompetitionAdmin, self).save_formset(request, form, formset, change)
-        instances = formset.save(commit=False)
-    
-        if len(instances)>0:
-            tz = instances[0].competition.timezone
-
-        for instance in instances:
-            if instance.starting_time is not None:
-                instance.starting_time = utc.localize(tz.localize(instance.starting_time.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
-
-            instance.save()
-	
-        formset.save_m2m()
-
-
+#    def save_formset(self, request, form, formset, change):
+#        if formset.model != Competitor:
+#            return super(CompetitionAdmin, self).save_formset(request, form, formset, change)
+#        instances = formset.save(commit=False)
+#
+#        if len(instances)>0:
+#            tz = instances[0].competition.timezone
+#
+#        for instance in instances:
+#            if instance.starting_time is not None:
+#                instance.starting_time = utc.localize(tz.localize(instance.starting_time.replace(tzinfo=None)).astimezone(utc).replace(tzinfo=None))
+#
+#            instance.save()
+#
+#        formset.save_m2m()
+#
+#
     class Media:
         js = {
             "//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js",

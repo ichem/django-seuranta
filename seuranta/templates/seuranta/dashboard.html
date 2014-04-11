@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load tz %}
 
 {% block content %}
 <h2><i class="fa fa-trophy"></i> {% trans "Your Events"%}</h2>
@@ -8,25 +9,26 @@
 	<table class="table table-striped">
 	    <thead>
 	        <tr>
-    	        <th>Name</th>
-    	        <th>Privacy</th>
-                <th>Period</th>
-                <th>Last Modification</th>
-                <th>Actions</th>
+    	        <th>{% trans "Name" %}</th>
+    	        <th>{% trans "Privacy" %}</th>
+                <th>{% trans "Period" %}</th>
+                <th>{% trans "Actions" %}</th>
             </tr>
 	    </thead>
         <tbody>
         {% for c in user.competitions.all %}
+        {% timezone c.timezone %}
         <tr>
 	        <td>{{c.name}}</td>
 	        <td>{{c.get_publication_policy_display}}</td>
-	        <td>From {{c.start_date}}<br/>To {{c.end_date}} {{c.timezone}}</td>
-	        <td>{{c.last_update}}</td>
+	        <td>{{c.opening_date}} - {{c.closing_date}}<br/> in {{c.timezone}} {% trans 'Timezone' %}</td>
     		<td>
-    		<a title="{% trans "Delete"%}" class="btn btn-danger btn_delete_race" href="#{{c.uuid}}" ><i class="fa fa-trash-o"></i></a>
-             - <a title="{% trans "View"%}" class="btn btn-info" href="{% url "seuranta.views.race_view" c.uuid  %}"><i class="fa fa-search"></i></a>
-	        </td>
+    		<a title="{% trans "Competitors" %}" class="btn btn-info" href="?id={{c.uuid}}&view=trackers" ><i class="fa fa-users"></i></a>
+    		<a title="{% trans "View" %}" class="btn btn-info" href="{{ c.absolute_url }}"><i class="fa fa-search"></i></a>
+	         - <a title="{% trans "Delete" %}" class="btn btn-danger btn_delete_race" href="#{{c.uuid}}" ><i class="fa fa-trash-o"></i></a>
+            </td>
         </tr>
+    {% endtimezone %}
         {% endfor %}
         </tbody>
 	</table>
@@ -45,7 +47,7 @@
                 el.html('<i class="fa fa-spinner fa-spin"></i>');
                 $.ajax({
                     type:"POST",
-                    url:'{% url 'seuranta.views.api' 'delete_race' %}',
+                    url:'{% url 'seuranta_api_v1' 'delete_race' %}',
                     data:{uuid:el.attr('href').slice(1)},
                     dataType:"text"
                 }).done(function(msg) {

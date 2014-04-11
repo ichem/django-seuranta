@@ -11,9 +11,10 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.cache import never_cache
 from django.contrib.sites.models import get_current_site
 
-from globetrotting import GeoCoordinates, GeoLocation
+from globetrotting import GeoLocation
 
-from .models import Competition, Competitor, RouteSection, UserProfile
+from .models import Competition, Competitor, RouteSection
+from django.contrib.auth.models import User
 from .utils import format_date_iso
 from .utils import gps_codec
 
@@ -25,9 +26,9 @@ from .utils.validators import validate_short_uuid
 # Create your views here.
 def home(request):
     tim = now()
-    
+
     qs = Competition.objects.all()
-    
+
     live = qs.filter(
         opening_date__lte=tim,
         closing_date__gte=tim,
@@ -53,22 +54,38 @@ def home(request):
         RequestContext(request)
     )
 
+@login_required
 def dashboard(request):
+    if request.REQUEST.get('id') and request.REQUEST.get('view')=='trackers':
+        c = get_object_or_404(
+            Competition,
+            publisher=request.user,
+            pk=request.REQUEST.get('id'),
+        )
+
+        return render_to_response(
+            'seuranta/dashboard_trackers.html',
+            {
+                "competition":c
+            },
+            RequestContext(request)
+        )
+
     return render_to_response(
         'seuranta/dashboard.html',
         {
         },
         RequestContext(request)
     )
-    
+
 
 def user_home(request, publisher):
     tim = now()
-    
-    profile = get_object_or_404(UserProfile, slug=publisher)
-    
-    qs = Competition.objects.filter(publisher=profile.user)
-    
+
+    user = get_object_or_404(User, username__iexact=publisher)
+
+    qs = Competition.objects.filter(publisher=user)
+
     live = qs.filter(
         opening_date__lte=tim,
         closing_date__gte=tim,
@@ -101,26 +118,26 @@ def tracker(request, uuid=None):
         except:
             return HttpResponse(status=404)
         else:
-            tracker_id = uuid
+            tracker = uuid
     else:
-        tracker_id = None
+        tracker = None
 
     return render_to_response(
         'seuranta/tracker.html',
-        {'tracker_id':tracker_id},
+        {'uuid':tracker},
         RequestContext(request)
     )
 
 def race_latest_mod(request, publisher, slug):
     try:
-        profile = UserProfile.objects.get(slug=publisher)
-    except UserProfile.DoesNotExist:
+        user = User.objects.get(username__iexact=publisher)
+    except User.DoesNotExist:
         return None
-    
+
     try:
         c = Competition.objects.get(
-            publisher=profile.user,
-            slug=slug, 
+            publisher=user,
+            slug=slug,
         )
     except:
         return None
@@ -133,13 +150,13 @@ def race_latest_mod(request, publisher, slug):
 @condition(last_modified_func=race_latest_mod, etag_func=None)
 def race_view(request, publisher, slug):
     user = get_object_or_404(
-        UserProfile,
-        slug=publisher
+        User,
+        username__iexact=publisher
     )
 
     obj = get_object_or_404(
-        Competition, 
-        slug=slug, 
+        Competition,
+        slug=slug,
         publisher=user
     )
 
@@ -163,6 +180,24 @@ def race_view(request, publisher, slug):
         },
         RequestContext(request)
     )
+
+@condition(last_modified_func=race_latest_mod, etag_func=None)
+def race_rerun_view(request, publisher, slug):
+    user = get_object_or_404(
+        User,
+        username__iexact=publisher
+    )
+    tim = now()
+    obj = get_object_or_404(
+        Competition,
+        slug=slug,
+        publisher=user,
+        closing_date__lt=tim
+    )
+
+    if obj.publication_policy == 'private' and obj.publisher != request.user:
+        return HttpResponse(status=403)
+    return HttpResponseRedirect("http://3drerun.worldofo.com/2d/index.php?liveid=%s&lservice=dseu"%obj.uuid)
 
 @csrf_exempt
 @cache_page(5)
@@ -229,13 +264,13 @@ def api_v1(request, action):
                 tim = now()
 
                 live_competitors = Competitor.objects.filter(
-                    tracker_id = uuid,
+                    tracker = uuid,
                     competition__opening_date__lte=tim,
                     competition__closing_date__gte=tim,
                 )
 
-                futur_competitor = Competitors.objects.filter(
-                    tracker_id = uuid,
+                futur_competitor = Competitor.objects.filter(
+                    tracker = uuid,
                     competition__opening_date__gt=tim,
                 )
 
@@ -376,11 +411,11 @@ def api_v1(request, action):
 
 def rerun_time(request):
     response = {}
-    
+
     tim = time.time()
-    
+
     response['time'] = "%f"%tim
-    
+
     response_json = json.dumps(response)
 
     if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
@@ -390,7 +425,7 @@ def rerun_time(request):
 
 def rerun_init(request):
     response = {}
-    
+
     if 'id' in request.REQUEST:
         id = request.REQUEST['id']
         try:
@@ -400,29 +435,29 @@ def rerun_init(request):
         else:
             response['status'] = "OK"
             response['caltype'] = "3point"
-            
+
             if c.map is None or not c.is_map_calibrated:
                 response['mapw'] = "1"
                 response['maph'] = "1"
             else:
                 response['mapw'] = "%d"%c.map_width
                 response['maph'] = "%d"%c.map_height
-            
+
             proto = "http"
             if request.is_secure():
                 proto += "s"
-            
+
             domain = (get_current_site(request)).domain
-            
+
             response['mapurl'] = "%s://%s%s?id=%s"%(
-                proto, 
-                domain, 
-                reverse("seuranta.views.rerun_map"), 
+                proto,
+                domain,
+                reverse("seuranta.views.rerun_map"),
                 id
             )
-            
+
             cp = c.calibration_points
-            
+
             response['calibration'] = ";".join([
                 "%f"%cp[0]['lon'], "%f"%cp[0]['lat'],
                 "%f"%cp[0]['x'], "%f"%cp[0]['y'],
@@ -431,7 +466,7 @@ def rerun_init(request):
                 "%f"%cp[2]['lon'], "%f"%cp[2]['lat'],
                 "%f"%cp[2]['x'], "%f"%cp[2]['y']
             ])
-            
+
             comp = c.competitors.all().order_by('uuid')
             comps = []
             n = 0
@@ -441,13 +476,13 @@ def rerun_init(request):
                 if stime is None:
                     stime = c.opening_date
                 comps.append(";".join([
-                    "xx%02d"%n, 
+                    "xx%02d"%n,
                     stime.strftime("%Y%m%d%H%M%S"),
                     cc.name
                 ]))
-            
+
             response['competitors'] = ":".join(comps)
-            
+
     response_json = json.dumps(response)
 
     if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
@@ -457,7 +492,7 @@ def rerun_init(request):
 
 def rerun_data(request):
     response = {}
-    
+
     if 'id' in request.REQUEST:
         id = request.REQUEST['id']
         try:
@@ -466,9 +501,9 @@ def rerun_data(request):
             pass
         else:
             response['status'] = "OK"
-            
+
             comp = c.competitors.all().order_by('uuid')
-            
+
             n = 0
             cids={}
             cuuids = []
@@ -478,29 +513,29 @@ def rerun_data(request):
                 cuuids.append(cc.uuid)
 
             pts_count = 0
-            data = []            
+            data = []
             rss = RouteSection.objects.filter(competitor_id__in=cuuids).order_by('last_update')
-            
+
             for rs in rss:
                 pts = rs.route
-                
+
                 for pt in pts:
                     pts_count += 1
                     data.append(";".join([
-                        cids[rs.competitor_id], 
-                        "%f"%pt.timestamp, 
-                        "%f"%pt.coordinates.latitude, 
+                        cids[rs.competitor_id],
+                        "%f"%pt.timestamp,
+                        "%f"%pt.coordinates.latitude,
                         "%f"%pt.coordinates.longitude
                     ]))
-                    
+
             try:
                 offset = int(request.REQUEST.get('p', 0))
             except:
                 offset = 0
-            
+
             response['data'] = ":".join(data[offset:])
             response['lastpos'] = "%d"%pts_count
-            
+
     response_json = json.dumps(response)
 
     if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
@@ -510,13 +545,13 @@ def rerun_data(request):
 
 def rerun_map(request):
     id = request.REQUEST.get('id', None)
-    
+
     c = get_object_or_404(Competition, uuid=id, opening_date__lte=now())
-    
+
     if c.map is None or not c.is_map_calibrated:
         response = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==".decode('base64')
     else:
         response = c.map.file
-        
+
     return HttpResponse(response, content_type=c.map_format)
-    
+

@@ -11,14 +11,14 @@ if (jQuery !== undefined) {
             $("<button/>")
             .text("Detect")
             .on(
-                "click", 
+                "click",
                 function(e){
                     e.preventDefault();
                     $('#id_timezone').val(jstz.determine().name())
                 }
             )
             .appendTo($('#id_timezone').parent());
-            
+            /*
             var tz_name = $('#id_timezone').val();
             $('.datetime').each(function(i, el){
                 var a, b, c;
@@ -30,6 +30,7 @@ if (jQuery !== undefined) {
                     $(el).children('.vTimeField').val(c.slice(11,19))
                 }
             })
+            */
         }
 	});
 	});

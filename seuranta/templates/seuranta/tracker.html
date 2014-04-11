@@ -49,6 +49,12 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+var TIME_API_URL="{% url 'seuranta_api_v1' 'clock/drift' %}",
+    UPDATE_TRACK_API_URL="{% url 'seuranta_api_v1' 'competitor/update' %}",
+    TRACKER_URL ="{% url 'seuranta_tracker' %}",
+    TRACKER_UUID = {% if uuid %}'{{ uuid }}'{% else %}null{% endif %};
+</script>
 <script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js'></script>
 <script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js'></script>
 <script type='text/javascript' src='{{STATIC_URL}}seuranta/js/positioning.js'></script>
@@ -74,12 +80,6 @@ var UUID = new (function(){
         return btoa(b16decode(this.uuid4().replace(/-/g,''))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
     }
 })();
-</script>
-<script>
-var TIME_API_URL="{% url 'seuranta.views.api' 'clock/drift' %}",
-    UPDATE_TRACK_API_URL="{% url 'seuranta.views.api' 'competitor/update' %}",
-    TRACKER_URL="{% url 'seuranta.views.tracker' %}",
-    TRACKER_UUID = {% if tracker_id %}'{{ tracker_id }}'{% else %}null{% endif %};
 </script>
 <script>
 var HUMANIZER = new function(){
@@ -166,7 +166,7 @@ $(window).load(function(){
             uuid = localStorage["seuranta.tracker.uuid"];
 		}
 
-		if(uuid.search(/[^-a-zA-Z0-9_]/g)!=-1 || uuid.length!=22){
+		if(!uuid || uuid.search(/[^-a-zA-Z0-9_]/g)!=-1 || uuid.length!=22){
             try{
                 uuid = UUID.short_uuid4();
             }catch(e){
@@ -175,12 +175,13 @@ $(window).load(function(){
     			if (supportsLocalStorage()) {
 	    			localStorage["seuranta.tracker.uuid"]="";
 		    	}
-			    $('#uuid').val("");
+			    $('#uuid').val(uuid);
             }
 		}else{
     		$('#uuid').val(uuid);
 		}
     })();
+    $("#uuid").trigger("change")
 
 	function updateUI(){
 		var current_timestamp = server_clock.now();

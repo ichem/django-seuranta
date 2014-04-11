@@ -19,7 +19,7 @@
 <script>
 $(function(){
     var race_info = {{competition.dump_json|safe}},
-        TIME_API_URL = '{% url 'seuranta.views.api' 'clock/drift' %}',
+        TIME_API_URL = '{% url 'seuranta_api_v1' 'clock/drift' %}',
         clock = new ServerClock({time_api_url:TIME_API_URL});
 
     (function countdown(){

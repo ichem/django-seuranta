@@ -41,7 +41,7 @@ $(function(){
         }
         $("#countdown").html("<div style='text-align:center'><h2>Starts "+text+".</h2></div>");
         if(timeLeft>0){
-            setTiemout(countdown, 500)
+            setTimeout(countdown, 500)
         }else{
             window.location.reload();
         }

@@ -440,7 +440,7 @@ class RouteSection(models.Model):
     def bounds(self):
         route = self.route
 
-        if len(route)==0:
+        if route is None or len(route)==0:
             return None
 
         route=sorted(route)

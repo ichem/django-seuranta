@@ -20,6 +20,9 @@ setup(
     zip_safe=False,
     package_data={
         'seuranta': [
+	    'locale/fi/LC_MESSAGES/*',
+	    'locale/se/LC_MESSAGES/*',
+	    'locale/fr/LC_MESSAGES/*',
             'utils/*',
             'templates/seuranta/*.html',
             'static/seuranta/admin/js/*',

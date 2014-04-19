@@ -32,4 +32,4 @@ def validate_nice_slug(slug):
         raise ValidationError(_(u'Must end with an alphanumeric character.'))
 
     if '--' in slug or '__' in slug or '-_' in slug or '_-' in slug:
-        raise ValidationError(_(u'Cannot include 2 non alphanumeric character in an row.'))
+        raise ValidationError(_(u'Cannot include 2 non alphanumeric character in a row.'))

@@ -43,9 +43,51 @@ class PublisherAdmin(admin.ModelAdmin):
 		else:
 			return obj.publisher == request.user
 
+class RouteSectionInlineAdmin(admin.TabularInline):
+    model = RouteSection
+
 class CompetitorInlineAdmin(admin.TabularInline):
     model = Competitor
     prepopulated_fields = {'shortname':('name',),}
+
+class CompetitorAdmin(admin.ModelAdmin):
+    inlines = [
+        RouteSectionInlineAdmin,
+    ]
+
+    def queryset(self, request):
+		qs = super(CompetitorAdmin, self).queryset(request)
+		if request.user.is_superuser:
+			return qs
+		return qs.filter(competition__publisher=request.user)
+
+    def has_add_permission(self, request, obj=None):
+		if request.user.is_superuser:
+			return True
+
+		if obj is None:
+			return True
+		else:
+			return obj.competition.publisher == request.user
+
+    def has_change_permission(self, request, obj=None):
+		if request.user.is_superuser:
+			return True
+
+		if obj is None:
+			return True
+		else:
+			return obj.competition.publisher == request.user
+
+    def has_delete_permission(self, request, obj=None):
+		if request.user.is_superuser:
+			return True
+
+		if obj is None:
+			return True
+		else:
+			return obj.competition.publisher == request.user
+
 
 class CompetitionAdmin(PublisherAdmin):
     list_display = ('uuid', 'name', 'opening_date', 'closing_date', 'publication_policy')
@@ -90,3 +132,4 @@ class CompetitionAdmin(PublisherAdmin):
         }
 
 admin.site.register(Competition, CompetitionAdmin)
+admin.site.register(Competitor, CompetitorAdmin)

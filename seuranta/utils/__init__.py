@@ -30,7 +30,7 @@ def short_uuid():
 
 def short_sha256(val):
     from hashlib import sha256
-    return sha256(val).bytes.encode('base64').rstrip('=\n').replace('/', '_').replace('+', '-')
+    return sha256(val).digest().encode('base64').rstrip('=\n').replace('/', '_').replace('+', '-')
 
 def cmp_float(a,b):
     if abs(a-b)<1e-9:

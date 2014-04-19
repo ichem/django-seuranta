@@ -6,3 +6,6 @@ recursive-include seuranta/static/seuranta/css/ *
 recursive-include seuranta/static/seuranta/js/ *
 recursive-include seuranta/templates/ *
 recursive-include seuranta/templates/seuranta/ *
+recursive-include seuranta/locale/fr/LC_MESSAGES/ *
+recursive-include seuranta/locale/fi/LC_MESSAGES/ *
+recursive-include seuranta/locale/se/LC_MESSAGES/ *

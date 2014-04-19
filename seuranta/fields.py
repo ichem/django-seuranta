@@ -10,6 +10,7 @@ except ImportError:
     HAS_UUID = False
 
 from django.db.models import CharField
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 
 class UUIDVersionError(Exception):
     pass
@@ -41,7 +42,7 @@ class ShortUUIDField(CharField):
 
     def get_internal_type(self):
         return CharField.__name__
-    
+
     def create_uuid(self):
         if not self.version or self.version == 4:
             return uuid.uuid4()
@@ -58,7 +59,7 @@ class ShortUUIDField(CharField):
 
     def create_short_uuid(self):
         return self.create_uuid().bytes.encode('base64').rstrip('=\n').replace('/', '_').replace('+', '-')
-    
+
     def validate(self, value):
         if len(value)!=22:
             raise ValidationError(u'This is not a valid uuid4')
@@ -67,7 +68,7 @@ class ShortUUIDField(CharField):
             val = str(uuid.UUID((value_b64.decode('base64')).encode('hex')))
         except:
             raise ValidationError(u'This is not a valid UUID')
-        
+
         version_lookup = 4 if not self.version else self.version
         if (not self.version or self.version in [3, 4, 5]) and \
            (val[14]!=version_lookup or val[19] not in "89ab"):

@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import utc, now
 from django.utils.safestring import mark_safe
 from django.core.validators import MinLengthValidator
@@ -325,7 +325,7 @@ class Competition(models.Model):
 @receiver(post_delete, sender=Competition)
 def competition_post_delete_handler(sender, **kwargs):
     competition = kwargs['instance']
-    if competition.map is not None:
+    if competition.map and competition.map.file:
         storage, path = competition.map.storage, competition.map.path
         storage.delete(path)
 

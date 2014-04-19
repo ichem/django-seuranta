@@ -25,7 +25,7 @@
     		<td>
     		<a title="{% trans "Competitors" %}" class="btn btn-info" href="?id={{c.uuid}}&view=trackers" ><i class="fa fa-users"></i></a>
     		<a title="{% trans "View" %}" class="btn btn-info" href="{{ c.absolute_url }}"><i class="fa fa-search"></i></a>
-	         - <a title="{% trans "Delete" %}" class="btn btn-danger btn_delete_race" href="#{{c.uuid}}" ><i class="fa fa-trash-o"></i></a>
+	         - <a title="{% trans "Delete" %}" class="btn btn-danger btn_delete_race" data-race-id="{{c.uuid}}" href="#"><i class="fa fa-trash-o"></i></a>
             </td>
         </tr>
     {% endtimezone %}
@@ -36,25 +36,51 @@
     <span>{% trans "You don't have any competition yet!"%}</span>
     {% endif %}
 </div>
+<form style='display:hidden' action="" method="post">
+{% csrf_token %}
+</form>
 {% endblock %}
+
 {% block extra_scripts %}
 <script>
     $(function(){
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie != '') {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = jQuery.trim(cookies[i]);
+                    if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        var csrftoken = getCookie('csrftoken');
+
         var onPressDeleteLink = function(e){
             e.preventDefault();
-            var el = $(this);
-            if(confirm("{% trans "Are you sure you want to delete this race"%}")){
+            var el = $(this),
+                race_uuid = el.attr("data-race-id");
+            if(confirm("{% trans "Are you sure you want to delete this race?"%}")){
                 el.html('<i class="fa fa-spinner fa-spin"></i>');
                 $.ajax({
                     type:"POST",
-                    url:'{% url 'seuranta_api_v1' 'delete_race' %}',
-                    data:{uuid:el.attr('href').slice(1)},
-                    dataType:"text"
-                }).done(function(msg) {
-                    if(msg=="OK"){
+                    url:'{% url 'seuranta_dashboard' %}?id='+race_uuid,
+                    data:{'action':'delete'},
+                    dataType:"json",
+                    beforeSend: function(xhr, settings) {
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    }
+                }).done(function(result) {
+                    if(result.status=="OK"){
                         el.parent().parent().hide();
+                        alert(result.msg);
+                        window.location.reload();
                     }else{
-                        alert("Something went wrong...")
+                        alert("{% trans 'Something went wrong...' %}");
                     }
                 })
                 .fail(function(jqXHR, textStatus) {

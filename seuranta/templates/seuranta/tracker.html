@@ -345,6 +345,12 @@ $(window).load(function(){
         updateUI();
     });
 
+    window.onbeforeunload = function(){
+		if(broadcast_switched_on){
+            return 'If you leave now you will stop broadcasting your position.';
+		}
+    };
+
 });
 </script>
 {% endblock %}

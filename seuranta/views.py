@@ -54,31 +54,6 @@ def home(request):
         RequestContext(request)
     )
 
-@login_required
-def dashboard(request):
-    if request.REQUEST.get('id') and request.REQUEST.get('view')=='trackers':
-        c = get_object_or_404(
-            Competition,
-            publisher=request.user,
-            pk=request.REQUEST.get('id'),
-        )
-
-        return render_to_response(
-            'seuranta/dashboard_trackers.html',
-            {
-                "competition":c
-            },
-            RequestContext(request)
-        )
-
-    return render_to_response(
-        'seuranta/dashboard.html',
-        {
-        },
-        RequestContext(request)
-    )
-
-
 def user_home(request, publisher):
     tim = now()
 
@@ -110,6 +85,48 @@ def user_home(request, publisher):
         },
         RequestContext(request)
     )
+
+@login_required
+def dashboard(request):
+    if request.REQUEST.get('id') and request.REQUEST.get('view')=='trackers':
+        c = get_object_or_404(
+            Competition,
+            publisher=request.user,
+            pk=request.REQUEST.get('id'),
+        )
+
+        return render_to_response(
+            'seuranta/dashboard_trackers.html',
+            {
+                "competition":c
+            },
+            RequestContext(request)
+        )
+    if request.REQUEST.get('id') and request.POST.get('action')=='delete':
+        id = request.REQUEST.get('id')
+        c = get_object_or_404(
+            Competition,
+            publisher=request.user,
+            pk=id,
+        )
+        c.delete()
+        return HttpResponse(
+            json.dumps({
+                "status":"OK",
+                "code":200,
+                "msg":"Race deleted!"
+            }),
+            content_type='application/json'
+        )
+
+    return render_to_response(
+        'seuranta/dashboard.html',
+        {
+        },
+        RequestContext(request)
+    )
+
+
 
 def tracker(request, uuid=None):
     if uuid is not None:
@@ -277,7 +294,7 @@ def api_v1(request, action):
                 next_event_registered_opening = None
                 if len(futur_competitor)>0:
                     next_event_registered_opening_date = futur_competitor.order_by('competition__opening_date')[0]
-                    next_event_registered_opening = format_date_iso(next_event_registered_opening)
+                    next_event_registered_opening = format_date_iso(next_event_registered_opening_date)
 
                 for c in live_competitors:
                     section = RouteSection(competitor=c)
@@ -399,8 +416,8 @@ def api_v1(request, action):
                     })
 
     else:
-        response['msg']="API endpoint does not exist."
-        response['data']['endpoint']=action
+        response["msg"]="API endpoint does not exist."
+        response["data"]["endpoint"]=action
 
     response_json = json.dumps(response, use_decimal=True)
 

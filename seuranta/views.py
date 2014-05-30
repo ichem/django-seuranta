@@ -23,7 +23,10 @@ import simplejson as json
 
 from .utils.validators import validate_short_uuid
 
-# Create your views here.
+RERUN_TEMPLATE_URL = "http://3drerun.worldofo.com/2d/index.php"\
+                     "?liveid=%s&lservice=dseu"
+BLANK_GIF = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+
 def home(request):
     tim = now()
 
@@ -53,6 +56,7 @@ def home(request):
         },
         RequestContext(request)
     )
+
 
 def user_home(request, publisher):
     tim = now()
@@ -85,6 +89,7 @@ def user_home(request, publisher):
         },
         RequestContext(request)
     )
+
 
 @login_required
 def dashboard(request):
@@ -164,6 +169,7 @@ def race_latest_mod(request, publisher, slug):
         return c.opening_date
     return c.last_update
 
+
 @condition(last_modified_func=race_latest_mod, etag_func=None)
 def race_view(request, publisher, slug):
     user = get_object_or_404(
@@ -198,6 +204,7 @@ def race_view(request, publisher, slug):
         RequestContext(request)
     )
 
+
 @condition(last_modified_func=race_latest_mod, etag_func=None)
 def race_rerun_view(request, publisher, slug):
     user = get_object_or_404(
@@ -214,7 +221,10 @@ def race_rerun_view(request, publisher, slug):
 
     if obj.publication_policy == 'private' and obj.publisher != request.user:
         return HttpResponse(status=403)
-    return HttpResponseRedirect("http://3drerun.worldofo.com/2d/index.php?liveid=%s&lservice=dseu"%obj.uuid)
+    return HttpResponseRedirect(
+        RERUN_TEMPLATE_URL % obj.uuid
+    )
+
 
 @csrf_exempt
 @cache_page(5)
@@ -259,7 +269,8 @@ def api_v1(request, action):
                         }
                     }
 
-            elif 'latitude' in request.REQUEST and 'longitude' in request.REQUEST:
+            elif 'latitude' in request.REQUEST \
+            and 'longitude' in request.REQUEST:
                 try:
                     lat = float(request.REQUEST.get("latitude"))
                     lon = float(request.REQUEST.get("longitude"))
@@ -286,15 +297,19 @@ def api_v1(request, action):
                     competition__closing_date__gte=tim,
                 )
 
-                futur_competitor = Competitor.objects.filter(
+                futur_competitors = Competitor.objects.filter(
                     tracker = uuid,
                     competition__opening_date__gt=tim,
                 )
 
-                next_event_registered_opening = None
-                if len(futur_competitor)>0:
-                    next_event_registered_opening_date = futur_competitor.order_by('competition__opening_date')[0]
-                    next_event_registered_opening = format_date_iso(next_event_registered_opening_date)
+                next_start = None
+                if len(futur_competitors)>0:
+                    next_competitor = futur_competitors.order_by(
+                        'competition__opening_date'
+                    )[0]
+                    next_start = format_date_iso(
+                        next_competitor.competition.opening_date
+                    )
 
                 for c in live_competitors:
                     section = RouteSection(competitor=c)
@@ -318,7 +333,7 @@ def api_v1(request, action):
                         },
                         "locations_received_count":len(route),
                         "live_competitors_count":live_competitors.count(),
-                        "next_competitor_opening":next_event_registered_opening,
+                        "next_competition_start":next_start,
                     }
                 }
     elif action == "clock/drift":
@@ -350,7 +365,9 @@ def api_v1(request, action):
     elif action == "competitors/routes":
         uuids = request.REQUEST.getlist('uuid[]')
 
-        last_update_timestamp = request.REQUEST.get("last_update_timestamp",None)
+        last_update_timestamp = request.REQUEST.get(
+            "last_update_timestamp", None
+        )
 
         min_timestamp = request.REQUEST.get("min_timestamp",None)
         max_timestamp = request.REQUEST.get("max_timestamp",None)
@@ -359,7 +376,9 @@ def api_v1(request, action):
         if last_update_timestamp is not None:
             try:
                 last_update_timestamp = float(last_update_timestamp)
-                last_update_datetime = utc.localize(datetime.datetime.fromtimestamp(last_update_timestamp))
+                last_update_datetime = utc.localize(
+                    datetime.datetime.fromtimestamp(last_update_timestamp)
+                )
             except ValueError:
                 pass
 
@@ -367,7 +386,9 @@ def api_v1(request, action):
         if max_timestamp is not None:
             try:
                 max_timestamp = float(max_timestamp)
-                max_datetime = utc.localize(datetime.datetime.fromtimestamp(max_timestamp))
+                max_datetime = utc.localize(
+                    datetime.datetime.fromtimestamp(max_timestamp)
+                )
             except ValueError:
                 pass
 
@@ -375,16 +396,16 @@ def api_v1(request, action):
         if min_timestamp is not None:
             try:
                 min_timestamp = float(min_timestamp)
-                min_datetime = utc.localize(datetime.datetime.fromtimestamp(min_timestamp))
+                min_datetime = utc.localize(
+                    datetime.datetime.fromtimestamp(min_timestamp)
+                )
             except ValueError:
                 pass
 
         if len(uuids)>0:
-            # http://www.ibm.com/developerworks/opensource/library/os-django-models/index.html?ca=drs
-
-            #query = reduce(lambda query,uuid:query|Q(uuid=uuid), uuids, Q())
-
-            competitors_id = Competitor.objects.filter(uuid__in=uuids).values_list('pk', flat=True)
+            competitors_id = Competitor.objects.filter(
+                uuid__in=uuids
+            ).values_list('pk', flat=True)
 
             response = {
                 "status":"OK",
@@ -398,15 +419,18 @@ def api_v1(request, action):
             if len(competitors_id)>0:
                 # extra param as view bound, last update...
                 extra_query = Q()
-                #query &= reduce(lambda q,competitor:q|Q(competitor_id=competitor.id), competitors, Q())
                 if last_update_datetime is not None:
                     extra_query &= Q(last_update__gte=last_update_datetime)
 
-
-                route_sections = RouteSection.objects.filter(extra_query, competitor_id__in=competitors_id)
+                route_sections = RouteSection.objects.filter(
+                    extra_query, competitor_id__in=competitors_id
+                )
 
                 for route_section in route_sections:
-                    timestamp = (route_section.last_update.replace(tzinfo=None) - datetime.datetime.utcfromtimestamp(0)).total_seconds()
+                    timestamp = (
+                        route_section.last_update.replace(tzinfo=None)
+                        - datetime.datetime.utcfromtimestamp(0)
+                    ).total_seconds()
                     response['data']['routes'].append({
                         'competitor':{
                             'uuid':route_section.competitor.uuid,
@@ -435,7 +459,8 @@ def rerun_time(request):
 
     response_json = json.dumps(response)
 
-    if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
+    if 'jsoncallback' in request.REQUEST \
+    and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
         return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')
@@ -502,7 +527,8 @@ def rerun_init(request):
 
     response_json = json.dumps(response)
 
-    if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
+    if 'jsoncallback' in request.REQUEST\
+    and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
         return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')
@@ -531,7 +557,9 @@ def rerun_data(request):
 
             pts_count = 0
             data = []
-            rss = RouteSection.objects.filter(competitor_id__in=cuuids).order_by('last_update')
+            rss = RouteSection.objects.filter(
+                competitor_id__in=cuuids
+            ).order_by('last_update')
 
             for rs in rss:
                 pts = rs.route
@@ -555,7 +583,8 @@ def rerun_data(request):
 
     response_json = json.dumps(response)
 
-    if 'jsoncallback' in request.REQUEST and request.REQUEST['jsoncallback'] != "":
+    if 'jsoncallback' in request.REQUEST \
+    and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
         return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')
@@ -566,7 +595,7 @@ def rerun_map(request):
     c = get_object_or_404(Competition, uuid=id, opening_date__lte=now())
 
     if c.map is None or not c.is_map_calibrated:
-        response = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==".decode('base64')
+        response = BLANK_GIF.decode('base64')
     else:
         response = c.map.file
 

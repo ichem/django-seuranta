@@ -137,7 +137,7 @@ class Competition(models.Model):
         _("calibration string"),
         max_length=255,
         blank=True, null=True,
-        help_text = mark_safe(_("<a href='http://rphl.net/files/calibrate_map.html'>Online tool</a>")),
+        help_text = mark_safe(_("<a target='_blank' href='http://rphl.net/files/calibrate_map.html'>Online tool</a>")),
     )
 
     @property
@@ -246,7 +246,7 @@ class Competition(models.Model):
                 'tile_url_pattern':self.tile_url_pattern,
             },
         }
-        if (self.is_started and self.publication_policy != "private") or include_private_data:
+        if self.is_started or include_private_data:
             result['map']['image_data_uri']=self.map_dataURI
             result['map']['calibration_points']=self.calibration_points
             result['map']['size']=self.map_size
@@ -256,12 +256,9 @@ class Competition(models.Model):
             result['map']['calibration_points']=self.BLANK_CALIBRATION_POINTS
             result['map']['size']=self.BLANK_SIZE
             result['map']['format']=self.BLANK_FORMAT
-
         competitor_set = self.competitors.all()
-
         for c in competitor_set:
             result['competitors'].append(c.serialize())
-
         return result
 
     def dump_json(self, include_private_data = False):
@@ -273,14 +270,11 @@ class Competition(models.Model):
 
     def save(self, *args, **kwargs):
         orig_slug = slugify(self.name)
-        desired_slug = orig_slug
-
+        desired_slug = orig_slug[:21]
         while desired_slug[0] in '-_':
             desired_slug = desired_slug[1:]
-
         while desired_slug[-1] in '-_':
             desired_slug = desired_slug[:-1]
-
         while ('--' or '__' or '-_' or '_-') in desired_slug:
             desired_slug = desired_slug.replace(
                 '--', '-'
@@ -291,26 +285,21 @@ class Competition(models.Model):
             ).replace(
                 '_-', '_'
             )
-
         if len(desired_slug)==0:
             desired_slug = "noname"
         elif len(desired_slug)<5:
             desired_slug = "%s-%d"%(desired_slug, self.opening_date.year)
-
+        orig_slug = desired_slug
         next = 2
         ending = ""
-
         qs = Competition.objects.all()
         if self.pk is not None:
             qs = qs.exclude(pk=self.pk)
-
         qs = qs.filter(publisher_id=self.publisher_id)
-
-        while qs.filter(slug = desired_slug)[:1]:
-            desired_slug = "%s%s"%(orig_slug[:21-len(ending)], ending)
-            ending = "-%d"%next
+        while qs.filter(slug = desired_slug)[:1].count() > 0:
+            ending = "-%d" % next
+            desired_slug = "%s%s" % (orig_slug[:21-len(ending)], ending)
             next += 1
-
         self.slug = desired_slug
         super(Competition, self).save(*args, **kwargs)
 

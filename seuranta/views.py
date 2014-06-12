@@ -23,15 +23,13 @@ import simplejson as json
 
 from .utils.validators import validate_short_uuid
 
-RERUN_TEMPLATE_URL = "http://3drerun.worldofo.com/2d/index.php"\
+RERUN_TEMPLATE_URL = "http://3drerun.worldofo.com/2d/index.php" \
                      "?liveid=%s&lservice=dseu"
 BLANK_GIF = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
 
 def home(request):
     tim = now()
-
     qs = Competition.objects.all()
-
     live = qs.filter(
         opening_date__lte=tim,
         closing_date__gte=tim,
@@ -60,11 +58,8 @@ def home(request):
 
 def user_home(request, publisher):
     tim = now()
-
     user = get_object_or_404(User, username__iexact=publisher)
-
     qs = Competition.objects.filter(publisher=user)
-
     live = qs.filter(
         opening_date__lte=tim,
         closing_date__gte=tim,
@@ -99,7 +94,6 @@ def dashboard(request):
             publisher=request.user,
             pk=request.REQUEST.get('id'),
         )
-
         return render_to_response(
             'seuranta/dashboard_trackers.html',
             {
@@ -123,7 +117,6 @@ def dashboard(request):
             }),
             content_type='application/json'
         )
-
     return render_to_response(
         'seuranta/dashboard.html',
         {
@@ -150,12 +143,12 @@ def tracker(request, uuid=None):
         RequestContext(request)
     )
 
+
 def race_latest_mod(request, publisher, slug):
     try:
         user = User.objects.get(username__iexact=publisher)
     except User.DoesNotExist:
         return None
-
     try:
         c = Competition.objects.get(
             publisher=user,
@@ -163,7 +156,6 @@ def race_latest_mod(request, publisher, slug):
         )
     except:
         return None
-
     tim = now()
     if c.last_update < c.opening_date and tim > c.opening_date:
         return c.opening_date
@@ -176,16 +168,14 @@ def race_view(request, publisher, slug):
         User,
         username__iexact=publisher
     )
-
     obj = get_object_or_404(
         Competition,
         slug=slug,
         publisher=user
     )
-
-    if obj.publication_policy == 'private' and obj.publisher != request.user:
+    if obj.publication_policy == 'private' and obj.publisher != request.user \
+       and not request.user.is_superuser:
         return HttpResponse(status=403)
-
     tim = now()
     if tim < obj.opening_date:
         return render_to_response(
@@ -195,7 +185,6 @@ def race_view(request, publisher, slug):
             },
             RequestContext(request)
         )
-
     return render_to_response(
         'seuranta/race.html',
         {
@@ -218,7 +207,6 @@ def race_rerun_view(request, publisher, slug):
         publisher=user,
         closing_date__lt=tim
     )
-
     if obj.publication_policy == 'private' and obj.publisher != request.user:
         return HttpResponse(status=403)
     return HttpResponseRedirect(
@@ -237,7 +225,6 @@ def api_v1(request, action):
             "help":""
         }
     }
-
     if action == "competitor/update":
         uuid = request.REQUEST.get("secret")
         try:
@@ -255,7 +242,6 @@ def api_v1(request, action):
             route = None
             if 'encoded_data' in request.REQUEST:
                 encoded_data = request.REQUEST.get("encoded_data")
-
                 try:
                     route = gps_codec.decode(encoded_data)
                 except:
@@ -268,7 +254,6 @@ def api_v1(request, action):
                             "encoded_data":encoded_data,
                         }
                     }
-
             elif 'latitude' in request.REQUEST \
             and 'longitude' in request.REQUEST:
                 try:
@@ -287,21 +272,17 @@ def api_v1(request, action):
                 else:
                     location = GeoLocation(tim, (lat, lon))
                     route = [location]
-
             if route is not None and len(route)>0:
                 tim = now()
-
                 live_competitors = Competitor.objects.filter(
                     tracker = uuid,
                     competition__opening_date__lte=tim,
                     competition__closing_date__gte=tim,
                 )
-
                 futur_competitors = Competitor.objects.filter(
                     tracker = uuid,
                     competition__opening_date__gt=tim,
                 )
-
                 next_start = None
                 if len(futur_competitors)>0:
                     next_competitor = futur_competitors.order_by(
@@ -310,14 +291,11 @@ def api_v1(request, action):
                     next_start = format_date_iso(
                         next_competitor.competition.opening_date
                     )
-
                 for c in live_competitors:
                     section = RouteSection(competitor=c)
                     section.route = route
                     section.save()
-
                 last_location = route[-1]
-
                 response = {
                     "status":"OK",
                     "code":200,
@@ -350,7 +328,6 @@ def api_v1(request, action):
             }
         else:
             tim = time.time()
-
             response = {
                 "status":"OK",
                 "code":200,
@@ -361,17 +338,13 @@ def api_v1(request, action):
                     "drift":tim-timestamp,
                 }
             }
-
     elif action == "competitors/routes":
         uuids = request.REQUEST.getlist('uuid[]')
-
         last_update_timestamp = request.REQUEST.get(
             "last_update_timestamp", None
         )
-
         min_timestamp = request.REQUEST.get("min_timestamp",None)
         max_timestamp = request.REQUEST.get("max_timestamp",None)
-
         last_update_datetime = None
         if last_update_timestamp is not None:
             try:
@@ -381,7 +354,6 @@ def api_v1(request, action):
                 )
             except ValueError:
                 pass
-
         max_datetime = None
         if max_timestamp is not None:
             try:
@@ -391,7 +363,6 @@ def api_v1(request, action):
                 )
             except ValueError:
                 pass
-
         min_datetime = None
         if min_timestamp is not None:
             try:
@@ -401,12 +372,10 @@ def api_v1(request, action):
                 )
             except ValueError:
                 pass
-
         if len(uuids)>0:
             competitors_id = Competitor.objects.filter(
                 uuid__in=uuids
             ).values_list('pk', flat=True)
-
             response = {
                 "status":"OK",
                 "code":200,
@@ -415,17 +384,14 @@ def api_v1(request, action):
                     "routes":[]
                 }
             }
-
             if len(competitors_id)>0:
                 # extra param as view bound, last update...
                 extra_query = Q()
                 if last_update_datetime is not None:
                     extra_query &= Q(last_update__gte=last_update_datetime)
-
                 route_sections = RouteSection.objects.filter(
                     extra_query, competitor_id__in=competitors_id
                 )
-
                 for route_section in route_sections:
                     timestamp = (
                         route_section.last_update.replace(tzinfo=None)
@@ -438,36 +404,30 @@ def api_v1(request, action):
                         'udpate_timestamp':timestamp,
                         'encoded_data':route_section.encoded_data
                     })
-
     else:
         response["msg"]="API endpoint does not exist."
         response["data"]["endpoint"]=action
-
     response_json = json.dumps(response, use_decimal=True)
-
     if 'callback' in request.REQUEST and request.REQUEST['callback'] != "":
         data = '%s(%s);' % (request.REQUEST['callback'], response_json)
         return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')
 
+
 def rerun_time(request):
     response = {}
-
     tim = time.time()
-
     response['time'] = "%f"%tim
-
     response_json = json.dumps(response)
-
     if 'jsoncallback' in request.REQUEST \
     and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
         return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')
 
+
 def rerun_init(request):
     response = {}
-
     if 'id' in request.REQUEST:
         id = request.REQUEST['id']
         try:
@@ -477,29 +437,23 @@ def rerun_init(request):
         else:
             response['status'] = "OK"
             response['caltype'] = "3point"
-
             if c.map is None or not c.is_map_calibrated:
                 response['mapw'] = "1"
                 response['maph'] = "1"
             else:
                 response['mapw'] = "%d"%c.map_width
                 response['maph'] = "%d"%c.map_height
-
             proto = "http"
             if request.is_secure():
                 proto += "s"
-
             domain = (get_current_site(request)).domain
-
             response['mapurl'] = "%s://%s%s?id=%s"%(
                 proto,
                 domain,
                 reverse("seuranta.views.rerun_map"),
                 id
             )
-
             cp = c.calibration_points
-
             response['calibration'] = ";".join([
                 "%f"%cp[0]['lon'], "%f"%cp[0]['lat'],
                 "%f"%cp[0]['x'], "%f"%cp[0]['y'],
@@ -508,7 +462,6 @@ def rerun_init(request):
                 "%f"%cp[2]['lon'], "%f"%cp[2]['lat'],
                 "%f"%cp[2]['x'], "%f"%cp[2]['y']
             ])
-
             comp = c.competitors.all().order_by('uuid')
             comps = []
             n = 0
@@ -522,20 +475,17 @@ def rerun_init(request):
                     stime.strftime("%Y%m%d%H%M%S"),
                     cc.name
                 ]))
-
             response['competitors'] = ":".join(comps)
-
     response_json = json.dumps(response)
-
     if 'jsoncallback' in request.REQUEST\
     and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
         return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')
 
+
 def rerun_data(request):
     response = {}
-
     if 'id' in request.REQUEST:
         id = request.REQUEST['id']
         try:
@@ -544,9 +494,7 @@ def rerun_data(request):
             pass
         else:
             response['status'] = "OK"
-
             comp = c.competitors.all().order_by('uuid')
-
             n = 0
             cids={}
             cuuids = []
@@ -554,16 +502,13 @@ def rerun_data(request):
                 n += 1
                 cids[cc.uuid] = "xx%02d"%n
                 cuuids.append(cc.uuid)
-
             pts_count = 0
             data = []
             rss = RouteSection.objects.filter(
                 competitor_id__in=cuuids
             ).order_by('last_update')
-
             for rs in rss:
                 pts = rs.route
-
                 for pt in pts:
                     pts_count += 1
                     data.append(";".join([
@@ -572,32 +517,25 @@ def rerun_data(request):
                         "%f"%pt.coordinates.latitude,
                         "%f"%pt.coordinates.longitude
                     ]))
-
             try:
                 offset = int(request.REQUEST.get('p', 0))
             except:
                 offset = 0
-
             response['data'] = ":".join(data[offset:])
             response['lastpos'] = "%d"%pts_count
-
     response_json = json.dumps(response)
-
     if 'jsoncallback' in request.REQUEST \
     and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
         return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')
 
+
 def rerun_map(request):
     id = request.REQUEST.get('id', None)
-
     c = get_object_or_404(Competition, uuid=id, opening_date__lte=now())
-
     if c.map is None or not c.is_map_calibrated:
         response = BLANK_GIF.decode('base64')
     else:
         response = c.map.file
-
     return HttpResponse(response, content_type=c.map_format)
-

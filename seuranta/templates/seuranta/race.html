@@ -151,6 +151,7 @@ $(function(){
         is_started=false,
         is_completed=false,
         PLAYER_DELAY=30e3,
+        PLAYER_POOLING_INTERVAL=15e3,
         PLAY_RATES = [0, 1, 2, 5, 10, 15, 30, 60, 100],
         clock = new ServerClock({time_api_url:TIME_API_URL}),
         time_displayed = clock.now()-PLAYER_DELAY, //30 seconds delay
@@ -193,7 +194,7 @@ $(function(){
 
         if(list_uuids.length>0){
             // rounded to 5 sec for cache optimization
-            var now =Math.floor(+clock.now()/5e3)*5e3;
+            var now =Math.floor(+clock.now()/PLAYER_POOLING_INTERVAL)*PLAYER_POOLING_INTERVAL;
             var query_args = {"uuid[]":list_uuids, now:now}
             if(prev_fetch_time !== null){
                 query_args["last_update_timestamp"]=Math.round(prev_fetch_time/1e3);
@@ -223,7 +224,7 @@ $(function(){
         }
 
         if(!is_completed){
-            setTimeout(whileUncompleteFunction, 5e3);
+            setTimeout(whileUncompleteFunction, PLAYER_POOLING_INTERVAL);
         } else {
             onComplete();
         }
@@ -309,7 +310,7 @@ $(function(){
             });
 
             prev_display_time = now;
-            setTimeout(refreshDisplay, 50-(new Date()-now))
+            setTimeout(refreshDisplay, 100-(new Date()-now))
         })();
 
         $("#controls")

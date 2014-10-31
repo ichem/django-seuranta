@@ -34,17 +34,17 @@ def home(request):
         opening_date__lte=tim,
         closing_date__gte=tim,
         publication_policy="public"
-    )
+    ).order_by('opening_date')
     upcoming = qs.filter(
         opening_date__gt=tim,
         closing_date__gt=tim,
         publication_policy="public"
-    )
+    ).order_by('opening_date')
     past = qs.filter(
         opening_date__lt=tim,
         closing_date__lt=tim,
         publication_policy="public"
-    )
+    ).order_by('-closing_date')
     return render_to_response(
         'seuranta/home.html',
         {

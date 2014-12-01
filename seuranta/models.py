@@ -137,7 +137,7 @@ class Competition(models.Model):
         _("calibration string"),
         max_length=255,
         blank=True, null=True,
-        help_text = mark_safe(_("<a target='_blank' href='http://rphl.net/files/calibrate_map.html'>Online tool</a>")),
+        help_text = mark_safe(_("<a target='_blank' href='https://rphl.net/dropbox/calibrate_map.html'>Online tool</a>")),
     )
 
     @property

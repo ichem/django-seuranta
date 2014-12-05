@@ -1,3 +1,8 @@
+import datetime
+import imghdr
+import base64
+import json
+
 from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
@@ -7,29 +12,20 @@ from django.utils.safestring import mark_safe
 from django.core.validators import MinLengthValidator
 from django.conf import settings
 
-from .utils import short_uuid, slugify, format_date_iso
-from .utils import gps_codec
-
-from .fields import ShortUUIDField
-
 from timezone_field import TimeZoneField
 
-from globetrotting.validators import validate_latitude, validate_longitude
-from .utils.validators import validate_nice_slug
-
-import datetime
-import imghdr
-import base64
-import json
+from .utils import short_uuid, slugify, format_date_iso, make_random_code
+from .utils import gps_codec
+from .fields import ShortUUIDField
+from .utils.validators import (validate_nice_slug, validate_latitude,
+                               validate_longitude)
 
 def map_upload_path(instance=None, filename=None):
     import os.path
-
     tmppath = [
         'seuranta',
         'maps'
     ]
-
     if not filename:
         # Filename already stored in database
         filename = instance.map.name
@@ -42,40 +38,49 @@ def map_upload_path(instance=None, filename=None):
 
 
 class Competition(models.Model):
+    PUBLICATION_POLICY_CHOICES = (
+       ("private", _('Private')),
+       ("secret", _('Secret')),
+       ("public", _('Public')),
+    )
+    BLANK_SIZE = {'width':1, 'height':1}
+    BLANK_FORMAT = "image/gif"
+    BLANK_DATA_URI = "data:image/gif;base64," \
+                     "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+    BLANK_CALIBRATION_POINTS = [
+        {"lat":45, "lon":-180, "x":0, "y":.25},
+        {"lat":-45, "lon":0, "x":0.5, "y":.75},
+        {"lat":0, "lon":180, "x":1, "y":0.5},
+    ]
+    DISPLAY_SETTINGS_CHOICES = (
+       ("map+world", _('Map displayed over world map')),
+       ("map", _('Map only')),
+       ("world", _('World map only')),
+    )
+
     uuid = ShortUUIDField(
         _("uuid"),
         primary_key = True
     )
-
     last_update = models.DateTimeField(_("last update"), auto_now=True)
-
     publisher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name=_("publisher"),
         related_name="competitions",
         editable=False
     )
-
-    PUBLICATION_POLICY_CHOICES = (
-       ("private", _('Private')),
-       ("secret", _('Secret')),
-       ("public", _('Public')),
-    )
-
     publication_policy = models.CharField(
         _("publication policy"),
         max_length=8,
         choices=PUBLICATION_POLICY_CHOICES,
         default="public"
     )
-
     name = models.CharField(
         _('name'),
         max_length = 50,
         default="Untitled",
         validators = [MinLengthValidator(4)]
     )
-
     slug = models.SlugField(
         _('slug'),
         validators = [validate_nice_slug],
@@ -83,12 +88,10 @@ class Competition(models.Model):
         max_length = 21,
         unique=True
     )
-
     timezone = TimeZoneField(
         verbose_name=_("timezone"),
         default="UTC",
     )
-
     map = models.ImageField(
         _("map"),
         upload_to = map_upload_path,
@@ -96,20 +99,47 @@ class Competition(models.Model):
         width_field = "map_width",
         blank=True, null=True
     )
-
     map_width = models.PositiveIntegerField(
         _("map width"),
         editable = False,
         blank=True, null=True
     )
-
     map_height = models.PositiveIntegerField(
         _("map height"),
         editable = False,
         blank=True, null=True
     )
+    calibration_string = models.CharField(
+        _("calibration string"),
+        max_length=255,
+        blank=True, null=True,
+        help_text = mark_safe(
+            _("<a target='_blank' "
+              "href='https://rphl.net/dropbox/calibrate_map.html'>"
+              "Online tool"
+              "</a>"
+            )
+        ),
+    )
+    opening_date = models.DateTimeField(
+        _("opening date (UTC)"),
+    )
+    closing_date = models.DateTimeField(
+        _("closing date (UTC)"),
+    )
+    display_settings = models.CharField(
+        _("display type"),
+        max_length=10,
+        choices=DISPLAY_SETTINGS_CHOICES,
+        default="map"
+    )
+    pref_tile_url_pattern = models.URLField(
+        _('pref tile url pattern'),
+        blank=True,
+        null=True,
+        help_text = _("Leave blank to use OpenStreetMap as default"),
+    )
 
-    BLANK_SIZE = {'width':1, 'height':1}
     @property
     def map_size(self):
         if not self.map or not self.is_map_calibrated:
@@ -117,7 +147,6 @@ class Competition(models.Model):
         else:
             return {'width':self.map_width, 'height':self.map_height}
 
-    BLANK_FORMAT = "image/gif"
     @property
     def map_format(self):
         if not self.map or not self.is_map_calibrated:
@@ -125,20 +154,12 @@ class Competition(models.Model):
         type = imghdr.what(self.map.file)
         return "image/%s"%type
 
-
-    BLANK_DATA_URI = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
     @property
     def map_dataURI(self):
         if not self.map or not self.is_map_calibrated:
             return self.BLANK_DATA_URI
-        return "data:%s;base64,%s"%(self.map_format, base64.b64encode(self.map.file.read()))
-
-    calibration_string = models.CharField(
-        _("calibration string"),
-        max_length=255,
-        blank=True, null=True,
-        help_text = mark_safe(_("<a target='_blank' href='https://rphl.net/dropbox/calibrate_map.html'>Online tool</a>")),
-    )
+        return "data:%s;base64,%s"%(self.map_format,
+                                    base64.b64encode(self.map.file.read()))
 
     @property
     def is_map_calibrated(self):
@@ -153,12 +174,6 @@ class Competition(models.Model):
                     return True
         return False
 
-    BLANK_CALIBRATION_POINTS = [
-        {"lat":45, "lon":-180, "x":0, "y":.25},
-        {"lat":-45, "lon":0, "x":0.5, "y":.75},
-        {"lat":0, "lon":180, "x":1, "y":0.5},
-    ]
-
     @property
     def calibration_points(self):
         if self.map is not None and self.is_map_calibrated:
@@ -170,14 +185,6 @@ class Competition(models.Model):
                 {"lat":pts[9], "lon":pts[8], "x":pts[10], "y":pts[11]}
             ]
         return self.BLANK_CALIBRATION_POINTS
-
-    opening_date = models.DateTimeField(
-        _("opening date (UTC)"),
-    )
-
-    closing_date = models.DateTimeField(
-        _("closing date (UTC)"),
-    )
 
     @property
     def is_started(self):
@@ -193,26 +200,6 @@ class Competition(models.Model):
 
     def close_competition(self):
         self.closing_date = now()
-
-    DISPLAY_SETTINGS_CHOICES = (
-       ("map+world", _('Map displayed over world map')),
-       ("map", _('Map only')),
-       ("world", _('World map only')),
-    )
-
-    display_settings = models.CharField(
-        _("display type"),
-        max_length=10,
-        choices=DISPLAY_SETTINGS_CHOICES,
-        default="map"
-    )
-
-    pref_tile_url_pattern = models.URLField(
-        _('pref tile url pattern'),
-        blank=True,
-        null=True,
-        help_text = _("Leave blank to use OpenStreetMap as default"),
-    )
 
     @property
     def tile_url_pattern(self):
@@ -304,7 +291,9 @@ class Competition(models.Model):
         super(Competition, self).save(*args, **kwargs)
 
     def __unicode__(self):
-        return u"Competition \"%s\" created by %s, \"%s\""%(self.name, self.publisher, self.uuid)
+        return u"Competition \"%s\" created by %s, \"%s\""%(self.name,
+                                                            self.publisher,
+                                                            self.uuid)
 
     class Meta:
         ordering = ["-opening_date"]
@@ -317,6 +306,7 @@ def competition_post_delete_handler(sender, **kwargs):
     if competition.map and competition.map.file:
         storage, path = competition.map.storage, competition.map.path
         storage.delete(path)
+
 
 class Competitor(models.Model):
     uuid = ShortUUIDField(
@@ -351,6 +341,15 @@ class Competitor(models.Model):
         editable=False
     )
 
+    quick_setup_code = models.CharField(
+        _('quick setup code'),
+        max_length=8,
+        blank=True,
+        null=False,
+        editable=False,
+        default=''
+    )
+
     @property
     def route(self):
         route_sections = self.route_sections.all()
@@ -360,12 +359,16 @@ class Competitor(models.Model):
         return sorted(route)
 
     def serialize(self):
+        if self.starting_time is not None:
+            stime = format_date_iso(self.starting_time)
+        else:
+            stime = None
         result = {
             'uuid':self.uuid,
             'data':{
                 'name':self.name,
                 'shortname':self.shortname,
-                'starting_time':format_date_iso(self.starting_time) if self.starting_time is not None else None,
+                'starting_time': stime,
             }
         }
         return result
@@ -373,41 +376,46 @@ class Competitor(models.Model):
     def dump_json(self):
         return json.dumps(self.serialize())
 
+    def make_setup_code(self):
+        while True:
+            code = make_random_code(5)
+            existing = Competitor.objects.filter(
+                code=code,
+                competition_id=self.competition_id
+            ).count()
+            if existing == 0:
+                break
+        self.quick_setup_code = code
+
     def save(self, *args, **kwargs):
         if self.tracker is None:
             self.tracker = short_uuid()
+        if self.quick_setup_code is '':
+            self.make_setup_code()
         super(Competitor, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return u"Competitor \"%s\" in %s"%(self.name, self.competition)
 
     class Meta:
-        unique_together = (("tracker", "competition"),)
+        unique_together = (
+            ("tracker", "competition"),
+            ("quick_setup_code", "competition"),
+        )
         ordering = ["competition", "starting_time", "name"]
         verbose_name = _("competitor")
         verbose_name_plural = _("competitors")
 
 class RouteSection(models.Model):
-    competitor = models.ForeignKey(Competitor, verbose_name=_("competitor"), related_name="route_sections")
-
+    competitor = models.ForeignKey(Competitor,
+                                   verbose_name=_("competitor"),
+                                   related_name="route_sections")
     encoded_data = models.TextField(_("encoded data"), blank=True)
-
-    @property
-    def route(self):
-        try:
-            return gps_codec.decode(self.encoded_data)
-        except:
-            return set()
-
-    @route.setter
-    def route(self, value):
-        self.encoded_data = gps_codec.encode(value)
-
     last_update = models.DateTimeField(_("last update"), auto_now=True)
-
-    _start_datetime = models.DateTimeField(blank=True, null=True, editable=False)
-    _finish_datetime = models.DateTimeField(blank=True, null=True, editable=False)
-
+    _start_datetime = models.DateTimeField(blank=True, null=True,
+                                           editable=False)
+    _finish_datetime = models.DateTimeField(blank=True, null=True,
+                                            editable=False)
     _north = models.FloatField(
         blank=True, null=True,
         validators=[validate_latitude], editable=False
@@ -424,6 +432,17 @@ class RouteSection(models.Model):
         blank=True, null=True,
         validators=[validate_longitude], editable=False
     )
+
+    @property
+    def route(self):
+        try:
+            return gps_codec.decode(self.encoded_data)
+        except:
+            return set()
+
+    @route.setter
+    def route(self, value):
+        self.encoded_data = gps_codec.encode(value)
 
     @property
     def bounds(self):
@@ -460,8 +479,12 @@ class RouteSection(models.Model):
     def save(self, *args, **kwargs):
         bounds = self.bounds
         if bounds:
-            self._start_datetime=utc.localize(datetime.datetime.fromtimestamp(bounds['start_timestamp']))
-            self._finish_datetime=utc.localize(datetime.datetime.fromtimestamp(bounds['finish_timestamp']))
+            self._start_datetime=utc.localize(
+                datetime.datetime.fromtimestamp(bounds['start_timestamp'])
+            )
+            self._finish_datetime=utc.localize(
+                datetime.datetime.fromtimestamp(bounds['finish_timestamp'])
+            )
             self._north=bounds['north']
             self._south=bounds['south']
             self._west=bounds['west']

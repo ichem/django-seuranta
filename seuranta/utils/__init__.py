@@ -1,3 +1,12 @@
+def make_random_code(length):
+    import random
+    random.seed()
+    alpha = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+    out = ''
+    for i in range(length):
+        out += alpha[random.randrange(len(alpha))]
+    return out
+
 def format_date_iso(val):
     from django.utils.timezone import utc
     return (val.astimezone(utc)).strftime("%Y-%m-%dT%H:%M:%SZ")

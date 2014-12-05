@@ -225,7 +225,41 @@ def api_v1(request, action):
             "help":""
         }
     }
-    if action == "competitor/update":
+    if action == "competition/list":
+        comp = Competition.objects.all().values_list('name', 'uuid',
+                                                     'opening_date')
+        data = [{"name": x[0], "uuid": x[1],
+                 "date": format_date_iso(x[2])} for x in comp]
+        response = {
+            "status":"OK",
+            "code":200,
+            "msg":"Invalid code",
+            "data": {
+                "list": data
+            },
+        }
+    elif action == "competitor/retrieve":
+        competition_id = request.REQUEST.get("competition_uuid")
+        code = request.REQUEST.get("code")
+        res = Competitor.objects.filter(competition_id=competition_id,
+                                        quick_setup_code=code)
+        if res.count() == 0:
+            response = {
+                "status":"KO",
+                "code":404,
+                "msg":"Invalid code",
+                "data":{}
+            }
+        else:
+            response = {
+                "status":"OK",
+                "code":200,
+                "msg":"Data received",
+                "data":{
+                    "secret": res[0].tracker
+                }
+            }
+    elif action == "competitor/update":
         uuid = request.REQUEST.get("secret")
         try:
             validate_short_uuid(uuid)

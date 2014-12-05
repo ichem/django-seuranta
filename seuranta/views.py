@@ -13,13 +13,15 @@ from django.utils.timezone import utc, now
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import cache_page
 from django.contrib.sites.models import get_current_site
-from django.contrib.auth.models import User
+from django.conf import settings
 
 from seuranta.models import Competition, Competitor, RouteSection
 from seuranta.utils import format_date_iso, gps_codec
 from seuranta.utils.validators import validate_short_uuid
 from seuranta.utils.geo import GeoLocation
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 RERUN_TEMPLATE_URL = "http://3drerun.worldofo.com/2d/index.php" \
                      "?liveid=%s&lservice=dseu"
@@ -323,9 +325,10 @@ def api_v1(request, action):
                         next_competitor.competition.opening_date
                     )
                 for c in live_competitors:
-                    section = RouteSection(competitor=c)
-                    section.route = route
-                    section.save()
+                    if c.approved or c.competition.signup_policy == "open":
+                        section = RouteSection(competitor=c)
+                        section.route = route
+                        section.save()
                 last_location = route[-1]
                 response = {
                     "status": "OK",

@@ -44,6 +44,11 @@ class Competition(models.Model):
         ("secret", _('Secret')),
         ("public", _('Public')),
     )
+    SIGNUP_POLICY_CHOICES = (
+        ("closed", _('Closed')),
+        ("org_val", _('Organizer Validated')),
+        ("open", _('Open')),
+    )
     BLANK_SIZE = {'width': 1, 'height': 1}
     BLANK_FORMAT = "image/gif"
     BLANK_DATA_URI = "data:image/gif;base64," \
@@ -85,6 +90,12 @@ class Competition(models.Model):
         editable=False,
         max_length=21,
         unique=True
+    )
+    signup_policy = models.CharField(
+        _("signup policy"),
+        max_length=8,
+        choices=SIGNUP_POLICY_CHOICES,
+        default="open",
     )
     timezone = TimeZoneField(
         verbose_name=_("timezone"),
@@ -219,6 +230,7 @@ class Competition(models.Model):
             'slug': self.slug,
             'publisher': self.publisher.username,
             'publication_policy': self.publication_policy,
+            'signup_policy': self.signup_policy,
             'timezone': str(self.timezone),
             'schedule': {
                 'opening_date': format_date_iso(self.opening_date),
@@ -288,9 +300,8 @@ class Competition(models.Model):
         super(Competition, self).save(*args, **kwargs)
 
     def __unicode__(self):
-        return u"Competition \"%s\" created by %s, \"%s\"" % (self.name,
-                                                              self.publisher,
-                                                              self.uuid)
+        return u"Competition \"%s\" created by %s" % (self.name,
+                                                      self.publisher)
 
     class Meta:
         ordering = ["-opening_date"]
@@ -328,7 +339,9 @@ class Competitor(models.Model):
     )
     tracker = ShortUUIDField(
         _("secret"),
-        editable=False
+        editable=True,
+        blank=False,
+        null=True
     )
     quick_setup_code = models.CharField(
         _('quick setup code'),
@@ -337,6 +350,10 @@ class Competitor(models.Model):
         null=False,
         editable=False,
         default=''
+    )
+    approved = models.BooleanField(
+        _('Approved by organizer'),
+        default=False
     )
 
     @property
@@ -369,7 +386,7 @@ class Competitor(models.Model):
         while True:
             code = make_random_code(5)
             existing = Competitor.objects.filter(
-                code=code,
+                quick_setup_code=code,
                 competition_id=self.competition_id
             ).count()
             if existing == 0:
@@ -377,9 +394,9 @@ class Competitor(models.Model):
         self.quick_setup_code = code
 
     def save(self, *args, **kwargs):
-        if self.tracker is None:
+        if not self.tracker:
             self.tracker = short_uuid()
-        if self.quick_setup_code is '':
+        if not self.quick_setup_code:
             self.make_setup_code()
         super(Competitor, self).save(*args, **kwargs)
 

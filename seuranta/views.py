@@ -230,7 +230,7 @@ def api_v1(request, action):
         response = {
             "status": "OK",
             "code": 200,
-            "msg": "Invalid code",
+            "msg": "",
             "data": {
                 "list": data
             },

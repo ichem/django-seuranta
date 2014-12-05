@@ -41,29 +41,30 @@ SpheroidProjection = (function(){
     rad = 6378137,
     originShift = pi * rad,
     pi_180 = pi/_180;
-    function S(){}
+    function S(){
+    }
     S[p].LatLonToMeters = function(latlon){
         return new Point(
             latlon.lon*rad*pi_180,
             m.log(m.tan((90+latlon.lat)*pi_180/2))*rad
         );
-    },
+    };
     S[p].MetersToLatLon = function(mxy){
         return new LatLon(
             (2*m.atan(m.exp(mxy.y/rad))-pi/2)/pi_180,
             mxy.x/rad/pi_180
         );
-    },
+    };
     S[p].resolution = function(zoom){
         return (2 * originShift) / (256 * m.pow(2, zoom));
-    },
+    };
     S[p].zoomForPixelSize = function(pixelSize ){
         for(i=0; i<30; i++){
             if(pixelSize > resolution(i)){
                 return m.max(i-1,0);
             }
         }
-    },
+    };
     S[p].pixelsToMeters = function(px, py, zoom){
         var res = resolution( zoom ),
             mx = px * res - originShift,
@@ -82,10 +83,8 @@ SmallWorld=(function(){
     },
     proj = new SpheroidProjection(),
     solveAffine = function (r1, s1, t1, r2, s2, t2, r3, s3, t3) {
-        var a = (((t2 - t3) * (s1 - s2)) - ((t1 - t2) * (s2 - s3)))
-            / (((r2 - r3) * (s1 - s2)) - ((r1 - r2) * (s2 - s3))),
-        b = (((t2 - t3) * (r1 - r2)) - ((t1 - t2) * (r2 - r3)))
-            / (((s2 - s3) * (r1 - r2)) - ((s1 - s2) * (r2 - r3))),
+        var a = (((t2 - t3) * (s1 - s2)) - ((t1 - t2) * (s2 - s3))) / (((r2 - r3) * (s1 - s2)) - ((r1 - r2) * (s2 - s3))),
+        b = (((t2 - t3) * (r1 - r2)) - ((t1 - t2) * (r2 - r3))) / (((s2 - s3) * (r1 - r2)) - ((s1 - s2) * (r2 - r3))),
         c = t1 - (r1 * a) - (s1 * b);
         return [a, b, c];
     },
@@ -106,13 +105,13 @@ SmallWorld=(function(){
                 proj.LatLonToMeters(cal_pts[2])
             ],
             map_image = new Image();
-        
+
         this.coordsToXy = derive(cal_pts, cal_pts_meter);
         this.xyToCoords = derive(cal_pts_meter, cal_pts);
-        
+
         this.map_w = 0;
         this.map_h = 0;
-        
+
         map_image.onload = method_callback(this, function() {
             this.map_w = map_image.width;
             this.map_h = map_image.height;
@@ -147,10 +146,10 @@ SmallWorld=(function(){
         this.routes = [];
         this.el = el;
         this.paper = Raphael(el_id, this.view_W, this.view_H);
-        
+
         // add a border
         if(this.extra_border){
-            this.paper.rect(-10, -10, this.map_w+20, this.map_h+20).attr({fill:"#FFF"}); 
+            this.paper.rect(-10, -10, this.map_w+20, this.map_h+20).attr({fill:"#FFF"});
         }
         this.map_img = this.paper.image(this.map_url, 0, 0, this.map_w, this.map_h);
 
@@ -161,14 +160,14 @@ SmallWorld=(function(){
                 this.paper.image(this.overlay_img_url, 0, 0, this.map_w, this.map_h);
             }
         }
-        
+
         this.mask = this.paper.rect(0, 0, this.view_W, this.view_H).attr({fill:"#FFF", opacity:0}).drag(
             method_callback(this, function(dx, dy, x, y){
                 this.el.css("cursor", "move");
                 this.view_x = this.start_drag_x-dx/mpow(2, this.current_zoom);
                 this.view_y = this.start_drag_y-dy/mpow(2, this.current_zoom);
                 this.paper.setViewBox(this.view_x, this.view_y, this.view_W, this.view_H, false);
-                this.mask.attr({x:this.view_x, y:this.view_y})
+                this.mask.attr({x:this.view_x, y:this.view_y});
             }),
             method_callback(this, function(x, y){
                 this.start_drag_x = this.view_x;
@@ -186,7 +185,7 @@ SmallWorld=(function(){
         this._on_zoom();
     };
     M[p].zoom_in = function(){
-        var f = mpow(2, this.current_zoom)
+        var f = mpow(2, this.current_zoom);
         this.view_x += this.el.width()/f/4;//  |   [  ]   |
         this.view_y += this.el.height()/f/4;// |  [    ]  |
         this.current_zoom++;
@@ -194,24 +193,24 @@ SmallWorld=(function(){
     };
     M[p].zoom_out = function(){
         this.current_zoom--;
-        var f = mpow(2, this.current_zoom)
+        var f = mpow(2, this.current_zoom);
         this.view_x -= this.el.width()/f/4;
         this.view_y -= this.el.height()/f/4;
         this._on_zoom();
     };
     M[p]._on_zoom = function(){
         var f = mpow(2, this.current_zoom);
-        
+
         this.view_W = this.el.width()/f;
         this.view_H = this.el.height()/f;
-        
+
         this.mask.attr({
             x:this.view_x,
-            y:this.view_y, 
-            width:this.view_W, 
+            y:this.view_y,
+            width:this.view_W,
             height:this.view_H
         });
-        
+
         this.paper.setViewBox(this.view_x, this.view_y, this.view_W, this.view_H, false);
 
         for(i=0;i<this.markers.length;i++){
@@ -251,7 +250,7 @@ SmallWorld=(function(){
     K[p].draw = function(map){
         var xy = map.LatLonToMapXY(this.latlon), c = this.color;
         this.map = map;
-        this.circle = map.paper.circle(xy.x, xy.y, this.size).attr({"stroke":c, opacity:.75, "stroke-width":4});
+        this.circle = map.paper.circle(xy.x, xy.y, this.size).attr({"stroke":c, opacity:0.75, "stroke-width":4});
         this.name = map.paper.text(xy.x+13, xy.y+13, this.text).attr({"font-size":"20px", "fill":c, "stroke":c, "text-anchor":"start"});
         map.markers.push(this);
         map.mask.toFront();
@@ -297,7 +296,7 @@ SmallWorld=(function(){
             xy = map.LatLonToMapXY(this.coords[i]);
             path_val+=[xy.x,xy.y].join(" ");
         }
-        this.path = map.paper.path(path_val).attr({stroke:this.color, opacity:.75, "stroke-width":this.width, "stroke-linejoin":"round"});
+        this.path = map.paper.path(path_val).attr({stroke:this.color, opacity:0.75, "stroke-width":this.width, "stroke-linejoin":"round"});
         map.routes.push(this);
         map.mask.toFront();
     };
@@ -321,4 +320,3 @@ SmallWorld=(function(){
     };
     return {Map:M, Marker:K, Route:P};
 })();
-

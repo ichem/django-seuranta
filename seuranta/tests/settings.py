@@ -19,10 +19,7 @@ INSTALLED_APPS = (
     'timezone_field',
     'globetrotting',
 
-    'userena','guardian','easy_thumbnails',
-    #'accounts',
-
-    'seuranta',
+    'userena'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -45,25 +42,25 @@ LOGIN_REDIRECT_URL = '/accounts/%(username)s/'
 LOGIN_URL = '/accounts/signin/'
 LOGOUT_URL = '/accounts/signout/'
 
-USERENA_ACTIVATION_REQUIRED=False
-USERENA_SIGNIN_AFTER_SIGNUP=True
-USERENA_FORBIDDEN_USERNAMES=(
+USERENA_ACTIVATION_REQUIRED = False
+USERENA_SIGNIN_AFTER_SIGNUP = True
+USERENA_FORBIDDEN_USERNAMES = (
     'tracker',
-    'dashboard', 
-    'api', 
-    'accounts', 
-    'admin', 
-    'signup', 
-    'signout', 
-    'signin', 
-    'activate', 
-    'me', 
+    'dashboard',
+    'api',
+    'accounts',
+    'admin',
+    'signup',
+    'signout',
+    'signin',
+    'activate',
+    'me',
     'password'
 )
-USERENA_DISABLE_PROFILE_LIST=True
-USERENA_USE_MESSAGES=False
-USERENA_WITHOUT_USERNAMES=True
-USERENA_HIDE_EMAIL=True
+USERENA_DISABLE_PROFILE_LIST = True
+USERENA_USE_MESSAGES = False
+USERENA_WITHOUT_USERNAMES = True
+USERENA_HIDE_EMAIL = True
 
 ROOT_URLCONF = 'seuranta.tests.urls'
 

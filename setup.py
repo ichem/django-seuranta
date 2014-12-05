@@ -20,9 +20,9 @@ setup(
     zip_safe=False,
     package_data={
         'seuranta': [
-	    'locale/fi/LC_MESSAGES/*',
-	    'locale/se/LC_MESSAGES/*',
-	    'locale/fr/LC_MESSAGES/*',
+            'locale/fi/LC_MESSAGES/*',
+            'locale/se/LC_MESSAGES/*',
+            'locale/fr/LC_MESSAGES/*',
             'utils/*',
             'templates/seuranta/*.html',
             'static/seuranta/admin/js/*',
@@ -31,21 +31,18 @@ setup(
         ],
     },
     classifiers=[
-      'Development Status :: Beta',
-      'Environment :: Web Environment',
-      'Framework :: Django',
-      'Intended Audience :: Developers',
-      'License :: OSI Approved :: BSD License',
-      'Operating System :: OS Independent',
-      'Programming Language :: Python',
+        'Development Status :: Beta',
+        'Environment :: Web Environment',
+        'Framework :: Django',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
     ],
     install_requires=[
-        'django-timezone-field >= 1.0', 
-     #   'django-globetrotting', 
-        'requests', 
+        'requests',
         'simplejson',
-        'django-userena',
         'unidecode',
+        'django-timezone-field >= 1.0',
     ],
 )
-

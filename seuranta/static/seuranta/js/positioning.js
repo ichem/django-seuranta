@@ -81,7 +81,7 @@ Position = function(l){
                 accuracy:pc.accuracy*r+r_*$tc.accuracy
             }
         });
-    }
+    };
 },
 PositionArchive = function(){
     var positions = [],
@@ -156,7 +156,7 @@ PositionArchive = function(){
         if(positions[index].timestamp==t){
             return positions[index];
         }else{
-            return positions[index-1].positionTowardAtTimestamp(positions[index], t)
+            return positions[index-1].positionTowardAtTimestamp(positions[index], t);
         }
     };
     this.extractInterval = function(t1, t2){
@@ -241,8 +241,8 @@ PositionArchive = function(){
             k = positions[i];
             kc = k.coords;
             pc = prev_pos.coords;
-            dt = k.timestamp-prev_pos.timestamp,
-            dlat = kc.latitude-pc.latitude,
+            dt = k.timestamp-prev_pos.timestamp;
+            dlat = kc.latitude-pc.latitude;
             dlon = kc.longitude-pc.longitude;
 
             if( mround(dlat*_1e5)===0 && mround(dlon*_1e5)===0 && i!=p_len-1){
@@ -290,12 +290,10 @@ PositionArchive.fromTks=function(encoded){
             encoded = r[1];
             prev_vals[i] = prev_vals[i] + r[0];
         }
-
         pts.add(new Position({
             'timestamp':vals[0]*1e3,
             'coords':{'latitude':vals[1]/1e5, 'longitude':vals[2]/1e5, 'accuracy':0}
         }));
-
         enc_len = encoded.length;
     }
     return pts;

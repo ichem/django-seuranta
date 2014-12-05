@@ -12,6 +12,7 @@ def validate_latitude(value):
     if value < -90 or value > 90:
         raise ValidationError(u'latitude out of range -90.0 90.0')
 
+
 def validate_longitude(value):
     if isinstance(value, (float, int)):
         value = str(value)
@@ -19,16 +20,18 @@ def validate_longitude(value):
     if value < -180 or value > 180:
         raise ValidationError(u'longitude out of range -180.0 180.0')
 
+
 def validate_short_uuid(value):
-    if len(value)!=22:
+    if len(value) != 22:
         raise ValidationError(_(u'This is not a valid uuid4'))
-    value_b64 = "%s=="%value.replace('-', '+').replace('_', '/')
+    value_b64 = "%s==" % value.replace('-', '+').replace('_', '/')
     try:
         val = str(uuid.UUID((value_b64.decode('base64')).encode('hex')))
     except:
         raise ValidationError(_(u'This is not a valid uuid4'))
-    if val[14]!="4" or val[19] not in "89ab":
+    if val[14] != "4" or val[19] not in "89ab":
         raise ValidationError(_(u'This is not a valid uuid4'))
+
 
 def validate_nice_slug(slug):
     if re.search('[^-a-zA-Z0-9_]', slug):
@@ -37,7 +40,7 @@ def validate_nice_slug(slug):
     if len(slug) < 5:
         raise ValidationError(_(u'Too short. (min. 5 characters)'))
     elif len(slug) > 21:
-        #if 22 characters can be confused with a 'short_uuid'
+        # if 22 characters can be confused with a 'short_uuid'
         raise ValidationError(_(u'Too long. (max. 21 characters)'))
     if slug[0] in "_-":
         raise ValidationError(_(u'Must start with an alphanumeric character.'))

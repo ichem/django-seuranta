@@ -24,7 +24,7 @@ var ServerClock = function(opts){
                 }
                 drift = total_drifts/drifts.length;
             }
-        }
+        };
     }
     if(options.time_api_url){
         (function syncClock(){
@@ -45,9 +45,9 @@ var ServerClock = function(opts){
     }
     $$.now = function(){
         return +new Date()+drift;
-    }
+    };
     $$.getDrift = function(){
         return drift;
-    }
+    };
     return $$;
-}
+};

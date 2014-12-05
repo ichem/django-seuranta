@@ -1,3 +1,7 @@
+import datetime
+import simplejson as json
+import time
+
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
@@ -8,24 +12,19 @@ from django.db.models import Q
 from django.utils.timezone import utc, now
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import cache_page
-from django.views.decorators.cache import never_cache
 from django.contrib.sites.models import get_current_site
-
-from globetrotting import GeoLocation
-
-from .models import Competition, Competitor, RouteSection
 from django.contrib.auth.models import User
-from .utils import format_date_iso
-from .utils import gps_codec
 
-import datetime, time
-import simplejson as json
+from seuranta.models import Competition, Competitor, RouteSection
+from seuranta.utils import format_date_iso, gps_codec
+from seuranta.utils.validators import validate_short_uuid
+from seuranta.utils.geo import GeoLocation
 
-from .utils.validators import validate_short_uuid
 
 RERUN_TEMPLATE_URL = "http://3drerun.worldofo.com/2d/index.php" \
                      "?liveid=%s&lservice=dseu"
 BLANK_GIF = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+
 
 def home(request):
     tim = now()
@@ -48,9 +47,9 @@ def home(request):
     return render_to_response(
         'seuranta/home.html',
         {
-            'live':live,
-            'upcoming':upcoming,
-            'past':past,
+            'live': live,
+            'upcoming': upcoming,
+            'past': past,
         },
         RequestContext(request)
     )
@@ -78,9 +77,9 @@ def user_home(request, publisher):
     return render_to_response(
         'seuranta/home.html',
         {
-            'live':live,
-            'upcoming':upcoming,
-            'past':past,
+            'live': live,
+            'upcoming': upcoming,
+            'past': past,
         },
         RequestContext(request)
     )
@@ -88,8 +87,8 @@ def user_home(request, publisher):
 
 @login_required
 def dashboard(request):
-    if request.REQUEST.get('id') and request.REQUEST.get('view')=='trackers':
-        c = get_object_or_404(
+    if request.REQUEST.get('id') and request.REQUEST.get('view') == 'trackers':
+        comps = get_object_or_404(
             Competition,
             publisher=request.user,
             pk=request.REQUEST.get('id'),
@@ -97,11 +96,11 @@ def dashboard(request):
         return render_to_response(
             'seuranta/dashboard_trackers.html',
             {
-                "competition":c
+                "competition": comps
             },
             RequestContext(request)
         )
-    if request.REQUEST.get('id') and request.POST.get('action')=='delete':
+    elif request.REQUEST.get('id') and request.POST.get('action') == 'delete':
         id = request.REQUEST.get('id')
         c = get_object_or_404(
             Competition,
@@ -111,9 +110,9 @@ def dashboard(request):
         c.delete()
         return HttpResponse(
             json.dumps({
-                "status":"OK",
-                "code":200,
-                "msg":"Race deleted!"
+                "status": "OK",
+                "code": 200,
+                "msg": "Race deleted!"
             }),
             content_type='application/json'
         )
@@ -123,7 +122,6 @@ def dashboard(request):
         },
         RequestContext(request)
     )
-
 
 
 def tracker(request, uuid=None):
@@ -136,10 +134,9 @@ def tracker(request, uuid=None):
             tracker = uuid
     else:
         tracker = None
-
     return render_to_response(
         'seuranta/tracker.html',
-        {'uuid':tracker},
+        {'uuid': tracker},
         RequestContext(request)
     )
 
@@ -150,16 +147,16 @@ def race_latest_mod(request, publisher, slug):
     except User.DoesNotExist:
         return None
     try:
-        c = Competition.objects.get(
+        comp = Competition.objects.get(
             publisher=user,
             slug=slug,
         )
     except:
         return None
     tim = now()
-    if c.last_update < c.opening_date and tim > c.opening_date:
-        return c.opening_date
-    return c.last_update
+    if comp.last_update < comp.opening_date and tim > comp.opening_date:
+        return comp.opening_date
+    return comp.last_update
 
 
 @condition(last_modified_func=race_latest_mod, etag_func=None)
@@ -181,14 +178,14 @@ def race_view(request, publisher, slug):
         return render_to_response(
             'seuranta/pre_race.html',
             {
-                'competition':obj,
+                'competition': obj,
             },
             RequestContext(request)
         )
     return render_to_response(
         'seuranta/race.html',
         {
-            'competition':obj,
+            'competition': obj,
         },
         RequestContext(request)
     )
@@ -218,11 +215,11 @@ def race_rerun_view(request, publisher, slug):
 @cache_page(5)
 def api_v1(request, action):
     response = {
-        "status":"KO",
-        "code":400,
-        "msg":"Invalid api request",
-        "data":{
-            "help":""
+        "status": "KO",
+        "code": 400,
+        "msg": "Invalid api request",
+        "data": {
+            "help": ""
         }
     }
     if action == "competition/list":
@@ -231,9 +228,9 @@ def api_v1(request, action):
         data = [{"name": x[0], "uuid": x[1],
                  "date": format_date_iso(x[2])} for x in comp]
         response = {
-            "status":"OK",
-            "code":200,
-            "msg":"Invalid code",
+            "status": "OK",
+            "code": 200,
+            "msg": "Invalid code",
             "data": {
                 "list": data
             },
@@ -245,17 +242,17 @@ def api_v1(request, action):
                                         quick_setup_code=code)
         if res.count() == 0:
             response = {
-                "status":"KO",
-                "code":404,
-                "msg":"Invalid code",
-                "data":{}
+                "status": "KO",
+                "code": 404,
+                "msg": "Invalid code",
+                "data": {}
             }
         else:
             response = {
-                "status":"OK",
-                "code":200,
-                "msg":"Data received",
-                "data":{
+                "status": "OK",
+                "code": 200,
+                "msg": "Data received",
+                "data": {
                     "secret": res[0].tracker
                 }
             }
@@ -265,11 +262,11 @@ def api_v1(request, action):
             validate_short_uuid(uuid)
         except:
             response = {
-                "status":"KO",
-                "code":404,
-                "msg":"Invalid secret",
-                "data":{
-                    "secret":uuid
+                "status": "KO",
+                "code": 404,
+                "msg": "Invalid secret",
+                "data": {
+                    "secret": uuid
                 }
             }
         else:
@@ -280,45 +277,45 @@ def api_v1(request, action):
                     route = gps_codec.decode(encoded_data)
                 except:
                     response = {
-                        "status":"KO",
-                        "code":400,
-                        "msg":"Invalid encoded data",
-                        "data":{
-                            "secret":uuid,
-                            "encoded_data":encoded_data,
+                        "status": "KO",
+                        "code": 400,
+                        "msg": "Invalid encoded data",
+                        "data": {
+                            "secret": uuid,
+                            "encoded_data": encoded_data,
                         }
                     }
             elif 'latitude' in request.REQUEST \
-            and 'longitude' in request.REQUEST:
+                 and 'longitude' in request.REQUEST:
                 try:
                     lat = float(request.REQUEST.get("latitude"))
                     lon = float(request.REQUEST.get("longitude"))
                     tim = time.time()
                 except:
                     response = {
-                        "status":"KO",
-                        "code":400,
-                        "msg":"Invalid data",
-                        "data":{
-                            "secret":uuid,
+                        "status": "KO",
+                        "code": 400,
+                        "msg": "Invalid data",
+                        "data": {
+                            "secret": uuid,
                         }
                     }
                 else:
                     location = GeoLocation(tim, (lat, lon))
                     route = [location]
-            if route is not None and len(route)>0:
+            if route is not None and len(route) > 0:
                 tim = now()
                 live_competitors = Competitor.objects.filter(
-                    tracker = uuid,
+                    tracker=uuid,
                     competition__opening_date__lte=tim,
                     competition__closing_date__gte=tim,
                 )
                 futur_competitors = Competitor.objects.filter(
-                    tracker = uuid,
+                    tracker=uuid,
                     competition__opening_date__gt=tim,
                 )
                 next_start = None
-                if len(futur_competitors)>0:
+                if len(futur_competitors) > 0:
                     next_competitor = futur_competitors.order_by(
                         'competition__opening_date'
                     )[0]
@@ -331,21 +328,23 @@ def api_v1(request, action):
                     section.save()
                 last_location = route[-1]
                 response = {
-                    "status":"OK",
-                    "code":200,
-                    "msg":"Data received",
-                    "data":{
-                        "secret":uuid,
-                        "last_location":{
-                            "timestamp":last_location.timestamp,
-                            "coordinates":{
-                                "latitude":last_location.coordinates.latitude,
-                                "longitude":last_location.coordinates.longitude,
+                    "status": "OK",
+                    "code": 200,
+                    "msg": "Data received",
+                    "data": {
+                        "secret": uuid,
+                        "last_location": {
+                            "timestamp": last_location.timestamp,
+                            "coordinates": {
+                                "latitude":
+                                    last_location.coordinates.latitude,
+                                "longitude":
+                                    last_location.coordinates.longitude,
                             }
                         },
-                        "locations_received_count":len(route),
-                        "live_competitors_count":live_competitors.count(),
-                        "next_competition_start":next_start,
+                        "locations_received_count": len(route),
+                        "live_competitors_count": live_competitors.count(),
+                        "next_competition_start": next_start,
                     }
                 }
     elif action == "clock/drift":
@@ -353,23 +352,23 @@ def api_v1(request, action):
             timestamp = float(request.REQUEST.get('timestamp'))
         except:
             response = {
-                "status":"KO",
-                "code":400,
-                "msg":"Invalid data",
-                "data":{
-                    "timestamp":request.REQUEST.get('timestamp'),
+                "status": "KO",
+                "code": 400,
+                "msg": "Invalid data",
+                "data": {
+                    "timestamp": request.REQUEST.get('timestamp'),
                 }
             }
         else:
             tim = time.time()
             response = {
-                "status":"OK",
-                "code":200,
-                "msg":"",
-                "data":{
-                    "server_time":tim,
-                    "timestamp":timestamp,
-                    "drift":tim-timestamp,
+                "status": "OK",
+                "code": 200,
+                "msg": "",
+                "data": {
+                    "server_time": tim,
+                    "timestamp": timestamp,
+                    "drift": tim-timestamp,
                 }
             }
     elif action == "competitors/routes":
@@ -377,8 +376,6 @@ def api_v1(request, action):
         last_update_timestamp = request.REQUEST.get(
             "last_update_timestamp", None
         )
-        min_timestamp = request.REQUEST.get("min_timestamp",None)
-        max_timestamp = request.REQUEST.get("max_timestamp",None)
         last_update_datetime = None
         if last_update_timestamp is not None:
             try:
@@ -388,37 +385,39 @@ def api_v1(request, action):
                 )
             except ValueError:
                 pass
-        max_datetime = None
-        if max_timestamp is not None:
-            try:
-                max_timestamp = float(max_timestamp)
-                max_datetime = utc.localize(
-                    datetime.datetime.fromtimestamp(max_timestamp)
-                )
-            except ValueError:
-                pass
-        min_datetime = None
-        if min_timestamp is not None:
-            try:
-                min_timestamp = float(min_timestamp)
-                min_datetime = utc.localize(
-                    datetime.datetime.fromtimestamp(min_timestamp)
-                )
-            except ValueError:
-                pass
-        if len(uuids)>0:
+        # min_timestamp = request.REQUEST.get("min_timestamp", None)
+        # max_timestamp = request.REQUEST.get("max_timestamp", None)
+        # max_datetime = None
+        # if max_timestamp is not None:
+        #     try:
+        #         max_timestamp = float(max_timestamp)
+        #         max_datetime = utc.localize(
+        #             datetime.datetime.fromtimestamp(max_timestamp)
+        #         )
+        #     except ValueError:
+        #         pass
+        # min_datetime = None
+        # if min_timestamp is not None:
+        #     try:
+        #         min_timestamp = float(min_timestamp)
+        #         min_datetime = utc.localize(
+        #             datetime.datetime.fromtimestamp(min_timestamp)
+        #         )
+        #     except ValueError:
+        #         pass
+        if len(uuids) > 0:
             competitors_id = Competitor.objects.filter(
                 uuid__in=uuids
             ).values_list('pk', flat=True)
             response = {
-                "status":"OK",
-                "code":200,
-                "msg":"",
-                "data":{
-                    "routes":[]
+                "status": "OK",
+                "code": 200,
+                "msg": "",
+                "data": {
+                    "routes": []
                 }
             }
-            if len(competitors_id)>0:
+            if len(competitors_id) > 0:
                 # extra param as view bound, last update...
                 extra_query = Q()
                 if last_update_datetime is not None:
@@ -432,15 +431,15 @@ def api_v1(request, action):
                         - datetime.datetime.utcfromtimestamp(0)
                     ).total_seconds()
                     response['data']['routes'].append({
-                        'competitor':{
-                            'uuid':route_section.competitor.uuid,
+                        'competitor': {
+                            'uuid': route_section.competitor.uuid,
                         },
-                        'udpate_timestamp':timestamp,
-                        'encoded_data':route_section.encoded_data
+                        'udpate_timestamp': timestamp,
+                        'encoded_data': route_section.encoded_data
                     })
     else:
-        response["msg"]="API endpoint does not exist."
-        response["data"]["endpoint"]=action
+        response["msg"] = "API endpoint does not exist."
+        response["data"]["endpoint"] = action
     response_json = json.dumps(response, use_decimal=True)
     if 'callback' in request.REQUEST and request.REQUEST['callback'] != "":
         data = '%s(%s);' % (request.REQUEST['callback'], response_json)
@@ -451,10 +450,10 @@ def api_v1(request, action):
 def rerun_time(request):
     response = {}
     tim = time.time()
-    response['time'] = "%f"%tim
+    response['time'] = "%f" % tim
     response_json = json.dumps(response)
     if 'jsoncallback' in request.REQUEST \
-    and request.REQUEST['jsoncallback'] != "":
+       and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
         return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')
@@ -475,13 +474,13 @@ def rerun_init(request):
                 response['mapw'] = "1"
                 response['maph'] = "1"
             else:
-                response['mapw'] = "%d"%c.map_width
-                response['maph'] = "%d"%c.map_height
+                response['mapw'] = "%d" % c.map_width
+                response['maph'] = "%d" % c.map_height
             proto = "http"
             if request.is_secure():
                 proto += "s"
             domain = (get_current_site(request)).domain
-            response['mapurl'] = "%s://%s%s?id=%s"%(
+            response['mapurl'] = "%s://%s%s?id=%s" % (
                 proto,
                 domain,
                 reverse("seuranta.views.rerun_map"),
@@ -489,12 +488,12 @@ def rerun_init(request):
             )
             cp = c.calibration_points
             response['calibration'] = ";".join([
-                "%f"%cp[0]['lon'], "%f"%cp[0]['lat'],
-                "%f"%cp[0]['x'], "%f"%cp[0]['y'],
-                "%f"%cp[1]['lon'], "%f"%cp[1]['lat'],
-                "%f"%cp[1]['x'], "%f"%cp[1]['y'],
-                "%f"%cp[2]['lon'], "%f"%cp[2]['lat'],
-                "%f"%cp[2]['x'], "%f"%cp[2]['y']
+                "%f" % cp[0]['lon'], "%f" % cp[0]['lat'],
+                "%f" % cp[0]['x'], "%f" % cp[0]['y'],
+                "%f" % cp[1]['lon'], "%f" % cp[1]['lat'],
+                "%f" % cp[1]['x'], "%f" % cp[1]['y'],
+                "%f" % cp[2]['lon'], "%f" % cp[2]['lat'],
+                "%f" % cp[2]['x'], "%f" % cp[2]['y']
             ])
             comp = c.competitors.all().order_by('uuid')
             comps = []
@@ -505,14 +504,14 @@ def rerun_init(request):
                 if stime is None:
                     stime = c.opening_date
                 comps.append(";".join([
-                    "xx%02d"%n,
+                    "xx%02d" % n,
                     stime.strftime("%Y%m%d%H%M%S"),
                     cc.name
                 ]))
             response['competitors'] = ":".join(comps)
     response_json = json.dumps(response)
-    if 'jsoncallback' in request.REQUEST\
-    and request.REQUEST['jsoncallback'] != "":
+    if 'jsoncallback' in request.REQUEST \
+       and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
         return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')
@@ -530,11 +529,11 @@ def rerun_data(request):
             response['status'] = "OK"
             comp = c.competitors.all().order_by('uuid')
             n = 0
-            cids={}
+            cids = {}
             cuuids = []
             for cc in comp:
                 n += 1
-                cids[cc.uuid] = "xx%02d"%n
+                cids[cc.uuid] = "xx%02d" % n
                 cuuids.append(cc.uuid)
             pts_count = 0
             data = []
@@ -547,19 +546,19 @@ def rerun_data(request):
                     pts_count += 1
                     data.append(";".join([
                         cids[rs.competitor_id],
-                        "%f"%pt.timestamp,
-                        "%f"%pt.coordinates.latitude,
-                        "%f"%pt.coordinates.longitude
+                        "%f" % pt.timestamp,
+                        "%f" % pt.coordinates.latitude,
+                        "%f" % pt.coordinates.longitude
                     ]))
             try:
                 offset = int(request.REQUEST.get('p', 0))
             except:
                 offset = 0
             response['data'] = ":".join(data[offset:])
-            response['lastpos'] = "%d"%pts_count
+            response['lastpos'] = "%d" % pts_count
     response_json = json.dumps(response)
     if 'jsoncallback' in request.REQUEST \
-    and request.REQUEST['jsoncallback'] != "":
+       and request.REQUEST['jsoncallback'] != "":
         data = '%s(%s);' % (request.REQUEST['jsoncallback'], response_json)
         return HttpResponse(data, content_type='application/javascript')
     return HttpResponse(response_json, content_type='application/json')

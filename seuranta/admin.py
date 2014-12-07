@@ -54,21 +54,10 @@ class CompetitorInlineAdmin(admin.TabularInline):
 
 class CompetitorAdmin(admin.ModelAdmin):
     inlines = [
-        RouteSectionInlineAdmin,
+    #    RouteSectionInlineAdmin,
     ]
     list_display = ('name', 'shortname', 'competition', 'starting_time',
-                    'tracker', 'quick_setup_code', 'approved')
-    actions = ['make_approved']
-
-    def make_approved(self, request, queryset):
-        rows_updated = queryset.update(approved=True)
-        if rows_updated == 1:
-            message_bit = "1 competitor was"
-        else:
-            message_bit = "%s competitors were" % rows_updated
-        self.message_user(request,
-                          "%s successfully marked as approved." % message_bit)
-    make_approved.short_description = "Mark selected competitors as approved"
+                    'tracker')
 
     def queryset(self, request):
         qs = super(CompetitorAdmin, self).queryset(request)
@@ -103,7 +92,7 @@ class CompetitorAdmin(admin.ModelAdmin):
 
 class CompetitionAdmin(PublisherAdmin):
     list_display = ('name', 'opening_date', 'closing_date',
-                    'publication_policy', 'signup_policy')
+                    'publication_policy')
     inlines = [
         CompetitorInlineAdmin,
     ]

@@ -8,68 +8,13 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding model 'Competition'
-        db.create_table(u'seuranta_competition', (
-            ('uuid', self.gf('django.db.models.fields.CharField')(max_length=22, primary_key=True)),
-            ('last_update', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
-            ('publisher', self.gf('django.db.models.fields.related.ForeignKey')(related_name='competitions', to=orm['auth.User'])),
-            ('publication_policy', self.gf('django.db.models.fields.CharField')(default='public', max_length=8)),
-            ('name', self.gf('django.db.models.fields.CharField')(default='Untitled', max_length=50)),
-            ('slug', self.gf('django.db.models.fields.SlugField')(unique=True, max_length=21)),
-            ('timezone', self.gf('timezone_field.fields.TimeZoneField')(default='UTC')),
-            ('map', self.gf('django.db.models.fields.files.ImageField')(max_length=100, null=True, blank=True)),
-            ('map_width', self.gf('django.db.models.fields.PositiveIntegerField')(null=True, blank=True)),
-            ('map_height', self.gf('django.db.models.fields.PositiveIntegerField')(null=True, blank=True)),
-            ('calibration_string', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True)),
-            ('opening_date', self.gf('django.db.models.fields.DateTimeField')()),
-            ('closing_date', self.gf('django.db.models.fields.DateTimeField')()),
-            ('display_settings', self.gf('django.db.models.fields.CharField')(default='map', max_length=10)),
-            ('pref_tile_url_pattern', self.gf('django.db.models.fields.URLField')(max_length=200, null=True, blank=True)),
-        ))
-        db.send_create_signal(u'seuranta', ['Competition'])
-
-        # Adding model 'Competitor'
-        db.create_table(u'seuranta_competitor', (
-            ('uuid', self.gf('django.db.models.fields.CharField')(max_length=22, primary_key=True)),
-            ('competition', self.gf('django.db.models.fields.related.ForeignKey')(related_name='competitors', to=orm['seuranta.Competition'])),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('shortname', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('starting_time', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('tracker', self.gf('django.db.models.fields.CharField')(max_length=22, blank=True)),
-        ))
-        db.send_create_signal(u'seuranta', ['Competitor'])
-
-        # Adding unique constraint on 'Competitor', fields ['tracker', 'competition']
-        db.create_unique(u'seuranta_competitor', ['tracker', 'competition_id'])
-
-        # Adding model 'RouteSection'
-        db.create_table(u'seuranta_routesection', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('competitor', self.gf('django.db.models.fields.related.ForeignKey')(related_name='route_sections', to=orm['seuranta.Competitor'])),
-            ('encoded_data', self.gf('django.db.models.fields.TextField')(blank=True)),
-            ('last_update', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
-            ('_start_datetime', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('_finish_datetime', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('_north', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
-            ('_south', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
-            ('_east', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
-            ('_west', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
-        ))
-        db.send_create_signal(u'seuranta', ['RouteSection'])
+        # Adding unique constraint on 'Competitor', fields ['quick_setup_code', 'competition']
+        db.create_unique(u'seuranta_competitor', ['quick_setup_code', 'competition_id'])
 
 
     def backwards(self, orm):
-        # Removing unique constraint on 'Competitor', fields ['tracker', 'competition']
-        db.delete_unique(u'seuranta_competitor', ['tracker', 'competition_id'])
-
-        # Deleting model 'Competition'
-        db.delete_table(u'seuranta_competition')
-
-        # Deleting model 'Competitor'
-        db.delete_table(u'seuranta_competitor')
-
-        # Deleting model 'RouteSection'
-        db.delete_table(u'seuranta_routesection')
+        # Removing unique constraint on 'Competitor', fields ['quick_setup_code', 'competition']
+        db.delete_unique(u'seuranta_competitor', ['quick_setup_code', 'competition_id'])
 
 
     models = {
@@ -128,9 +73,10 @@ class Migration(SchemaMigration):
             'uuid': ('django.db.models.fields.CharField', [], {'max_length': '22', 'primary_key': 'True'})
         },
         u'seuranta.competitor': {
-            'Meta': {'ordering': "['competition', 'starting_time', 'name']", 'unique_together': "(('tracker', 'competition'),)", 'object_name': 'Competitor'},
+            'Meta': {'ordering': "['competition', 'starting_time', 'name']", 'unique_together': "(('tracker', 'competition'), ('quick_setup_code', 'competition'))", 'object_name': 'Competitor'},
             'competition': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'competitors'", 'to': u"orm['seuranta.Competition']"}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
+            'quick_setup_code': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '8', 'blank': 'True'}),
             'shortname': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
             'starting_time': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'tracker': ('django.db.models.fields.CharField', [], {'max_length': '22', 'blank': 'True'}),

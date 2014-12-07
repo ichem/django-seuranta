@@ -5,7 +5,7 @@
     <h1><i class="fa fa-trophy"></i> {% trans "Public Events"%}</h1>
     <h2><i class="fa fa-bolt"></i> {% trans "Live"%}</h2>
     <ul>
-    {% regroup live by opening_date.date as comp_list_by_date %}
+    {% regroup live by start_date.date as comp_list_by_date %}
     {% for comp_date in comp_list_by_date %}
         <li>{{comp_date.grouper}}
         <ul>
@@ -20,7 +20,7 @@
     </ul>
     <h2><i class="fa fa-calendar"></i> {% trans "Upcoming"%}</h2>
     <ul>
-    {% regroup upcoming by opening_date.date as comp_list_by_date %}
+    {% regroup upcoming by start_date.date as comp_list_by_date %}
     {% for comp_date in comp_list_by_date %}
         <li>{{comp_date.grouper}}
         <ul>
@@ -35,12 +35,12 @@
     </ul>
     <h2><i class="fa fa-archive"></i> {% trans "Archived"%}</h2>
     <ul>
-    {% regroup past by opening_date.date as comp_list_by_date %}
+    {% regroup past by start_date.date as comp_list_by_date %}
     {% for comp_date in comp_list_by_date %}
         <li>{{comp_date.grouper}}
         <ul>
         {% for comp in comp_date.list %}
-        <li><a href="{{ comp.absolute_url }}">{{comp.name}}</a> - <a target="_blank" href="{% url 'seuranta_rerun' comp.publisher.username comp.slug %}">View on 2D rerun (Experimental)</a></li>
+        <li><a href="{{ comp.absolute_url }}">{{comp.name}}</a> - <a target="_blank" ref="nofollow" href="{% url 'seuranta_rerun_redirect' comp.publisher.username comp.slug %}">View on 2D rerun (Experimental)</a></li>
         {% endfor %}
         </ul>
         </li>

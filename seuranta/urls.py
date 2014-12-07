@@ -1,4 +1,6 @@
 from django.conf.urls import patterns, url
+from seuranta.api import v2
+
 
 urlpatterns = patterns(
     'seuranta.views',
@@ -7,24 +9,10 @@ urlpatterns = patterns(
         'home',
         name='seuranta_home'),
     url(
-        r'^dashboard/?$',
-        'dashboard',
-        name='seuranta_dashboard'),
-    url(
-        r'^tracker/(?P<uuid>[-a-zA-Z0-9_]+)?$',
+        r'^tracker/(?P<api_token>[-a-zA-Z0-9_]{22})?$',
         'tracker',
         name='seuranta_tracker'
     ),
-    url(
-        r'^api/v1/(?P<action>.*)/?$',
-        'api_v1',
-        name='seuranta_api_v1'
-    ),
-    url(r'^rerun/$', 'rerun_data', name='seuranta_rerun_data'),
-    url(r'^rerun/map$', 'rerun_map', name='seuranta_rerun_map'),
-    url(r'^rerun/init\.php$', 'rerun_init', name='seuranta_rerun_init'),
-    url(r'^rerun/time\.php$', 'rerun_time', name='seuranta_rerun_time'),
-
     url(
         r'^(?P<publisher>(?!tracker|dashboard|api|rerun)[^/]+)/$',
         'user_home',
@@ -35,9 +23,78 @@ urlpatterns = patterns(
         'race_view',
         name='seuranta_race'
     ),
+)
+
+urlpatterns += patterns(
+    'seuranta.api.v1',
     url(
-        r'^(?P<publisher>[^/]+)/(?P<slug>[-a-zA-Z0-9_]+)/rerun$',
-        'race_rerun_view',
-        name='seuranta_rerun'
+        r'^api/v1/(?P<action>.*)/?$',
+        'api_v1',
+        name='seuranta_api_v1'
+    ),
+)
+
+
+urlpatterns += patterns(
+    'seuranta.api.v2',
+    url(
+        r'^api/v2/competition/?$',
+        v2.CompetitionListView.as_view(),
+        name='seuranta_api_v2_competition_list'
+    ),
+    url(
+        r'^api/v2/competition/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
+        v2.CompetitionDetailView.as_view(),
+        name='seuranta_api_v2_competition_detail'
+    ),
+    url(
+        r'^api/v2/map/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
+        v2.MapDetailView.as_view(),
+        name='seuranta_api_v2_map_detail'
+    ),
+    url(
+        r'^api/v2/map/(?P<pk>[-a-zA-Z0-9_]{22})/download/?$',
+        v2.download_map,
+        name='seuranta_api_v2_map_download'
+    ),
+    url(
+        r'^api/v2/competitor/?$',
+        v2.CompetitorListView.as_view(),
+        name='seuranta_api_v2_competitor_list'
+    ),
+    url(
+        r'^api/v2/competitor/(?P<pk>[-a-zA-Z0-9_]{22})?$',
+        v2.CompetitorDetailView.as_view(),
+        name='seuranta_api_v2_competitor_detail'
+    ),
+)
+
+urlpatterns += patterns(
+    'seuranta.api.rerun',
+    url(
+        r'^api/rerun/time\.php$',
+        'rerun_time',
+        name='seuranta_rerun_time'
+    ),
+    url(
+        r'^api/rerun/init\.php$',
+        'rerun_init',
+        name='seuranta_rerun_init'
+    ),
+    url(
+        r'^api/rerun/$',
+        'rerun_data',
+        name='seuranta_rerun_data'
+    ),
+    url(
+        r'^api/rerun/map$',
+        'rerun_map',
+        name='seuranta_rerun_map'
+    ),
+    url(
+        r'^api/rerun/redirect/'
+        r'(?P<publisher>[^/]+)/(?P<slug>[-a-zA-Z0-9_]+)$',
+        'rerun_redirect',
+        name='seuranta_rerun_redirect'
     ),
 )

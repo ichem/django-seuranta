@@ -58,7 +58,7 @@
 var TIME_API_URL="{% url 'seuranta_api_v1' 'clock/drift' %}",
     UPDATE_TRACK_API_URL="{% url 'seuranta_api_v1' 'competitor/update' %}",
     TRACKER_URL ="{% url 'seuranta_tracker' %}",
-    TRACKER_UUID = {% if uuid %}'{{ uuid }}'{% else %}null{% endif %};
+    TRACKER_UUID = {% if api_token %}'{{ api_token }}'{% else %}null{% endif %};
 </script>
 <script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js'></script>
 <script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js'></script>

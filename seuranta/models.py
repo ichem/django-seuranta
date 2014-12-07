@@ -1,16 +1,27 @@
 import datetime
-import imghdr
 import base64
 import json
+import re
+from decimal import Decimal
+from PIL import Image
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from django.utils.encoding import force_unicode
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import utc, now
 from django.utils.safestring import mark_safe
 from django.core.validators import MinLengthValidator
+from django.core.exceptions import ValidationError
+
 from django.conf import settings
+from seuranta.storage import OverwriteStorage
 
 from timezone_field import TimeZoneField
 
@@ -21,62 +32,74 @@ from seuranta.utils.validators import (validate_nice_slug, validate_latitude,
                                        validate_longitude)
 
 
-def map_upload_path(instance=None, filename=None):
+BLANK_SIZE = {'width': 1, 'height': 1}
+BLANK_FORMAT = "image/gif"
+BLANK_GIF = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+BLANK_DATA_URI = "data:image/gif;base64," + BLANK_GIF
+BLANK_CALIBRATION_STRING = [90, -180,
+                            90, 180,
+                            -90, -180,
+                            -90, 180]
+PUBLICATION_POLICY_CHOICES = (
+    ("private", _('Private')),
+    ("secret", _('Secret')),
+    ("public", _('Public')),
+)
+SIGNUP_POLICY_CHOICES = (
+    ("closed", _('Closed')),
+    ("org_val", _('Organizer Validated')),
+    ("open", _('Open')),
+)
+MAP_DISPLAY_CHOICES = (
+    ("map+bck", _('Map displayed over background')),
+    ("map", _('Map only')),
+    ("bck", _('Background')),
+)
+FLOAT_RE = re.compile(r'^(\-?[0-9]{1,3}(\.[0-9]+)?)$')
+LAT_IDX = 0
+LNG_IDX = 1
+TOP_L_IDX = 0
+TOP_R_IDX = 1
+BOT_R_IDX = 2
+BOT_L_IDX = 3
+
+
+def map_upload_path(instance=None, file_name=None):
     import os.path
-    tmppath = [
+    tmp_path = [
         'seuranta',
         'maps'
     ]
-    if not filename:
-        # Filename already stored in database
-        filename = instance.map.name
-    else:
-        filename = short_uuid()
+    if file_name:
+        pass
+    filename = instance.competition.pk
     basename = os.path.basename(filename)
-    tmppath.append(basename[0])
-    tmppath.append(basename)
-    return os.path.join(*tmppath)
+    tmp_path.append(instance.competition.publisher.username)
+    tmp_path.append(basename[0])
+    tmp_path.append(basename)
+    return os.path.join(*tmp_path)
 
 
 class Competition(models.Model):
-    PUBLICATION_POLICY_CHOICES = (
-        ("private", _('Private')),
-        ("secret", _('Secret')),
-        ("public", _('Public')),
+    id = ShortUUIDField(_("identifier"), primary_key=True)
+    publish_date = models.DateTimeField(_('publication date'),
+                                        auto_now_add=True)
+    update_date = models.DateTimeField(_("last update"), auto_now=True)
+    timezone = TimeZoneField(
+        verbose_name=_("timezone"),
+        default="UTC",
     )
-    SIGNUP_POLICY_CHOICES = (
-        ("closed", _('Closed')),
-        ("org_val", _('Organizer Validated')),
-        ("open", _('Open')),
+    start_date = models.DateTimeField(
+        _("opening date (UTC)"),
     )
-    BLANK_SIZE = {'width': 1, 'height': 1}
-    BLANK_FORMAT = "image/gif"
-    BLANK_DATA_URI = "data:image/gif;base64," \
-                     "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
-    BLANK_CALIBRATION_POINTS = [
-        {"lat": 45, "lon": -180, "x": 0, "y": 0.25},
-        {"lat": -45, "lon": 0, "x": 0.5, "y": 0.75},
-        {"lat": 0, "lon": 180, "x": 1, "y": 0.5},
-    ]
-    DISPLAY_SETTINGS_CHOICES = (
-        ("map+world", _('Map displayed over world map')),
-        ("map", _('Map only')),
-        ("world", _('World map only')),
+    end_date = models.DateTimeField(
+        _("closing date (UTC)"),
     )
-
-    uuid = ShortUUIDField(_("uuid"), primary_key=True)
-    last_update = models.DateTimeField(_("last update"), auto_now=True)
     publisher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name=_("publisher"),
         related_name="competitions",
         editable=False
-    )
-    publication_policy = models.CharField(
-        _("publication policy"),
-        max_length=8,
-        choices=PUBLICATION_POLICY_CHOICES,
-        default="public"
     )
     name = models.CharField(
         _('name'),
@@ -85,11 +108,17 @@ class Competition(models.Model):
         validators=[MinLengthValidator(4), ]
     )
     slug = models.SlugField(
-        _('slug'),
+        _('url friendly name'),
         validators=[validate_nice_slug, ],
         editable=False,
         max_length=21,
         unique=True
+    )
+    publication_policy = models.CharField(
+        _("publication policy"),
+        max_length=8,
+        choices=PUBLICATION_POLICY_CHOICES,
+        default="public"
     )
     signup_policy = models.CharField(
         _("signup policy"),
@@ -97,174 +126,54 @@ class Competition(models.Model):
         choices=SIGNUP_POLICY_CHOICES,
         default="open",
     )
-    timezone = TimeZoneField(
-        verbose_name=_("timezone"),
-        default="UTC",
-    )
-    map = models.ImageField(
-        _("map"),
-        upload_to=map_upload_path,
-        height_field="map_height",
-        width_field="map_width",
-        blank=True, null=True
-    )
-    map_width = models.PositiveIntegerField(
-        _("map width"),
-        editable=False,
-        blank=True, null=True
-    )
-    map_height = models.PositiveIntegerField(
-        _("map height"),
-        editable=False,
-        blank=True, null=True
-    )
-    calibration_string = models.CharField(
-        _("calibration string"),
-        max_length=255,
-        blank=True, null=True,
-        help_text=mark_safe(
-            _("<a target='_blank' "
-              "href='https://rphl.net/dropbox/calibrate_map.html'>"
-              "Online tool"
-              "</a>")
-        ),
-    )
-    opening_date = models.DateTimeField(
-        _("opening date (UTC)"),
-    )
-    closing_date = models.DateTimeField(
-        _("closing date (UTC)"),
-    )
-    display_settings = models.CharField(
-        _("display type"),
-        max_length=10,
-        choices=DISPLAY_SETTINGS_CHOICES,
-        default="map"
-    )
-    pref_tile_url_pattern = models.URLField(
-        _('pref tile url pattern'),
-        blank=True,
-        null=True,
-        help_text=_("Leave blank to use OpenStreetMap as default"),
-    )
 
     @property
-    def map_size(self):
-        if not self.map or not self.is_map_calibrated:
-            return self.BLANK_SIZE
-        else:
-            return {'width': self.map_width, 'height': self.map_height}
-
-    @property
-    def map_format(self):
-        if not self.map or not self.is_map_calibrated:
-            return self.BLANK_FORMAT
-        type = imghdr.what(self.map.file)
-        return "image/%s" % type
-
-    @property
-    def map_dataURI(self):
-        if not self.map or not self.is_map_calibrated:
-            return self.BLANK_DATA_URI
-        return "data:%s;base64,%s" % (self.map_format,
-                                      base64.b64encode(self.map.file.read()))
-
-    @property
-    def is_map_calibrated(self):
-        if self.calibration_string is not None:
-            pts = self.calibration_string.split("|")
-            if len(pts) == 12:
-                try:
-                    pts = [float(x) for x in pts]
-                except:
-                    pass
-                else:
-                    return True
-        return False
-
-    @property
-    def calibration_points(self):
-        if self.map is not None and self.is_map_calibrated:
-            pts = self.calibration_string.split("|")
-            pts = [float(x) for x in pts]
-            return [
-                {"lat": pts[1], "lon": pts[0], "x": pts[2], "y": pts[3]},
-                {"lat": pts[5], "lon": pts[4], "x": pts[6], "y": pts[7]},
-                {"lat": pts[9], "lon": pts[8], "x": pts[10], "y": pts[11]}
-            ]
-        return self.BLANK_CALIBRATION_POINTS
+    def publisher_name(self):
+        return self.publisher.username
 
     @property
     def is_started(self):
-        return self.opening_date < now()
+        return self.start_date < now()
 
     @property
     def is_completed(self):
-        return self.closing_date < now()
+        return self.end_date < now()
 
     @property
     def is_current(self):
         return self.is_started and not self.is_completed
 
-    def close_competition(self):
-        self.closing_date = now()
-
     @property
-    def tile_url_pattern(self):
-        if not self.pref_tile_url_pattern:
-            return u"http://{s}.tile.osm.org/{z}/{x}/{y}.png"
+    def approved_competitors(self):
+        if self.signup_policy != 'open':
+            return self.competitors.filter(approved=True)
         else:
-            return self.pref_tile_url_pattern
+            return self.competitors
+
+    def get_map(self):
+        if hasattr(self, 'defined_map'):
+            return self.defined_map
+        return Map(competition_id=self.pk)
+
+    map = property(get_map)
+
+    def pending_competitors(self):
+        if self.signup_policy == 'open':
+            return self.competitors.none()
+        else:
+            return self.competitors.filter(approved=False)
+
+    def close_competition(self):
+        self.end_date = now()
 
     @models.permalink
     def get_absolute_url(self):
         kwargs = {'publisher': self.publisher.username, 'slug': self.slug}
-        return ("seuranta.views.race_view", (), kwargs)
+        return "seuranta.views.race_view", (), kwargs
+
     absolute_url = property(get_absolute_url)
 
-    def serialize(self, include_private_data=False):
-        result = {
-            'uuid': self.uuid,
-            'last_update': format_date_iso(self.last_update),
-            'name': self.name,
-            'slug': self.slug,
-            'publisher': self.publisher.username,
-            'publication_policy': self.publication_policy,
-            'signup_policy': self.signup_policy,
-            'timezone': str(self.timezone),
-            'schedule': {
-                'opening_date': format_date_iso(self.opening_date),
-                'closing_date': format_date_iso(self.closing_date),
-            },
-            'competitors': [],
-            'map': {
-                'display_settings': self.display_settings,
-                'tile_url_pattern': self.tile_url_pattern,
-            },
-        }
-        if self.is_started or include_private_data:
-            result['map']['image_data_uri'] = self.map_dataURI
-            result['map']['calibration_points'] = self.calibration_points
-            result['map']['size'] = self.map_size
-            result['map']['format'] = self.map_format
-        else:
-            result['map']['image_data_uri'] = self.BLANK_DATA_URI
-            result['map']['calibration_points'] = self.BLANK_CALIBRATION_POINTS
-            result['map']['size'] = self.BLANK_SIZE
-            result['map']['format'] = self.BLANK_FORMAT
-        competitor_set = self.competitors.all()
-        for c in competitor_set:
-            result['competitors'].append(c.serialize())
-        return result
-
-    def dump_json(self, include_private_data=False):
-        return json.dumps(self.serialize())
-
-    def load_json(self, value):
-        # obj = json.load(value)
-        return True
-
-    def save(self, *args, **kwargs):
+    def derive_slug(self):
         orig_slug = slugify(self.name)
         desired_slug = orig_slug[:21]
         while desired_slug[0] in '-_':
@@ -282,79 +191,345 @@ class Competition(models.Model):
                 '_-', '_'
             )
         if len(desired_slug) == 0:
-            desired_slug = "noname"
+            desired_slug = "undefined"
         elif len(desired_slug) < 5:
-            desired_slug = "%s-%d" % (desired_slug, self.opening_date.year)
+            desired_slug = "%s-%d" % (desired_slug, self.start_date.year)
         orig_slug = desired_slug
-        next = 2
-        ending = ""
+        counter = 2
         qs = Competition.objects.all()
         if self.pk is not None:
             qs = qs.exclude(pk=self.pk)
         qs = qs.filter(publisher_id=self.publisher_id)
         while qs.filter(slug=desired_slug)[:1].count() > 0:
-            ending = "-%d" % next
-            desired_slug = "%s%s" % (orig_slug[:21-len(ending)], ending)
-            next += 1
+            ending = "-%d" % counter
+            desired_slug = "%s%s" % (orig_slug[:21 - len(ending)], ending)
+            counter += 1
         self.slug = desired_slug
+
+    def clean(self):
+        super(Competition, self).clean()
+        if self.start_date > self.end_date:
+            raise ValidationError('Invalid schedule')
+
+    def save(self, *args, **kwargs):
+        self.derive_slug()
         super(Competition, self).save(*args, **kwargs)
 
     def __unicode__(self):
-        return u"Competition \"%s\" created by %s" % (self.name,
-                                                      self.publisher)
+        return u"{} \"{}\" by {}".format(_(u"Competition"),
+                                         self.name,
+                                         self.publisher)
 
     class Meta:
-        ordering = ["-opening_date"]
+        ordering = ["-start_date"]
         verbose_name = _("competition")
         verbose_name_plural = _("competitions")
 
+    def serialize(self, include_private_data=False):
+        result = {
+            'id': self.id,
+            'name': self.name,
+            'slug': self.slug,
+            'publisher': self.publisher.username,
+            'publish_date': format_date_iso(self.publish_date),
+            'update_date': format_date_iso(self.update_date),
+            'publication_policy': self.publication_policy,
+            'signup_policy': self.signup_policy,
+            'timezone': str(self.timezone),
+            'schedule': {
+                'start_date': format_date_iso(self.start_date),
+                'end_date': format_date_iso(self.end_date),
+            },
+            'competitors': [],
+            'map': {},
+        }
+        if (self.is_started or include_private_data) and self.map:
+            result['map']['image_data_uri'] = self.map.data_uri
+            result['map']['calibration'] = self.map.calibration_string
+            result['map']['size'] = self.map.size
+            result['map']['format'] = self.map.format
+        else:
+            result['map']['image_data_uri'] = self.map.data_uri
+            result['map']['calibration'] = BLANK_CALIBRATION_STRING
+            result['map']['size'] = BLANK_SIZE
+            result['map']['format'] = BLANK_FORMAT
+        competitor_set = self.competitors.all()
+        if not include_private_data and self.signup_policy != "open":
+            competitor_set = competitor_set.filter(approved=True)
+        for competitor in competitor_set:
+            result['competitors'].append(
+                competitor.serialize(include_private_data)
+            )
+        return result
 
-@receiver(post_delete, sender=Competition)
-def competition_post_delete_handler(sender, **kwargs):
-    competition = kwargs['instance']
-    if competition.map and competition.map.file:
-        storage, path = competition.map.storage, competition.map.path
+    def dump_json(self, include_private_data=False):
+        return json.dumps(self.serialize(include_private_data))
+
+
+class Map(models.Model):
+    update_date = models.DateTimeField(auto_now=True)
+    competition = models.OneToOneField(Competition, related_name='defined_map')
+    image = models.ImageField(
+        _("image"),
+        upload_to=map_upload_path,
+        height_field="height",
+        width_field="width",
+        storage=OverwriteStorage(),
+        blank=True, null=True
+    )
+    width = models.PositiveIntegerField(
+        _("width"),
+        editable=False,
+        blank=True, null=True
+    )
+    height = models.PositiveIntegerField(
+        _("height"),
+        editable=False,
+        blank=True, null=True
+    )
+    calibration_string = models.CharField(
+        _("calibration string"),
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text=mark_safe(
+            "<a"
+            " target='_blank'"
+            " href='https://rphl.net/dropbox/calibrate_map2.html'"
+            ">" + force_unicode(_("Online calibration tool")) + "</a>"
+        ),
+    )
+    display_mode = models.CharField(
+        _("display mode"),
+        max_length=8,
+        choices=MAP_DISPLAY_CHOICES,
+        default="map"
+    )
+    background_tile_url = models.URLField(
+        _('background tile url'),
+        blank=True,
+        null=True,
+        help_text=''.join([
+            force_unicode(_("e.g")) +
+            " https://{s}.example.com/{x}_{y}_{z}.png <br/>" +
+            force_unicode(_("Leave blank to use OpenStreetMap"))
+        ]),
+    )
+
+    @property
+    def size(self):
+        if not self.image:
+            return BLANK_SIZE
+        else:
+            return {'width': self.width, 'height': self.height}
+
+    @property
+    def format(self):
+        if not self.image:
+            return BLANK_FORMAT
+        return "image/jpeg"
+
+    @property
+    def image_data(self):
+        if not self.image:
+            return BLANK_GIF.decode('base64')
+        compressed_file = self.image.name + '_l'
+        if not self.image.storage.exists(compressed_file):
+            with self.image.storage.open(self.image.file, 'rb') as fp_in, \
+                    self.image.storage.open(compressed_file, 'wb') as fp_out:
+                buf = StringIO()
+                im = Image.open(fp_in)
+                im.save(buf, 'JPEG', quality=40)
+                fp_out.write(buf.getvalue())
+                im.close()
+                buf.close()
+        with self.image.storage.open(compressed_file, 'rb') as fp:
+            data = fp.read()
+            return data
+
+    @property
+    def data_uri(self):
+        return "data:%s;base64,%s" % (self.format,
+                                      base64.b64encode(self.image_data))
+
+    @data_uri.setter
+    def data_uri(self, value):
+        pass
+
+    @models.permalink
+    def get_image_url(self):
+        kwargs = {'pk': self.competition.pk, }
+        return "seuranta_api_v2_map_download", (), kwargs
+    image_url = property(get_image_url)
+
+    @property
+    def is_calibrated(self):
+        if not self.calibration_string:
+            return False
+        values = self.calibration_string.split('|')
+        if len(values) != 8:
+            return False
+        for val in values:
+            if not FLOAT_RE.match(val):
+                return False
+        return True
+
+    @property
+    def calibration(self):
+        return {'top_left': dict(lat=self.top_left_lat, lng=self.top_left_lng),
+                'top_right': dict(lat=self.top_right_lat,
+                                  lng=self.top_right_lng),
+                'bottom_right': dict(lat=self.bottom_right_lat,
+                                     lng=self.bottom_right_lng),
+                'bottom_left': dict(lat=self.bottom_left_lat,
+                                    lng=self.bottom_left_lng)}
+
+    def _get_corner(self, n, coord):
+        if self.image is not None and self.is_calibrated:
+            return Decimal(self.calibration_string.split("|")[2 * n + coord])
+        return BLANK_CALIBRATION_STRING[2 * n + coord]
+
+    def _set_corner(self, n, coord, value):
+        if self.image is not None:
+            corner_coords = [
+                self.top_left_lat,
+                self.top_left_lng,
+                self.top_right_lat,
+                self.top_right_lng,
+                self.bottom_right_lat,
+                self.bottom_right_lng,
+                self.bottom_left_lat,
+                self.bottom_left_lng,
+            ]
+            corner_coords[2 * n + coord] = value
+            self.calibration_string = "|".join([str(x) for x in corner_coords])
+
+    # Top Left
+    @property
+    def top_left_lat(self):
+        return self._get_corner(TOP_L_IDX, LAT_IDX),
+
+    @top_left_lat.setter
+    def top_left_lat(self, value):
+        self._set_corner(TOP_L_IDX, LAT_IDX, value)
+
+    @property
+    def top_left_lng(self):
+        return self._get_corner(TOP_L_IDX, LNG_IDX),
+
+    @top_left_lng.setter
+    def top_left_lng(self, value):
+        self._set_corner(TOP_L_IDX, LNG_IDX, value)
+
+    # Top Right
+    @property
+    def top_right_lat(self):
+        return self._get_corner(TOP_R_IDX, LAT_IDX),
+
+    @top_right_lat.setter
+    def top_right_lat(self, value):
+        self._set_corner(TOP_R_IDX, LAT_IDX, value)
+
+    @property
+    def top_right_lng(self):
+        return self._get_corner(TOP_R_IDX, LNG_IDX),
+
+    @top_right_lng.setter
+    def top_right_lng(self, value):
+        self._set_corner(TOP_R_IDX, LNG_IDX, value)
+
+    # Bottom Right
+    @property
+    def bottom_right_lat(self):
+        return self._get_corner(BOT_R_IDX, LAT_IDX),
+
+    @bottom_right_lat.setter
+    def bottom_right_lat(self, value):
+        self._set_corner(BOT_R_IDX, LAT_IDX, value)
+
+    @property
+    def bottom_right_lng(self):
+        return self._get_corner(BOT_R_IDX, LNG_IDX),
+
+    @bottom_right_lng.setter
+    def bottom_right_lng(self, value):
+        self._set_corner(BOT_R_IDX, LNG_IDX, value)
+
+    # Bottom Left
+    @property
+    def bottom_left_lat(self):
+        return self._get_corner(BOT_L_IDX, LAT_IDX),
+
+    @bottom_left_lat.setter
+    def bottom_left_lat(self, value):
+        self._set_corner(BOT_L_IDX, LAT_IDX, value)
+
+    @property
+    def bottom_left_lng(self):
+        return self._get_corner(BOT_L_IDX, LNG_IDX),
+
+    @bottom_left_lng.setter
+    def bottom_left_lng(self, value):
+        self._set_corner(BOT_L_IDX, LNG_IDX, value)
+
+
+@receiver(post_delete, sender=Map)
+def map_post_delete_handler(sender, **kwargs):
+    if sender:
+        pass
+    map_obj = kwargs['instance']
+    if map_obj.image and map_obj.image.file:
+        storage, path = map_obj.image.storage, map_obj.image.path
         storage.delete(path)
 
 
 class Competitor(models.Model):
-    uuid = ShortUUIDField(_("uuid"), primary_key=True)
+    id = ShortUUIDField(_("identifier"), primary_key=True)
     competition = models.ForeignKey(
         Competition,
         verbose_name=_('competition'),
-        related_name="competitors"
+        related_name="competitors",
     )
     name = models.CharField(
         _('name'),
-        max_length=50
+        max_length=50,
     )
-    shortname = models.CharField(
+    short_name = models.CharField(
         _('short name'),
-        max_length=50
+        max_length=50,
     )
-    starting_time = models.DateTimeField(
-        _('starting time (UTC)'),
+    start_time = models.DateTimeField(
+        _('start time (UTC)'),
         null=True,
-        blank=True
+        blank=True,
     )
-    tracker = ShortUUIDField(
-        _("secret"),
-        editable=True,
+    api_token = ShortUUIDField(
+        _("api token"),
+        editable=False,
         blank=False,
-        null=True
+        null=True,
     )
-    quick_setup_code = models.CharField(
-        _('quick setup code'),
+    access_code = models.CharField(
+        _('access code'),
         max_length=8,
         blank=True,
         null=False,
         editable=False,
-        default=''
+        default='',
     )
     approved = models.BooleanField(
-        _('Approved by organizer'),
-        default=False
+        _('approved'),
+        default=False,
+        null=False,
+        blank=False,
     )
+
+    @models.permalink
+    def get_absolute_url(self):
+        kwargs = {'pk': self.pk}
+        return "seuranta_api_v2_competitor_detail", (), kwargs
+
+    absolute_url = property(get_absolute_url)
 
     @property
     def route(self):
@@ -364,53 +539,66 @@ class Competitor(models.Model):
             route = route.union(route_section.route)
         return sorted(route)
 
-    def serialize(self):
-        if self.starting_time is not None:
-            stime = format_date_iso(self.starting_time)
+    def reset_access_code(self):
+        while True:
+            code = make_random_code(5)
+            existing = Competitor.objects.filter(
+                access_code=code,
+                competition_id=self.competition_id
+            ).count()
+            if existing == 0:
+                self.access_code = code
+                break
+
+    def reset_api_token(self):
+        self.api_token = short_uuid()
+
+    def clean(self):
+        super(Competitor, self).clean()
+        if self.start_time \
+           and not (self.competition.start_date <= self.start_time
+                    <= self.competition.end_date):
+            raise ValidationError(
+                'start_time does not respect competition schedule'
+            )
+
+    def save(self, *args, **kwargs):
+        if not self.api_token:
+            self.reset_api_token()
+        if not self.access_code:
+            self.reset_access_code()
+        super(Competitor, self).save(*args, **kwargs)
+
+    def __unicode__(self):
+        return u"{} \"{}\" > {}".format(_(u"Competitor"), self.name,
+                                        self.competition)
+
+    class Meta:
+        unique_together = (
+            ("api_token", "competition"),
+            ("access_code", "competition"),
+        )
+        ordering = ["competition", "start_time", "name"]
+        verbose_name = _("competitor")
+        verbose_name_plural = _("competitors")
+
+    def serialize(self, include_private_data=False):
+        if self.start_time is not None:
+            start_time = format_date_iso(self.start_time)
         else:
-            stime = None
+            start_time = None
         result = {
-            'uuid': self.uuid,
-            'data': {
-                'name': self.name,
-                'shortname': self.shortname,
-                'starting_time': stime,
-            }
+            'id': self.id,
+            'name': self.name,
+            'short_name': self.short_name,
+            'starting_time': start_time,
         }
+        if include_private_data:
+            result['access_code'] = self.access_code
         return result
 
     def dump_json(self):
         return json.dumps(self.serialize())
-
-    def make_setup_code(self):
-        while True:
-            code = make_random_code(5)
-            existing = Competitor.objects.filter(
-                quick_setup_code=code,
-                competition_id=self.competition_id
-            ).count()
-            if existing == 0:
-                break
-        self.quick_setup_code = code
-
-    def save(self, *args, **kwargs):
-        if not self.tracker:
-            self.tracker = short_uuid()
-        if not self.quick_setup_code:
-            self.make_setup_code()
-        super(Competitor, self).save(*args, **kwargs)
-
-    def __unicode__(self):
-        return u"Competitor \"%s\" in %s" % (self.name, self.competition)
-
-    class Meta:
-        unique_together = (
-            ("tracker", "competition"),
-            ("quick_setup_code", "competition"),
-        )
-        ordering = ["competition", "starting_time", "name"]
-        verbose_name = _("competitor")
-        verbose_name_plural = _("competitors")
 
 
 class RouteSection(models.Model):
@@ -418,7 +606,7 @@ class RouteSection(models.Model):
                                    verbose_name=_("competitor"),
                                    related_name="route_sections")
     encoded_data = models.TextField(_("encoded data"), blank=True)
-    last_update = models.DateTimeField(_("last update"), auto_now=True)
+    update_date = models.DateTimeField(_("last update date"), auto_now=True)
     _start_datetime = models.DateTimeField(blank=True, null=True,
                                            editable=False)
     _finish_datetime = models.DateTimeField(blank=True, null=True,
@@ -439,13 +627,13 @@ class RouteSection(models.Model):
         blank=True, null=True,
         validators=[validate_longitude], editable=False
     )
+    _point_nb = models.PositiveIntegerField(
+        default=0
+    )
 
     @property
     def route(self):
-        try:
-            return gps_codec.decode(self.encoded_data)
-        except:
-            return set()
+        return gps_codec.decode(self.encoded_data)
 
     @route.setter
     def route(self, value):
@@ -454,12 +642,9 @@ class RouteSection(models.Model):
     @property
     def bounds(self):
         route = self.route
-
         if route is None or len(route) == 0:
             return None
-
         route = sorted(route)
-
         north = -90
         south = 90
         east = -180
@@ -473,7 +658,6 @@ class RouteSection(models.Model):
             east = max(east, p.coordinates.longitude)
             start_t = min(start_t, p.timestamp)
             end_t = max(end_t, p.timestamp)
-
         return {
             'start_timestamp': start_t,
             'finish_timestamp': end_t,
@@ -496,9 +680,10 @@ class RouteSection(models.Model):
             self._south = bounds['south']
             self._west = bounds['west']
             self._east = bounds['east']
+        self._point_nb = len(self.route)
         super(RouteSection, self).save(*args, **kwargs)
 
     class Meta:
-        ordering = ["-last_update"]
+        ordering = ["-update_date"]
         verbose_name = _("route section")
         verbose_name_plural = _("route sections")

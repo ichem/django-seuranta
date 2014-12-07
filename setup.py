@@ -41,8 +41,11 @@ setup(
     ],
     install_requires=[
         'requests',
+        'markdown',
         'simplejson',
         'unidecode',
+        'djangorestframework >= 3.0.0',
         'django-timezone-field >= 1.0',
+        'pytz'
     ],
 )

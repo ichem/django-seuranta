@@ -1,6 +1,7 @@
 from django.contrib import admin
+from django.utils.translation import ugettext_lazy as _
 
-from seuranta.models import Competition, Competitor, RouteSection
+from seuranta.models import Competition, Competitor, RouteSection, Map
 
 
 class PublisherAdmin(admin.ModelAdmin):
@@ -18,7 +19,6 @@ class PublisherAdmin(admin.ModelAdmin):
     def has_add_permission(self, request, obj=None):
         if request.user.is_superuser:
             return True
-
         if obj is None:
             return True
         else:
@@ -27,7 +27,6 @@ class PublisherAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         if request.user.is_superuser:
             return True
-
         if obj is None:
             return True
         else:
@@ -47,18 +46,32 @@ class RouteSectionInlineAdmin(admin.TabularInline):
     model = RouteSection
 
 
-class CompetitorInlineAdmin(admin.TabularInline):
+class CompetitorInlineAdmin(admin.StackedInline):
     model = Competitor
-    prepopulated_fields = {'shortname': ('name',), }
+    prepopulated_fields = {'short_name': ('name',), }
+
+
+class MapInlineAdmin(admin.TabularInline):
+    model = Map
 
 
 class CompetitorAdmin(admin.ModelAdmin):
     inlines = [
-        RouteSectionInlineAdmin,
+    #    RouteSectionInlineAdmin,
     ]
-    list_display = ('name', 'shortname', 'competition', 'starting_time',
-                    'tracker', 'quick_setup_code', 'approved')
-    actions = ['make_approved']
+    list_display = ('name', 'short_name', 'competition', 'start_time',
+                    'access_code', 'approved')
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'short_name', )
+        }),
+        (_('Schedule'), {
+            'fields': ('start_time', )
+        }),
+    )
+    list_filter = ('competition__name', 'approved')
+    actions = ['make_approved', 'renew_access_code']
+    prepopulated_fields = {'short_name': ('name', ), }
 
     def make_approved(self, request, queryset):
         rows_updated = queryset.update(approved=True)
@@ -68,7 +81,14 @@ class CompetitorAdmin(admin.ModelAdmin):
             message_bit = "%s competitors were" % rows_updated
         self.message_user(request,
                           "%s successfully marked as approved." % message_bit)
-    make_approved.short_description = "Mark selected competitors as approved"
+    make_approved.short_description = _("Approve selected competitors")
+
+    def renew_access_code(self, request, queryset):
+        for competitor in queryset:
+            competitor.reset_access_code()
+            competitor.reset_api_token()
+            competitor.save()
+    renew_access_code.short_description = _("Issue new access codes")
 
     def queryset(self, request):
         qs = super(CompetitorAdmin, self).queryset(request)
@@ -77,12 +97,7 @@ class CompetitorAdmin(admin.ModelAdmin):
         return qs.filter(competition__publisher=request.user)
 
     def has_add_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        if obj is None:
-            return True
-        else:
-            return obj.competition.publisher == request.user
+        return False
 
     def has_change_permission(self, request, obj=None):
         if request.user.is_superuser:
@@ -102,9 +117,19 @@ class CompetitorAdmin(admin.ModelAdmin):
 
 
 class CompetitionAdmin(PublisherAdmin):
-    list_display = ('name', 'opening_date', 'closing_date',
+    list_display = ('name', 'start_date', 'end_date',
+                    'timezone',
                     'publication_policy', 'signup_policy')
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'publication_policy', 'signup_policy')
+        }),
+        (_('Schedule'), {
+            'fields': ('start_date', 'end_date', 'timezone')
+        }),
+    )
     inlines = [
+        MapInlineAdmin,
         CompetitorInlineAdmin,
     ]
 

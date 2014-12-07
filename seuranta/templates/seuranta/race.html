@@ -7,36 +7,36 @@
 <style>
 #main{
     position:absolute;
-	display:block;
-	overflow:hidden;
-	top:0;
-	left:0;
-	width:100%;
-	height:100%;
-	z-index:-1000;
+    display:block;
+    overflow:hidden;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    z-index:-1000;
 }
 
 #controls{
-	position:absolute;
-	display:block;
-	overflow:hidden;
-	top:0;
-	left:0;
-	height:100%;
-	color:#fff;
-	background:#000;
-	font-family:Arial;
+    position:absolute;
+    display:block;
+    overflow:hidden;
+    top:0;
+    left:0;
+    height:100%;
+    color:#fff;
+    background:#000;
+    font-family:Arial;
 }
 
 #toggle_controls{
     position:absolute;
-	display:block;
-	overflow:hidden;
-	top:0;
-	left:0;
-	color:#fff;
-	background:#000;
-	font-family:Arial;
+    display:block;
+    overflow:hidden;
+    top:0;
+    left:0;
+    color:#fff;
+    background:#000;
+    font-family:Arial;
 }
 
 .clock{
@@ -44,30 +44,30 @@
 }
 .control_button{
     display:inline-block;
-	text-decoration:none;
-	padding:2px 5px;
-	text-align:center;
-	color:#fff;
-	margin:0 2px;
-	font-size:1.2em;
+    text-decoration:none;
+    padding:2px 5px;
+    text-align:center;
+    color:#fff;
+    margin:0 2px;
+    font-size:1.2em;
 }
 
 .control_button:hover{
-	color:#bbb;
+    color:#bbb;
 }
 
 #timeline{
-	background:#555;
-	height:20px;
-	min-height:20px;
-	min-width:250px;
-	white-space:nowrap;
+    background:#555;
+    height:20px;
+    min-height:20px;
+    min-width:250px;
+    white-space:nowrap;
 }
 #timeline_bar{
-	background:#f00;
-	width:0px;
-	height:100%;
-	white-space:nowrap;
+    background:#f00;
+    width:0px;
+    height:100%;
+    white-space:nowrap;
 }
 #participant_list{
     overflow-y:auto;
@@ -116,13 +116,13 @@
 <script type="text/javascript" src="{{STATIC_URL}}seuranta/js/positioning.js"></script>
 <script>
 var COLORS = new function(){
-	var colors = ["#09F","#3D0","#F09","#D30","#30D","#DD0","#2DD","#D00","#D33","#00D","#DD2","#BFB"],
+    var colors = ["#09F","#3D0","#F09","#D30","#30D","#DD0","#2DD","#D00","#D33","#00D","#DD2","#BFB"],
         $t = this;
     $t.cnt = -1;
     $t.get = function(){
-    	this.cnt++;
-    	if( this.cnt==colors.length )this.cnt = 0;
-    	return colors[this.cnt];
+        this.cnt++;
+        if( this.cnt==colors.length )this.cnt = 0;
+        return colors[this.cnt];
     };
     return $t;
 };
@@ -130,13 +130,13 @@ var COLORS = new function(){
 <script>
 var Competitor = function(options){
     var color = options.color,
-        name = options.data.name,
-        shortname = options.data.shortname,
-        starting_time = options.data.starting_time;
-    this.uuid = options.uuid;
+        name = options.name,
+        short_name = options.short_name,
+        start_time = options.starting_time;
+    this.id = options.id;
     this.getColor = function(){return color};
     this.getName = function(){return name};
-    this.getShortname = function(){return shortname};
+    this.getShortName = function(){return short_name};
     this.positions = new PositionArchive();
     this.marker = null;
     this.polyline = null;
@@ -160,13 +160,13 @@ $(function(){
         map=null,
         prev_fetch_time=null;
 
-    is_started = (clock.now() - Date.parse(race_info.schedule.opening_date))>0;
-    is_completed = (clock.now() - Date.parse(race_info.schedule.closing_date))>0;
+    is_started = (clock.now() - Date.parse(race_info.schedule.start_date))>0;
+    is_completed = (clock.now() - Date.parse(race_info.schedule.end_date))>0;
 
     var competitors = {};
     $.each(race_info.competitors, function(i, el){
         el.color = COLORS.get();
-        competitors[el.uuid] = new Competitor(el);
+        competitors[el.id] = new Competitor(el);
         $('<div/>')
         .on(
             "click",
@@ -179,23 +179,23 @@ $(function(){
                     }
                     c.is_shown = !c.is_shown;
                 }
-            })(competitors[el.uuid])
+            })(competitors[el.id])
         )
-        .html("<i class='fa fa-square' style='color:"+competitors[el.uuid].getColor()+"'></i> "+competitors[el.uuid].getName())
+        .html("<i class='fa fa-square' style='color:"+competitors[el.id].getColor()+"'></i> "+competitors[el.id].getName())
         .appendTo($("#participant_list"))
     });
 
     var whileUncompleteFunction = function(){
-        is_completed = (clock.now() - Date.parse(race_info.schedule.closing_date))>0;
+        is_completed = (clock.now() - Date.parse(race_info.schedule.end_date))>0;
 
-        var list_uuids = $.map(race_info.competitors, function(el){
-            return el.uuid;
+        var list_ids = $.map(race_info.competitors, function(el){
+            return el.id;
         });
 
-        if(list_uuids.length>0){
+        if(list_ids.length>0){
             // rounded to 5 sec for cache optimization
             var now =Math.floor(+clock.now()/PLAYER_POOLING_INTERVAL)*PLAYER_POOLING_INTERVAL;
-            var query_args = {"uuid[]":list_uuids, now:now}
+            var query_args = {"id[]":list_ids, now:now}
             if(prev_fetch_time !== null){
                 query_args["last_update_timestamp"]=Math.round(prev_fetch_time/1e3);
             }
@@ -208,12 +208,12 @@ $(function(){
             .done(function(response){
                 if(response.status=="OK"){
                     $.each(response.data.routes, function(i, d){
-                        var uuid = d.competitor.uuid;
-                        if(competitors[uuid]){
+                        var id = d.competitor.id;
+                        if(competitors[id]){
                             var enc_data = d.encoded_data,
                                 positions = PositionArchive.fromTks(enc_data);
                             $.each(positions.getArray(), function(i, pt){
-                                competitors[uuid].positions.add(pt);
+                                competitors[id].positions.add(pt);
                             });
                         }
                     });
@@ -231,7 +231,7 @@ $(function(){
     };
 
     var onComplete = function(){
-        time_displayed = Date.parse(race_info.schedule.opening_date);
+        time_displayed = Date.parse(race_info.schedule.start_date);
         play_rate = 0;
     };
 
@@ -250,8 +250,8 @@ $(function(){
                 time_displayed = clock.now()-PLAYER_DELAY;
                 play_rate = 1;
             }
-            if(time_displayed > Date.parse(race_info.schedule.closing_date)){
-                time_displayed = Date.parse(race_info.schedule.opening_date);
+            if(time_displayed > Date.parse(race_info.schedule.end_date)){
+                time_displayed = Date.parse(race_info.schedule.start_date);
                 play_rate = 0;
             }
             var t, tz=race_info.timezone;
@@ -266,8 +266,8 @@ $(function(){
             $("#tz_display").text( tz );
             $("#play_rate_display").text( "x"+PLAY_RATES[play_rate] );
 
-            var t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.schedule.closing_date))-Date.parse(race_info.schedule.opening_date),
-                t_perc = (time_displayed-Date.parse(race_info.schedule.opening_date))/t_elapsed*100;
+            var t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.schedule.end_date))-Date.parse(race_info.schedule.start_date),
+                t_perc = (time_displayed-Date.parse(race_info.schedule.start_date))/t_elapsed*100;
             $("#timeline_bar").css({
                 "width":Math.round(t_perc)+"%"
             });
@@ -277,7 +277,7 @@ $(function(){
                     var position = runner.positions.getByTime(time_displayed);
                     var latlon = new LatLon(position.coords.latitude, position.coords.longitude);
                     if(!runner.marker){
-                        runner.marker = new SmallWorld.Marker(latlon, runner.getColor(), runner.getShortname())
+                        runner.marker = new SmallWorld.Marker(latlon, runner.getColor(), runner.getShortName())
                         runner.marker.draw(map);
                     }else{
                         runner.marker.move(latlon);
@@ -395,8 +395,8 @@ $(function(){
         });
         $("#timeline").on("click", function(e){
             var w = $(this).width(),
-                t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.schedule.closing_date))-Date.parse(race_info.schedule.opening_date);
-            time_displayed = Date.parse(race_info.schedule.opening_date)+e.clientX/w*t_elapsed;
+                t_elapsed = Math.min(clock.now()-PLAYER_DELAY, Date.parse(race_info.schedule.end_date))-Date.parse(race_info.schedule.start_date);
+            time_displayed = Date.parse(race_info.schedule.start_date)+e.clientX/w*t_elapsed;
         });
 
         $("#toggle_controls").css({

@@ -11,7 +11,7 @@ class Migration(SchemaMigration):
         # Adding model 'Competition'
         db.create_table(u'seuranta_competition', (
             ('uuid', self.gf('django.db.models.fields.CharField')(max_length=22, primary_key=True)),
-            ('last_update', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
+            ('update_date', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
             ('publisher', self.gf('django.db.models.fields.related.ForeignKey')(related_name='competitions', to=orm['auth.User'])),
             ('publication_policy', self.gf('django.db.models.fields.CharField')(default='public', max_length=8)),
             ('name', self.gf('django.db.models.fields.CharField')(default='Untitled', max_length=50)),
@@ -33,7 +33,7 @@ class Migration(SchemaMigration):
             ('uuid', self.gf('django.db.models.fields.CharField')(max_length=22, primary_key=True)),
             ('competition', self.gf('django.db.models.fields.related.ForeignKey')(related_name='competitors', to=orm['seuranta.Competition'])),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('shortname', self.gf('django.db.models.fields.CharField')(max_length=50)),
+            ('short_name', self.gf('django.db.models.fields.CharField')(max_length=50)),
             ('starting_time', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
             ('tracker', self.gf('django.db.models.fields.CharField')(max_length=22, blank=True)),
         ))
@@ -47,7 +47,7 @@ class Migration(SchemaMigration):
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('competitor', self.gf('django.db.models.fields.related.ForeignKey')(related_name='route_sections', to=orm['seuranta.Competitor'])),
             ('encoded_data', self.gf('django.db.models.fields.TextField')(blank=True)),
-            ('last_update', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
+            ('update_date', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
             ('_start_datetime', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
             ('_finish_datetime', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
             ('_north', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
@@ -114,7 +114,7 @@ class Migration(SchemaMigration):
             'calibration_string': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'closing_date': ('django.db.models.fields.DateTimeField', [], {}),
             'display_settings': ('django.db.models.fields.CharField', [], {'default': "'map'", 'max_length': '10'}),
-            'last_update': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
+            'update_date': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
             'map': ('django.db.models.fields.files.ImageField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
             'map_height': ('django.db.models.fields.PositiveIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'map_width': ('django.db.models.fields.PositiveIntegerField', [], {'null': 'True', 'blank': 'True'}),
@@ -131,13 +131,13 @@ class Migration(SchemaMigration):
             'Meta': {'ordering': "['competition', 'starting_time', 'name']", 'unique_together': "(('tracker', 'competition'),)", 'object_name': 'Competitor'},
             'competition': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'competitors'", 'to': u"orm['seuranta.Competition']"}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
-            'shortname': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
+            'short_name': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
             'starting_time': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'tracker': ('django.db.models.fields.CharField', [], {'max_length': '22', 'blank': 'True'}),
             'uuid': ('django.db.models.fields.CharField', [], {'max_length': '22', 'primary_key': 'True'})
         },
         u'seuranta.routesection': {
-            'Meta': {'ordering': "['-last_update']", 'object_name': 'RouteSection'},
+            'Meta': {'ordering': "['-update_date']", 'object_name': 'RouteSection'},
             '_east': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
             '_finish_datetime': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             '_north': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
@@ -147,7 +147,7 @@ class Migration(SchemaMigration):
             'competitor': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'route_sections'", 'to': u"orm['seuranta.Competitor']"}),
             'encoded_data': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'last_update': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
+            'update_date': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         }
     }
 

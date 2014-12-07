@@ -40,7 +40,7 @@
         <li>{{comp_date.grouper}}
         <ul>
         {% for comp in comp_date.list %}
-        <li><a href="{{ comp.absolute_url }}">{{comp.name}}</a> - <a target="_blank" href="{% url 'seuranta_rerun' comp.publisher.username comp.slug %}">View on 2D rerun (Experimental)</a></li>
+        <li><a href="{{ comp.absolute_url }}">{{comp.name}}</a> - <a target="_blank" rel="nofollow" href="{% url 'seuranta_rerun' comp.publisher.username comp.slug %}">View on 2D rerun (Experimental)</a></li>
         {% endfor %}
         </ul>
         </li>

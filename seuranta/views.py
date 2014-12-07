@@ -170,7 +170,6 @@ def download_map(request, pk):
                  competition.is_started])]):
         response = competition.map.image_data
         mime = competition.map.format
-        print mime
         return HttpResponse(response, content_type=mime)
     else:
         return HttpResponse(status=403)

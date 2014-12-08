@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.translation import ugettext_lazy as _
 
 from seuranta.models import Competition, Competitor, RouteSection
 
@@ -54,22 +55,20 @@ class CompetitorInlineAdmin(admin.TabularInline):
 
 class CompetitorAdmin(admin.ModelAdmin):
     inlines = [
-        RouteSectionInlineAdmin,
+    #    RouteSectionInlineAdmin,
     ]
     list_display = ('name', 'shortname', 'competition', 'starting_time',
-                    'tracker', 'quick_setup_code', 'approved')
-    actions = ['make_approved']
-
-    def make_approved(self, request, queryset):
-        rows_updated = queryset.update(approved=True)
-        if rows_updated == 1:
-            message_bit = "1 competitor was"
-        else:
-            message_bit = "%s competitors were" % rows_updated
-        self.message_user(request,
-                          "%s successfully marked as approved." % message_bit)
-    make_approved.short_description = "Mark selected competitors as approved"
-
+                    'quick_setup_code')
+    prepopulated_fields = {'shortname': ('name',), }
+    list_filter = ('competition__name', )
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'shortname', )
+        }),
+        (_('Schedule'), {
+            'fields': ('starting_time', )
+        }),
+    )
     def queryset(self, request):
         qs = super(CompetitorAdmin, self).queryset(request)
         if request.user.is_superuser:
@@ -77,12 +76,13 @@ class CompetitorAdmin(admin.ModelAdmin):
         return qs.filter(competition__publisher=request.user)
 
     def has_add_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        if obj is None:
-            return True
-        else:
-            return obj.competition.publisher == request.user
+        return False
+#        if request.user.is_superuser:
+#            return True
+#        if obj is None:
+#            return True
+#        else:
+#            return obj.competition.publisher == request.user
 
     def has_change_permission(self, request, obj=None):
         if request.user.is_superuser:
@@ -103,7 +103,18 @@ class CompetitorAdmin(admin.ModelAdmin):
 
 class CompetitionAdmin(PublisherAdmin):
     list_display = ('name', 'opening_date', 'closing_date',
-                    'publication_policy', 'signup_policy')
+                    'publication_policy')
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'publication_policy', )
+        }),
+        (_('Schedule'), {
+            'fields': ('opening_date', 'closing_date', 'timezone')
+        }),
+        (_('Map'), {
+            'fields': ('map', 'calibration_string', )
+        })
+    )
     inlines = [
         CompetitorInlineAdmin,
     ]

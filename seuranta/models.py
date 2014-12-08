@@ -44,11 +44,6 @@ class Competition(models.Model):
         ("secret", _('Secret')),
         ("public", _('Public')),
     )
-    SIGNUP_POLICY_CHOICES = (
-        ("closed", _('Closed')),
-        ("org_val", _('Organizer Validated')),
-        ("open", _('Open')),
-    )
     BLANK_SIZE = {'width': 1, 'height': 1}
     BLANK_FORMAT = "image/gif"
     BLANK_DATA_URI = "data:image/gif;base64," \
@@ -90,12 +85,6 @@ class Competition(models.Model):
         editable=False,
         max_length=21,
         unique=True
-    )
-    signup_policy = models.CharField(
-        _("signup policy"),
-        max_length=8,
-        choices=SIGNUP_POLICY_CHOICES,
-        default="open",
     )
     timezone = TimeZoneField(
         verbose_name=_("timezone"),
@@ -230,7 +219,6 @@ class Competition(models.Model):
             'slug': self.slug,
             'publisher': self.publisher.username,
             'publication_policy': self.publication_policy,
-            'signup_policy': self.signup_policy,
             'timezone': str(self.timezone),
             'schedule': {
                 'opening_date': format_date_iso(self.opening_date),
@@ -339,9 +327,7 @@ class Competitor(models.Model):
     )
     tracker = ShortUUIDField(
         _("secret"),
-        editable=True,
-        blank=False,
-        null=True
+        editable=False,
     )
     quick_setup_code = models.CharField(
         _('quick setup code'),
@@ -350,10 +336,6 @@ class Competitor(models.Model):
         null=False,
         editable=False,
         default=''
-    )
-    approved = models.BooleanField(
-        _('Approved by organizer'),
-        default=False
     )
 
     @property

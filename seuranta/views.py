@@ -325,10 +325,9 @@ def api_v1(request, action):
                         next_competitor.competition.opening_date
                     )
                 for c in live_competitors:
-                    if c.approved or c.competition.signup_policy == "open":
-                        section = RouteSection(competitor=c)
-                        section.route = route
-                        section.save()
+                    section = RouteSection(competitor=c)
+                    section.route = route
+                    section.save()
                 last_location = route[-1]
                 response = {
                     "status": "OK",

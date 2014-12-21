@@ -501,7 +501,16 @@ def map_post_delete_handler(sender, **kwargs):
         storage.delete(path)
 
 
+class CompetitorManager(models.Manager):
+
+    def create(self, *args, **kwargs):
+        kwargs.setdefault('api_token', short_uuid())
+        kwargs.setdefault('access_code', make_random_code(5))
+        return super(CompetitorManager, self).create(*args, **kwargs)
+
+
 class Competitor(models.Model):
+    objects = CompetitorManager()
     id = ShortUUIDField(_("identifier"), primary_key=True)
     competition = models.ForeignKey(
         Competition,
@@ -523,9 +532,10 @@ class Competitor(models.Model):
     )
     api_token = ShortUUIDField(
         _("api token"),
+        blank=True,
+        null=False,
         editable=False,
-        blank=False,
-        null=True,
+        default='',
     )
     access_code = models.CharField(
         _('access code'),

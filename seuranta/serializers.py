@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from seuranta.models import Competitor, Competition, Map
 from pytz import timezone, common_timezones
+from seuranta.utils import short_uuid
 
 
 class RelativeURLField(serializers.Field):
@@ -33,6 +34,8 @@ class CompetitorMiniSerializer(serializers.ModelSerializer):
 
 
 class CompetitorSerializer(serializers.ModelSerializer):
+    api_token = serializers.CharField(source='api_token', read_only=True)
+
     class Meta:
         model = Competitor
         fields = ('id', 'competition', 'name', 'short_name', 'start_time',
@@ -56,8 +59,10 @@ class CompetitorSerializer(serializers.ModelSerializer):
 
 
 class CompetitorFullSerializer(CompetitorSerializer):
-    api_token = serializers.ReadOnlyField()
-    access_code = serializers.ReadOnlyField()
+    api_token = serializers.CharField(read_only=True, default="",
+                                      allow_blank=True)
+    access_code = serializers.CharField(read_only=True, default="",
+                                        allow_blank=True)
 
     class Meta:
         model = Competitor
@@ -98,6 +103,7 @@ class MapFullSerializer(MapSerializer):
     bottom_right_lng = serializers.FloatField()
     bottom_left_lat = serializers.FloatField()
     bottom_left_lng = serializers.FloatField()
+
     class Meta:
         model = Map
         fields = ('update_date',

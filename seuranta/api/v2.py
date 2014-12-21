@@ -7,15 +7,19 @@ from rest_framework import generics
 from rest_framework import permissions
 from rest_framework.generics import get_object_or_404
 
-from seuranta.models import Competitor, Competition, Map
+from seuranta.models import Competitor, Competition
 from seuranta.serializers import (CompetitorSerializer,
                                   CompetitorFullSerializer,
                                   CompetitionSerializer,
                                   MapSerializer, MapFullSerializer)
-from seuranta.views import download_map
+from seuranta.views import download_map as orig_download_map_view
 
 
 logger = logging.getLogger(__name__)
+
+
+def download_map(request, pk):
+    orig_download_map_view(request, pk)
 
 
 class CompetitionPermission(permissions.BasePermission):
@@ -119,6 +123,7 @@ class MapDetailView(generics.RetrieveUpdateDestroyAPIView):
         self.check_object_permissions(self.request, obj)
 
         return obj
+
 
 class CompetitorListView(generics.ListCreateAPIView):
     """

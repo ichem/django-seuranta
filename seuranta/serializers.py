@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from seuranta.models import Competitor, Competition, RouteSection, Map
+from seuranta.models import Competitor, Competition, Map
 from pytz import timezone, common_timezones
 
 
@@ -31,6 +31,7 @@ class CompetitorMiniSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'short_name', 'start_time', )
         read_only = ('id', 'name', 'short_name', 'start_time', )
 
+
 class CompetitorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Competitor
@@ -40,7 +41,7 @@ class CompetitorSerializer(serializers.ModelSerializer):
     def validate_competition(self, value):
         if self.instance is not None and self.instance.competition != value:
             raise serializers.ValidationError(
-                "Competition cannot be change once Competitor has been created"
+                "Competitor cannot be moved to another competition"
             )
         return value
 
@@ -64,7 +65,7 @@ class CompetitorFullSerializer(CompetitorSerializer):
                   'approved', 'access_code', 'api_token', )
 
 
-class MapSerializer(serializers.ModelSerializer):
+class URLMapSerializer(serializers.ModelSerializer):
     src = RelativeURLField(source='image_url', read_only=True)
     size = serializers.ReadOnlyField()
 
@@ -80,6 +81,30 @@ class MapSerializer(serializers.ModelSerializer):
                   'bottom_right_lng',
                   'bottom_left_lat',
                   'bottom_left_lng',
+                  'display_mode',
+                  'background_tile_url',
+        )
+
+
+class MapSerializer(serializers.ModelSerializer):
+    data_uri = serializers.CharField()
+    size = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Map
+        fields = ('update_date',
+                  'data_uri',
+                  'size',
+                  'top_left_lat',
+                  'top_left_lng',
+                  'top_right_lat',
+                  'top_right_lng',
+                  'bottom_right_lat',
+                  'bottom_right_lng',
+                  'bottom_left_lat',
+                  'bottom_left_lng',
+                  'display_mode',
+                  'background_tile_url',
         )
 
 
@@ -95,7 +120,7 @@ class CompetitionSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True,
     )
-    map = MapSerializer(read_only=True, source='get_map')
+    map = URLMapSerializer(read_only=True, source='get_map')
     publisher = serializers.ReadOnlyField(source='publisher_name')
 
     class Meta:

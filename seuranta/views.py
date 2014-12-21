@@ -164,8 +164,8 @@ def map_latest_mod(request, pk):
 def download_map(request, pk):
     competition = get_object_or_404(Competition,
                                     pk=pk, )
-    if any([all([not request.user.is_anonymous,
-                 competition.publisher == request.user.username]),
+    if any([all([not request.user.is_anonymous(),
+                 competition.publisher == request.user]),
             all([competition.publication_policy != 'private',
                  competition.is_started])]):
         response = competition.map.image_data
@@ -176,7 +176,8 @@ def download_map(request, pk):
 
 
 def admin_map_image(request, publisher, hash, pk):
-    if request.user.is_anonymous \
+    if request.user.is_anonymous() \
        or publisher != request.user.username:
+        print request.user.username, publisher
         return HttpResponse(status=403)
     return download_map(request, pk)

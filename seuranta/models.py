@@ -4,6 +4,7 @@ import json
 import re
 from decimal import Decimal
 from PIL import Image
+from django.core.files.base import ContentFile
 
 try:
     from cStringIO import StringIO
@@ -35,7 +36,7 @@ from seuranta.utils.validators import (validate_nice_slug, validate_latitude,
 BLANK_SIZE = {'width': 1, 'height': 1}
 BLANK_FORMAT = "image/gif"
 BLANK_GIF = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
-BLANK_DATA_URI = "data:image/gif;base64," + BLANK_GIF
+BLANK_DATA_URI = "data:" + BLANK_FORMAT + ";base64," + BLANK_GIF
 BLANK_CALIBRATION_STRING = [90, -180,
                             90, 180,
                             -90, -180,
@@ -309,7 +310,6 @@ class Map(models.Model):
     background_tile_url = models.URLField(
         _('background tile url'),
         blank=True,
-        null=True,
         help_text=''.join([
             force_unicode(_("e.g")) +
             " https://{s}.example.com/{x}_{y}_{z}.png <br/>" +
@@ -355,7 +355,24 @@ class Map(models.Model):
 
     @data_uri.setter
     def data_uri(self, value):
-        pass
+        data_matched = re.match(
+            r'^data\:image/(?P<format>jpeg|png|gif);base64,'
+            r'(?P<data_b64>(?:[A-Za-z0-9+/]{4})*'
+            r'(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)$',
+            value
+        )
+        if data_matched:
+            compressed_file = self.image.name + '_l'
+            if self.image.storage.exists(compressed_file):
+                self.image.storage.delete(compressed_file)
+            self.image.save(
+                'filename',
+                ContentFile(
+                    base64.b64decode(data_matched.group('data_b64'))
+                )
+            )
+        else:
+            raise ValueError('Not a base 64 encoded data URI of an image')
 
     @models.permalink
     def get_image_url(self):

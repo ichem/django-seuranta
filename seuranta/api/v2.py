@@ -2,14 +2,16 @@ import logging
 
 from django.db.models import Q
 
+from rest_framework import serializers
 from rest_framework import generics
 from rest_framework import permissions
+from rest_framework.generics import get_object_or_404
 
 from seuranta.models import Competitor, Competition, Map
 from seuranta.serializers import (CompetitorSerializer,
                                   CompetitorFullSerializer,
                                   CompetitionSerializer,
-                                  MapSerializer)
+                                  MapSerializer, URLMapSerializer)
 from seuranta.views import download_map
 
 
@@ -35,9 +37,10 @@ class MapPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
-        if request.method == 'POST':
-            return not request.user.is_anonymous
-        return (obj.competition.publisher == request.user) or request.user.is_superuser
+        return any([
+            (obj.competition.publisher == request.user),
+            request.user.is_superuser
+        ])
 
 
 class CompetitionListView(generics.ListCreateAPIView):
@@ -65,6 +68,12 @@ class CompetitionListView(generics.ListCreateAPIView):
         qs.filter(query)
         return qs
 
+    def perform_create(self, serializer):
+        if self.request.user.is_anonymous():
+            self.permission_denied(self.request)
+        serializer.save(publisher=self.request.user)
+        super(CompetitionListView, self).perform_create(serializer)
+
 
 class CompetitionDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Competition.objects.all()
@@ -73,10 +82,43 @@ class CompetitionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class MapDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Map.objects.all()
+    queryset = Competition.objects.all()
     permission_classes = (MapPermission, )
     serializer_class = MapSerializer
 
+    def get_serializer_class(self):
+        if any([self.request.user.is_superuser,
+                self.request.user == self.get_object().competition.publisher]):
+            return MapSerializer
+        return URLMapSerializer
+
+    def get_object(self):
+        """
+        Returns the object the view is displaying.
+
+        You may want to override this if you need to provide non-standard
+        queryset lookups.  Eg if objects are referenced using multiple
+        keyword arguments in the url conf.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+
+        # Perform the lookup filtering.
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+
+        assert lookup_url_kwarg in self.kwargs, (
+            'Expected view %s to be called with a URL keyword argument '
+            'named "%s". Fix your URL conf, or set the `.lookup_field` '
+            'attribute on the view correctly.' %
+            (self.__class__.__name__, lookup_url_kwarg)
+        )
+
+        filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+        competition = get_object_or_404(queryset, **filter_kwargs)
+        obj = competition.map
+        # May raise a permission denied
+        self.check_object_permissions(self.request, obj)
+
+        return obj
 
 class CompetitorListView(generics.ListCreateAPIView):
     """
@@ -105,15 +147,38 @@ class CompetitorListView(generics.ListCreateAPIView):
         super(CompetitorListView, self).__init__()
 
     def get_serializer_class(self):
-        if self.request.user.is_superuser:
-            return CompetitorFullSerializer
         competition_id = self.request.query_params.get("competition_id")
         access_code = self.request.query_params.get("access_code")
+        open_competitions = Competition.objects.all()
+        if self.request.user.is_superuser:
+            return CompetitorFullSerializer
+        elif competition_id:
+            open_competitions = open_competitions.filter(pk=competition_id)
+        elif self.request.user.is_anonymous():
+            open_competitions = open_competitions.filter(
+                publication_policy='public'
+            ).exclude(signup_policy='closed')
+        else:
+            open_competitions = open_competitions.filter(
+                Q(publisher=self.request) | (Q(publication_policy='public')
+                                             & ~Q(signup_policy='closed'))
+            )
+
+        class CustomSerializer(CompetitorSerializer):
+            competition = serializers.PrimaryKeyRelatedField(
+                queryset=open_competitions
+            )
+
+        class CustomFullSerializer(CompetitorFullSerializer):
+            competition = serializers.PrimaryKeyRelatedField(
+                queryset=open_competitions
+            )
+
+        if self.request.user.is_anonymous() or not competition_id:
+            return CustomSerializer
         is_publisher = False
         has_token = False
-        if not competition_id:
-            return CompetitorSerializer
-        if not self.request.user.is_anonymous:
+        if not self.request.user.is_anonymous():
             is_publisher = (Competition.objects.filter(
                 publisher=self.request.user,
                 id=competition_id
@@ -124,7 +189,7 @@ class CompetitorListView(generics.ListCreateAPIView):
                 competition_id=competition_id
             ).count() == 1)
         if has_token or is_publisher:
-            return CompetitorFullSerializer
+            return CustomFullSerializer
         return CompetitorSerializer
 
     def get_queryset(self):

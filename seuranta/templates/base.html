@@ -1,13 +1,13 @@
-{% load i18n %}<!DOCTYPE html> 
+{% load staticfiles %}{% load i18n %}<!DOCTYPE html>
 <html lang="en"> 
 <head> 
 {% block head %}
     <title>{% block title %}Seuranta - GPS Tracking{% endblock %}</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" > {% endblock %} {% block extra_heads %} {% endblock %} 
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/3.3.0/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/3.3.0/css/bootstrap-theme.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/font-awesome/4.2.0/css/font-awesome.min.css' %}"> {% endblock %} {% block extra_heads %} {% endblock %}
 </head> 
 <body> 
 {% block body %} 
@@ -35,8 +35,8 @@
     </div> 
 </div> 
 {% block default_scripts %} 
-<script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script> 
-<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script> 
+<script type="text/javascript" src="{% static 'vendor/jquery/2.1.1/jquery-2.1.1.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'vendor/bootstrap/3.3.0/js/bootstrap.min.js' %}"></script>
 {% endblock %} 
 {% endblock %}
 {% block extra_scripts %} 

@@ -65,13 +65,14 @@ class CompetitorFullSerializer(CompetitorSerializer):
                   'approved', 'access_code', 'api_token', )
 
 
-class URLMapSerializer(serializers.ModelSerializer):
-    src = RelativeURLField(source='image_url', read_only=True)
+class MapSerializer(serializers.ModelSerializer):
+    public_url = RelativeURLField(source='image_url', read_only=True)
     size = serializers.ReadOnlyField()
 
     class Meta:
         model = Map
-        fields = ('src',
+        fields = ('update_date',
+                  'public_url',
                   'size',
                   'top_left_lat',
                   'top_left_lng',
@@ -86,14 +87,22 @@ class URLMapSerializer(serializers.ModelSerializer):
         )
 
 
-class MapSerializer(serializers.ModelSerializer):
+class MapFullSerializer(MapSerializer):
     data_uri = serializers.CharField()
     size = serializers.ReadOnlyField()
-
+    top_left_lat = serializers.FloatField()
+    top_left_lng = serializers.FloatField()
+    top_right_lat = serializers.FloatField()
+    top_right_lng = serializers.FloatField()
+    bottom_right_lat = serializers.FloatField()
+    bottom_right_lng = serializers.FloatField()
+    bottom_left_lat = serializers.FloatField()
+    bottom_left_lng = serializers.FloatField()
     class Meta:
         model = Map
         fields = ('update_date',
                   'data_uri',
+                  'public_url',
                   'size',
                   'top_left_lat',
                   'top_left_lng',
@@ -120,7 +129,7 @@ class CompetitionSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True,
     )
-    map = URLMapSerializer(read_only=True, source='get_map')
+    map = MapSerializer(read_only=True, source='get_map')
     publisher = serializers.ReadOnlyField(source='publisher_name')
 
     class Meta:

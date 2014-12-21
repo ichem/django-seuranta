@@ -312,7 +312,7 @@ class Map(models.Model):
         blank=True,
         help_text=''.join([
             force_unicode(_("e.g")) +
-            " https://{s}.example.com/{x}_{y}_{z}.png <br/>" +
+            " https://{s}.example.com/{x}_{y}_{z}.png, " +
             force_unicode(_("Leave blank to use OpenStreetMap"))
         ]),
     )
@@ -404,7 +404,7 @@ class Map(models.Model):
 
     def _get_corner(self, n, coord):
         if self.image is not None and self.is_calibrated:
-            return Decimal(self.calibration_string.split("|")[2 * n + coord])
+            return self.calibration_string.split("|")[2 * n + coord]
         return BLANK_CALIBRATION_STRING[2 * n + coord]
 
     def _set_corner(self, n, coord, value):
@@ -425,7 +425,7 @@ class Map(models.Model):
     # Top Left
     @property
     def top_left_lat(self):
-        return self._get_corner(TOP_L_IDX, LAT_IDX),
+        return self._get_corner(TOP_L_IDX, LAT_IDX)
 
     @top_left_lat.setter
     def top_left_lat(self, value):
@@ -433,7 +433,7 @@ class Map(models.Model):
 
     @property
     def top_left_lng(self):
-        return self._get_corner(TOP_L_IDX, LNG_IDX),
+        return self._get_corner(TOP_L_IDX, LNG_IDX)
 
     @top_left_lng.setter
     def top_left_lng(self, value):
@@ -442,7 +442,7 @@ class Map(models.Model):
     # Top Right
     @property
     def top_right_lat(self):
-        return self._get_corner(TOP_R_IDX, LAT_IDX),
+        return self._get_corner(TOP_R_IDX, LAT_IDX)
 
     @top_right_lat.setter
     def top_right_lat(self, value):
@@ -450,7 +450,7 @@ class Map(models.Model):
 
     @property
     def top_right_lng(self):
-        return self._get_corner(TOP_R_IDX, LNG_IDX),
+        return self._get_corner(TOP_R_IDX, LNG_IDX)
 
     @top_right_lng.setter
     def top_right_lng(self, value):
@@ -459,7 +459,7 @@ class Map(models.Model):
     # Bottom Right
     @property
     def bottom_right_lat(self):
-        return self._get_corner(BOT_R_IDX, LAT_IDX),
+        return self._get_corner(BOT_R_IDX, LAT_IDX)
 
     @bottom_right_lat.setter
     def bottom_right_lat(self, value):
@@ -467,7 +467,7 @@ class Map(models.Model):
 
     @property
     def bottom_right_lng(self):
-        return self._get_corner(BOT_R_IDX, LNG_IDX),
+        return self._get_corner(BOT_R_IDX, LNG_IDX)
 
     @bottom_right_lng.setter
     def bottom_right_lng(self, value):
@@ -476,7 +476,7 @@ class Map(models.Model):
     # Bottom Left
     @property
     def bottom_left_lat(self):
-        return self._get_corner(BOT_L_IDX, LAT_IDX),
+        return self._get_corner(BOT_L_IDX, LAT_IDX)
 
     @bottom_left_lat.setter
     def bottom_left_lat(self, value):
@@ -484,7 +484,7 @@ class Map(models.Model):
 
     @property
     def bottom_left_lng(self):
-        return self._get_corner(BOT_L_IDX, LNG_IDX),
+        return self._get_corner(BOT_L_IDX, LNG_IDX)
 
     @bottom_left_lng.setter
     def bottom_left_lng(self, value):

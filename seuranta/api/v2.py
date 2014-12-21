@@ -11,7 +11,7 @@ from seuranta.models import Competitor, Competition, Map
 from seuranta.serializers import (CompetitorSerializer,
                                   CompetitorFullSerializer,
                                   CompetitionSerializer,
-                                  MapSerializer, URLMapSerializer)
+                                  MapSerializer, MapFullSerializer)
 from seuranta.views import download_map
 
 
@@ -89,8 +89,8 @@ class MapDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_serializer_class(self):
         if any([self.request.user.is_superuser,
                 self.request.user == self.get_object().competition.publisher]):
-            return MapSerializer
-        return URLMapSerializer
+            return MapFullSerializer
+        return MapSerializer
 
     def get_object(self):
         """

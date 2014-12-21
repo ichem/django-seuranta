@@ -267,8 +267,9 @@ class Competition(models.Model):
 
 
 class Map(models.Model):
+    competition = models.OneToOneField(Competition, related_name='defined_map',
+                                       primary_key=True)
     update_date = models.DateTimeField(auto_now=True)
-    competition = models.OneToOneField(Competition, related_name='defined_map')
     image = models.ImageField(
         _("image"),
         upload_to=map_upload_path,

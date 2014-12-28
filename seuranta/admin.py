@@ -10,8 +10,8 @@ class PublisherAdmin(admin.ModelAdmin):
             obj.publisher = request.user
         obj.save()
 
-    def queryset(self, request):
-        qs = super(PublisherAdmin, self).queryset(request)
+    def get_queryset(self, request):
+        qs = super(PublisherAdmin, self).get_queryset(request)
         if request.user.is_superuser:
             return qs
         return qs.filter(publisher=request.user)
@@ -90,8 +90,8 @@ class CompetitorAdmin(admin.ModelAdmin):
             competitor.save()
     renew_access_code.short_description = _("Issue new access codes")
 
-    def queryset(self, request):
-        qs = super(CompetitorAdmin, self).queryset(request)
+    def get_queryset(self, request):
+        qs = super(CompetitorAdmin, self).get_queryset(request)
         if request.user.is_superuser:
             return qs
         return qs.filter(competition__publisher=request.user)

@@ -11,7 +11,8 @@ from seuranta.models import Competitor, Competition
 from seuranta.serializers import (CompetitorSerializer,
                                   CompetitorFullSerializer,
                                   CompetitionSerializer,
-                                  MapSerializer, MapFullSerializer)
+                                  MapSerializer, MapFullSerializer,
+                                  CompetitorEncodedRouteSerializer)
 from seuranta.views import download_map as orig_download_map_view
 
 
@@ -169,18 +170,18 @@ class CompetitorListView(generics.ListCreateAPIView):
                                              & ~Q(signup_policy='closed'))
             )
 
-        class CustomSerializer(CompetitorSerializer):
+        class CompetitorCustomSerializer(CompetitorSerializer):
             competition = serializers.PrimaryKeyRelatedField(
                 queryset=open_competitions
             )
 
-        class CustomFullSerializer(CompetitorFullSerializer):
+        class CompetitorCustomFullSerializer(CompetitorFullSerializer):
             competition = serializers.PrimaryKeyRelatedField(
                 queryset=open_competitions
             )
 
         if self.request.user.is_anonymous() or not competition_id:
-            return CustomSerializer
+            return CompetitorCustomSerializer
         is_publisher = False
         has_token = False
         if not self.request.user.is_anonymous():
@@ -194,7 +195,7 @@ class CompetitorListView(generics.ListCreateAPIView):
                 competition_id=competition_id
             ).count() == 1)
         if has_token or is_publisher:
-            return CustomFullSerializer
+            return CompetitorCustomFullSerializer
         return CompetitorSerializer
 
     def get_queryset(self):
@@ -296,3 +297,74 @@ class CompetitorDetailView(generics.RetrieveUpdateDestroyAPIView):
             self.permission_denied(self.request)
         super(CompetitorDetailView, self).perform_destroy(instance)
 
+
+class CompetitorRouteListView(generics.ListAPIView):
+    """
+    List and Create Competitor
+    --------------------------
+
+    Optional query parameters:
+
+      - id -- Select single **competitor** by its id
+      - id[] -- Select multiple **competitor** by their id
+      - q -- Search terms
+      - competition_id -- Select **competitors** in a single **competition**
+      - competition_id[] -- Select **competitors** in multiple **competition**
+      - start -- Minimun time of route data (unix timestamp)
+      - end -- Maximum time of route data (unix timestamp)
+      - page -- Page number (Default: 1)
+      - results_per_page -- Number of result per page (Default:20 Max: 1000)
+    """
+    queryset = Competitor.objects.all()
+    permission_classes = (permissions.AllowAny, )
+    lookup_fields = ('name', )
+
+    def __init__(self):
+        self.paginate_by = 20
+        self.paginate_by_param = 'results_per_page'
+        self.max_paginate_by = 1000
+        super(CompetitorRouteListView, self).__init__()
+
+    def get_serializer_class(self):
+        class EncodedRouteCustomSerializer():
+            pass
+
+        return CompetitorEncodedRouteSerializer
+
+    def get_queryset(self):
+        qs = super(CompetitorRouteListView, self).get_queryset()
+        competition_id = self.request.query_params.get("competition_id")
+        competition_ids = self.request.query_params.getlist("competition_id[]")
+        access_code = self.request.query_params.get("access_code")
+        competitor_id = self.request.query_params.get("id")
+        competitor_ids = self.request.query_params.getlist("id[]")
+        search_text = self.request.query_params.get('q', '').strip()
+        if competition_id:
+            qs = qs.filter(competition_id=competition_id)
+            if access_code:
+                qs = qs.filter(access_code=access_code)
+        if competitor_id:
+            qs = qs.filter(id=competitor_id)
+        elif competitor_ids:
+            qs = qs.filter(id__in=competitor_ids)
+        if not (competition_ids or competition_id
+                or competitor_id or competitor_ids):
+            query = Q(publication_policy='public')
+            if not self.request.user.is_anonymous:
+                query |= Q(publisher=self.request.user)
+            competition_ids = Competition.objects.filter(
+                query
+            ).values_list('pk', flat=True)
+        if competition_ids:
+            qs.filter(competition_id__in=competition_ids)
+        if search_text:
+            query = Q()
+            search_terms = search_text.split(' ')
+            for search_term in search_terms:
+                sub_query = Q()
+                for field_name in self.lookup_fields:
+                    kwargs = {'%s__icontains' % field_name: search_term}
+                    sub_query |= Q(**kwargs)
+                query &= sub_query
+            qs = qs.filter(query)
+        return qs

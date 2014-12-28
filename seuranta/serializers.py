@@ -1,7 +1,7 @@
+from pytz import timezone, common_timezones
 from rest_framework import serializers
 from seuranta.models import Competitor, Competition, Map
-from pytz import timezone, common_timezones
-from seuranta.utils import short_uuid
+from seuranta.utils.geo import GeoLocationSeries
 
 
 class RelativeURLField(serializers.Field):
@@ -33,13 +33,59 @@ class CompetitorMiniSerializer(serializers.ModelSerializer):
         read_only = ('id', 'name', 'short_name', 'start_time', )
 
 
+class RouteSerializer(serializers.CharField):
+    def to_representation(self, value):
+        timestamps = []
+        coordinates = []
+        for point in value:
+            timestamps.append(point.timestamp)
+            coordinates.append((float(point.coordinates.latitude),
+                                float(point.coordinates.longitude)))
+        return {
+            'timestamps': timestamps,
+            'coordinates': coordinates,
+        }
+
+    def to_internal_value(self, data):
+        pass
+
+
+class EncodedRouteSerializer(serializers.CharField):
+    min_timestamp = None
+    max_timestamp = None
+
+    def to_representation(self, value):
+        if self.min_timestamp is None and  self.max_timestamp is None:
+            return str(value)
+        min_timestamp = self.min_timestamp or float('-inf')
+        max_timestamp = self.max_timestamp or float('inf')
+        ret = GeoLocationSeries('')
+        for pt in value:
+            if pt.timestamp < min_timestamp:
+                continue
+            if pt.timestamp > max_timestamp:
+                break
+            ret.insert(pt)
+        return str(ret)
+
+    def to_internal_value(self, data):
+        return GeoLocationSeries(data)
+
+
+class CompetitorEncodedRouteSerializer(serializers.ModelSerializer):
+    encoded_route = EncodedRouteSerializer(source='route')
+
+    class Meta:
+        model = Competitor
+        fields = ('id', 'encoded_route')
+
+
 class CompetitorSerializer(serializers.ModelSerializer):
-    api_token = serializers.CharField(source='api_token', read_only=True)
 
     class Meta:
         model = Competitor
         fields = ('id', 'competition', 'name', 'short_name', 'start_time',
-                  'approved', )
+                  'approved')
 
     def validate_competition(self, value):
         if self.instance is not None and self.instance.competition != value:
@@ -67,7 +113,7 @@ class CompetitorFullSerializer(CompetitorSerializer):
     class Meta:
         model = Competitor
         fields = ('id', 'competition', 'name', 'short_name', 'start_time',
-                  'approved', 'access_code', 'api_token', )
+                  'approved', 'access_code', 'encoded_route', 'api_token', )
 
 
 class MapSerializer(serializers.ModelSerializer):
@@ -133,7 +179,7 @@ class CompetitionSerializer(serializers.ModelSerializer):
     )
     pending_competitors = CompetitorMiniSerializer(
         many=True,
-        read_only=True,
+        read_only=True
     )
     map = MapSerializer(read_only=True, source='get_map')
     publisher = serializers.ReadOnlyField(source='publisher_name')

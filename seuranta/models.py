@@ -2,15 +2,12 @@ import datetime
 import base64
 import json
 import re
-from decimal import Decimal
 from PIL import Image
-from django.core.files.base import ContentFile
-
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
-
+from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
@@ -20,15 +17,15 @@ from django.utils.timezone import utc, now
 from django.utils.safestring import mark_safe
 from django.core.validators import MinLengthValidator
 from django.core.exceptions import ValidationError
-
 from django.conf import settings
-from seuranta.storage import OverwriteStorage
 
 from timezone_field import TimeZoneField
 
+from seuranta.storage import OverwriteStorage
 from seuranta.fields import ShortUUIDField
 from seuranta.utils import (short_uuid, slugify, format_date_iso,
-                            make_random_code, gps_codec)
+                            make_random_code)
+from seuranta.utils.geo import GeoLocationSeries
 from seuranta.utils.validators import (validate_nice_slug, validate_latitude,
                                        validate_longitude)
 
@@ -562,10 +559,12 @@ class Competitor(models.Model):
     @property
     def route(self):
         route_sections = self.route_sections.all()
-        route = set()
+        route = GeoLocationSeries('')
+        print '----'
         for route_section in route_sections:
+            print route_section.route
             route = route.union(route_section.route)
-        return sorted(route)
+        return route
 
     def reset_access_code(self):
         while True:
@@ -661,11 +660,13 @@ class RouteSection(models.Model):
 
     @property
     def route(self):
-        return gps_codec.decode(self.encoded_data)
+        return GeoLocationSeries(self.encoded_data)
 
     @route.setter
     def route(self, value):
-        self.encoded_data = gps_codec.encode(value)
+        if not isinstance(value, GeoLocationSeries):
+            value = GeoLocationSeries(value)
+        self.encoded_data = str(value)
 
     @property
     def bounds(self):

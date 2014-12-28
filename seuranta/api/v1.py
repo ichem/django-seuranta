@@ -10,9 +10,9 @@ from django.views.decorators.cache import cache_page
 from django.core.exceptions import ValidationError
 
 from seuranta.models import Competition, Competitor, RouteSection
-from seuranta.utils import format_date_iso, gps_codec
+from seuranta.utils import format_date_iso
 from seuranta.utils.validators import validate_short_uuid
-from seuranta.utils.geo import GeoLocation
+from seuranta.utils.geo import GeoLocation, GeoLocationSeries
 
 
 def competition_list(request):
@@ -78,7 +78,7 @@ def receive_data(request):
         if 'encoded_data' in request.REQUEST:
             encoded_data = request.REQUEST.get("encoded_data")
             try:
-                route = gps_codec.decode(encoded_data)
+                route = GeoLocationSeries(encoded_data)
             except (TypeError, ValueError):
                  return {
                     "status": "KO",

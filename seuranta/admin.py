@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
 
-from seuranta.models import Competition, Competitor, RouteSection, Map
+from seuranta.models import Competition, Competitor, Route, Map
 
 
 class PublisherAdmin(admin.ModelAdmin):
@@ -42,8 +42,8 @@ class PublisherAdmin(admin.ModelAdmin):
             return obj.publisher == request.user
 
 
-class RouteSectionInlineAdmin(admin.TabularInline):
-    model = RouteSection
+class RouteInlineAdmin(admin.TabularInline):
+    model = Route
 
 
 class CompetitorInlineAdmin(admin.StackedInline):
@@ -57,15 +57,14 @@ class MapInlineAdmin(admin.TabularInline):
 
 class CompetitorAdmin(admin.ModelAdmin):
     inlines = [
-    #    RouteSectionInlineAdmin,
+        RouteInlineAdmin,
     ]
     list_display = ('name', 'short_name', 'competition', 'start_time',
                     'access_code', 'approved')
     fieldsets = (
         (None, {
             'fields': ('name', 'short_name', )
-        }),
-        (_('Schedule'), {
+        }),(_('Schedule'), {
             'fields': ('start_time', )
         }),
     )
@@ -126,6 +125,9 @@ class CompetitionAdmin(PublisherAdmin):
         }),
         (_('Schedule'), {
             'fields': ('start_date', 'end_date', 'timezone')
+        }),
+        (_('Location'), {
+            'fields': ('latitude', 'longitude', 'zoom', )
         }),
     )
     inlines = [

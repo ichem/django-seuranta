@@ -53,7 +53,7 @@ urlpatterns += patterns(
         name='seuranta_api_v2_map_detail'
     ),
     url(
-        r'^api/v2/map/(?P<pk>[-a-zA-Z0-9_]{22})/download/?$',
+        r'^api/v2/map/(?P<pk>[-a-zA-Z0-9_]{22})\.jpg$',
         v2.download_map,
         name='seuranta_api_v2_map_download'
     ),
@@ -63,9 +63,19 @@ urlpatterns += patterns(
         name='seuranta_api_v2_competitor_list'
     ),
     url(
-        r'^api/v2/competitor/(?P<pk>[-a-zA-Z0-9_]{22})?$',
+        r'^api/v2/competitor/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
         v2.CompetitorDetailView.as_view(),
         name='seuranta_api_v2_competitor_detail'
+    ),
+    url(
+        r'^api/v2/route/?$',
+        v2.RouteListView.as_view(),
+        name='seuranta_api_v2_route_list'
+    ),
+    url(
+        r'^api/v2/route/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
+        v2.RouteDetailView.as_view(),
+        name='seuranta_api_v2_route_list'
     ),
 )
 

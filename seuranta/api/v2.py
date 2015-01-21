@@ -5,22 +5,39 @@ from django.db.models import Q
 from rest_framework import serializers
 from rest_framework import generics
 from rest_framework import permissions
+from rest_framework import renderers
 from rest_framework.generics import get_object_or_404
+from rest_framework.decorators import api_view, renderer_classes
+from rest_framework.response import Response
 
 from seuranta.models import Competitor, Competition
 from seuranta.serializers import (CompetitorSerializer,
                                   CompetitorFullSerializer,
                                   CompetitionSerializer,
                                   MapSerializer, MapFullSerializer,
-                                  CompetitorEncodedRouteSerializer)
+                                  CompetitorRouteSerializer,
+                                  EncodedRouteSerializer,)
+from seuranta.utils.geo import GeoLocationSeries
 from seuranta.views import download_map as orig_download_map_view
 
 
 logger = logging.getLogger(__name__)
 
 
+class JPEGRenderer(renderers.BaseRenderer):
+    media_type = 'image/jpeg'
+    format = 'jpg'
+    charset = None
+    render_style = 'binary'
+
+    def render(self, data, media_type=None, renderer_context=None):
+        return data
+
+
+@api_view(['GET', ])
+@renderer_classes((JPEGRenderer, ))
 def download_map(request, pk):
-    orig_download_map_view(request, pk)
+    return orig_download_map_view(request, pk)
 
 
 class CompetitionPermission(permissions.BasePermission):
@@ -154,8 +171,8 @@ class CompetitorListView(generics.ListCreateAPIView):
 
     def get_serializer_class(self):
         competition_id = self.request.query_params.get("competition_id")
-        access_code = self.request.query_params.get("access_code")
         open_competitions = Competition.objects.all()
+        access_code = self.request.query_params.get("access_code")
         if self.request.user.is_superuser:
             return CompetitorFullSerializer
         elif competition_id:
@@ -264,53 +281,54 @@ class CompetitorDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_serializer_class(self):
         if self.request.user.is_superuser:
             return CompetitorFullSerializer
-        obj = self.get_object()
+        instance = self.get_object()
         api_token = self.request.query_params.get('api_token')
-        is_publisher = (obj.competition.publisher == self.request.user)
-        has_api_key = (obj.api_token == api_token)
-        if is_publisher or has_api_key:
+        is_publisher = (instance.competition.publisher == self.request.user)
+        has_valid_api_token = (instance.api_token == api_token)
+        if is_publisher or has_valid_api_token:
             return CompetitorFullSerializer
         return CompetitorSerializer
 
     def perform_update(self, serializer):
-        obj = serializer.instance
+        instance = serializer.instance
         api_token = self.request.query_params.get('api_token')
-        competition_signup_policy = obj.competition.signup_policy
-        is_publisher = (obj.competition.publisher == self.request.user)
-        has_api_token = (obj.api_token == api_token)
+        competition_signup_policy = instance.competition.signup_policy
+        is_publisher = (instance.competition.publisher == self.request.user)
+        has_valid_api_token = (instance.api_token == api_token)
         if not (self.request.user.is_superuser
                 or is_publisher
-                or has_api_token):
+                or has_valid_api_token):
             self.permission_denied(self.request)
         if competition_signup_policy != 'open':
-            serializer.validated_data['approved'] = False
+            if not (self.request.user.is_superuser
+                    or is_publisher):
+                serializer.validated_data['approved'] = False
         super(CompetitorDetailView, self).perform_update(serializer)
 
     def perform_destroy(self, instance):
         is_publisher = (instance.competition.publisher == self.request.user)
         api_token = self.request.query_params.get('api_token')
         competition_signup_policy = instance.competition.signup_policy
-        has_api_token = (instance.api_token == api_token)
+        has_valid_api_token = (instance.api_token == api_token)
         if not (self.request.user.is_superuser
                 or is_publisher
-                or (has_api_token and competition_signup_policy == 'open')):
+                or (has_valid_api_token and competition_signup_policy == 'open')):
             self.permission_denied(self.request)
         super(CompetitorDetailView, self).perform_destroy(instance)
 
 
-class CompetitorRouteListView(generics.ListAPIView):
+class RouteListView(generics.ListAPIView):
     """
-    List and Create Competitor
-    --------------------------
+    List Routes API
+    ---------------
 
     Optional query parameters:
 
       - id -- Select single **competitor** by its id
       - id[] -- Select multiple **competitor** by their id
-      - q -- Search terms
       - competition_id -- Select **competitors** in a single **competition**
       - competition_id[] -- Select **competitors** in multiple **competition**
-      - start -- Minimun time of route data (unix timestamp)
+      - start -- Minimum time of route data (unix timestamp)
       - end -- Maximum time of route data (unix timestamp)
       - page -- Page number (Default: 1)
       - results_per_page -- Number of result per page (Default:20 Max: 1000)
@@ -323,26 +341,26 @@ class CompetitorRouteListView(generics.ListAPIView):
         self.paginate_by = 20
         self.paginate_by_param = 'results_per_page'
         self.max_paginate_by = 1000
-        super(CompetitorRouteListView, self).__init__()
+        super(RouteListView, self).__init__()
 
     def get_serializer_class(self):
-        class EncodedRouteCustomSerializer():
-            pass
-
-        return CompetitorEncodedRouteSerializer
+        class CustomCompetitorRouteSerializer(CompetitorRouteSerializer):
+            class CustomRouteSerializer(EncodedRouteSerializer):
+                min_timestamp = float(self.request.query_params.get("start",
+                                                                    '-inf'))
+                max_timestamp = float(self.request.query_params.get("end",
+                                                                    '+inf'))
+            encoded_route = CustomRouteSerializer(source='route')
+        return CustomCompetitorRouteSerializer
 
     def get_queryset(self):
-        qs = super(CompetitorRouteListView, self).get_queryset()
+        qs = super(RouteListView, self).get_queryset()
         competition_id = self.request.query_params.get("competition_id")
         competition_ids = self.request.query_params.getlist("competition_id[]")
-        access_code = self.request.query_params.get("access_code")
         competitor_id = self.request.query_params.get("id")
         competitor_ids = self.request.query_params.getlist("id[]")
-        search_text = self.request.query_params.get('q', '').strip()
         if competition_id:
             qs = qs.filter(competition_id=competition_id)
-            if access_code:
-                qs = qs.filter(access_code=access_code)
         if competitor_id:
             qs = qs.filter(id=competitor_id)
         elif competitor_ids:
@@ -357,14 +375,55 @@ class CompetitorRouteListView(generics.ListAPIView):
             ).values_list('pk', flat=True)
         if competition_ids:
             qs.filter(competition_id__in=competition_ids)
-        if search_text:
-            query = Q()
-            search_terms = search_text.split(' ')
-            for search_term in search_terms:
-                sub_query = Q()
-                for field_name in self.lookup_fields:
-                    kwargs = {'%s__icontains' % field_name: search_term}
-                    sub_query |= Q(**kwargs)
-                query &= sub_query
-            qs = qs.filter(query)
         return qs
+
+
+class RouteDetailView(generics.RetrieveUpdateAPIView):
+    """
+    Retrieve or Update competitor Route
+    -----------------------------------
+
+    Optional query parameters:
+
+      - api_token -- Specify the api_token for this competitor
+      - start -- Minimum time of route data (unix timestamp)
+      - end -- Maximum time of route data (unix timestamp)
+      - encoded_route_portion -- encoded portion of route to add
+    """
+    queryset = Competitor.objects.all()
+    permission_classes = (permissions.AllowAny, )
+
+    def get_serializer_class(self):
+        class CustomCompetitorRouteSerializer(CompetitorRouteSerializer):
+            class CustomRouteSerializer(EncodedRouteSerializer):
+                min_timestamp = float(self.request.query_params.get("start",
+                                                                    '-inf'))
+                max_timestamp = float(self.request.query_params.get("end",
+                                                                    '+inf'))
+            encoded_route = CustomRouteSerializer(source='route')
+        return CustomCompetitorRouteSerializer
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        req_data = request.data.copy()
+        encoded_data = request.query_params.get('encoded_route_portion')
+        instance = self.get_object()
+        if encoded_data is not None:
+            new_data = GeoLocationSeries(encoded_data)
+            new_route = instance.route.route.union(new_data)
+            req_data['encoded_route'] = str(new_route)
+        serializer = self.get_serializer(instance, data=req_data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        api_token = self.request.query_params.get('api_token')
+        instance = serializer.instance
+        is_publisher = (instance.competition.publisher == self.request.user)
+        has_valid_api_token = (instance.api_token == api_token)
+        if not (self.request.user.is_superuser
+                or is_publisher
+                or has_valid_api_token):
+            self.permission_denied(self.request)
+        super(RouteDetailView, self).perform_update(serializer)

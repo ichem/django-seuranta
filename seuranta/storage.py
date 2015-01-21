@@ -1,6 +1,4 @@
 from django.core.files.storage import FileSystemStorage
-from django.conf import settings
-import os
 
 
 class OverwriteStorage(FileSystemStorage):

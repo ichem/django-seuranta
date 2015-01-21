@@ -1,6 +1,6 @@
 from pytz import timezone, common_timezones
 from rest_framework import serializers
-from seuranta.models import Competitor, Competition, Map
+from seuranta.models import Competitor, Competition, Map, Route
 from seuranta.utils.geo import GeoLocationSeries
 
 
@@ -34,13 +34,23 @@ class CompetitorMiniSerializer(serializers.ModelSerializer):
 
 
 class RouteSerializer(serializers.CharField):
+    min_timestamp = None
+    max_timestamp = None
+
     def to_representation(self, value):
         timestamps = []
         coordinates = []
+        min_timestamp = self.min_timestamp or float('-inf')
+        max_timestamp = self.max_timestamp or float('inf')
         for point in value:
-            timestamps.append(point.timestamp)
-            coordinates.append((float(point.coordinates.latitude),
-                                float(point.coordinates.longitude)))
+            if point.timestamp < min_timestamp:
+                continue
+            elif point.timestamp > max_timestamp:
+                continue
+            else:
+                timestamps.append(point.timestamp)
+                coordinates.append((float(point.coordinates.latitude),
+                                    float(point.coordinates.longitude)))
         return {
             'timestamps': timestamps,
             'coordinates': coordinates,
@@ -55,24 +65,25 @@ class EncodedRouteSerializer(serializers.CharField):
     max_timestamp = None
 
     def to_representation(self, value):
-        if self.min_timestamp is None and  self.max_timestamp is None:
+        if self.min_timestamp is None and self.max_timestamp is None:
             return str(value)
         min_timestamp = self.min_timestamp or float('-inf')
         max_timestamp = self.max_timestamp or float('inf')
         ret = GeoLocationSeries('')
-        for pt in value:
-            if pt.timestamp < min_timestamp:
+        for point in value.route:
+            if point.timestamp < min_timestamp:
                 continue
-            if pt.timestamp > max_timestamp:
-                break
-            ret.insert(pt)
+            elif point.timestamp > max_timestamp:
+                continue
+            else:
+                ret.insert(point)
         return str(ret)
 
     def to_internal_value(self, data):
         return GeoLocationSeries(data)
 
 
-class CompetitorEncodedRouteSerializer(serializers.ModelSerializer):
+class CompetitorRouteSerializer(serializers.ModelSerializer):
     encoded_route = EncodedRouteSerializer(source='route')
 
     class Meta:
@@ -113,7 +124,7 @@ class CompetitorFullSerializer(CompetitorSerializer):
     class Meta:
         model = Competitor
         fields = ('id', 'competition', 'name', 'short_name', 'start_time',
-                  'approved', 'access_code', 'encoded_route', 'api_token', )
+                  'approved', 'access_code', 'api_token', )
 
 
 class MapSerializer(serializers.ModelSerializer):
@@ -189,9 +200,10 @@ class CompetitionSerializer(serializers.ModelSerializer):
         fields = ('id',
                   'publisher',
                   'name', 'slug',
+                  'latitude', 'longitude', 'zoom',
                   'publication_policy', 'signup_policy',
-                  'publish_date', 'update_date',
-                  'timezone', 'start_date', 'end_date',
+                  'publish_date', 'update_date', 'start_date', 'end_date',
+                  'timezone',
                   'map',
                   'competitors', 'pending_competitors')
 

@@ -9,7 +9,7 @@ from django.utils.timezone import utc, now
 from django.views.decorators.cache import cache_page
 from django.core.exceptions import ValidationError
 
-from seuranta.models import Competition, Competitor, RouteSection
+from seuranta.models import Competition, Competitor, Route
 from seuranta.utils import format_date_iso
 from seuranta.utils.validators import validate_short_uuid
 from seuranta.utils.geo import GeoLocation, GeoLocationSeries
@@ -129,7 +129,7 @@ def receive_data(request):
             for competitor in live_competitors:
                 if competitor.approved \
                    or competitor.competition.signup_policy == "open":
-                    section = RouteSection(competitor=competitor)
+                    section = Route(competitor=competitor)
                     section.route = route
                     section.save()
             last_location = route[-1]
@@ -232,7 +232,7 @@ def competitors_routes(request):
             extra_query = Q()
             if last_update_datetime is not None:
                 extra_query &= Q(last_update__gte=last_update_datetime)
-            route_sections = RouteSection.objects.filter(
+            route_sections = Route.objects.filter(
                 extra_query, competitor_id__in=valid_competitors_id
             )
             for route_section in route_sections:

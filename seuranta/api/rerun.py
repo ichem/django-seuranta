@@ -1,4 +1,4 @@
-import simplejson as json
+import json
 import time
 
 from django.http import HttpResponse, HttpResponseRedirect
@@ -8,8 +8,8 @@ from django.core.urlresolvers import reverse
 from django.utils.timezone import now
 from django.contrib.sites.models import get_current_site
 from django.contrib.auth import get_user_model
-from seuranta.models import Competition, RouteSection
-from seuranta.views import race_latest_mod
+from seuranta.models import Competition
+from seuranta.views import race_latest_mod, download_map
 
 
 RERUN_TEMPLATE_URL = "http://3drerun.worldofo.com/2d/index.php" \
@@ -33,7 +33,6 @@ def rerun_redirect(request, publisher, slug):
     return HttpResponseRedirect(
         RERUN_TEMPLATE_URL % obj.id
     )
-
 
 
 def rerun_time(request):

@@ -1,9 +1,8 @@
+import uuid
 try:
     from django.utils.encoding import force_unicode  # NOQA
 except ImportError:
     from django.utils.encoding import force_text as force_unicode  # NOQA
-import uuid
-
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Field, SubfieldBase
 from django.forms import CharField as CharFieldForm
@@ -40,6 +39,9 @@ class ShortUUIDField(Field):
     the uuid python module, except version 2.
     For more information see: http://docs.python.org/lib/module-uuid.html
     """
+    node = None
+    clock_seq = None
+
     def validate_version1(self, node, clock_seq):
         if node is None or clock_seq is None:
             raise ValueError("UUID version 1 requires parameters "
@@ -65,7 +67,8 @@ class ShortUUIDField(Field):
         elif version != 4:
             raise ValueError("Invalid UUID Version.")
 
-    def flag_illegal_parameters(self, version, node, clock_seq,
+    @staticmethod
+    def flag_illegal_parameters(version, node, clock_seq,
                                 namespace, name):
         if version != 1:
             if node is not None:

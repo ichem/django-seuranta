@@ -9,4 +9,5 @@ MANIFEST
 *~
 *.save
 *.save.*
+*.idea
 docs/_build/

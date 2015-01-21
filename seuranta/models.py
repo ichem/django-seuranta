@@ -3,6 +3,7 @@ import base64
 import json
 import re
 from PIL import Image
+from pytz import timezone, common_timezones
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -11,15 +12,12 @@ from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
-from django.utils.encoding import force_unicode
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ugettext
 from django.utils.timezone import utc, now
 from django.utils.safestring import mark_safe
 from django.core.validators import MinLengthValidator
 from django.core.exceptions import ValidationError
 from django.conf import settings
-
-from timezone_field import TimeZoneField
 
 from seuranta.storage import OverwriteStorage
 from seuranta.fields import ShortUUIDField
@@ -83,9 +81,11 @@ class Competition(models.Model):
     publish_date = models.DateTimeField(_('publication date'),
                                         auto_now_add=True)
     update_date = models.DateTimeField(_("last update"), auto_now=True)
-    timezone = TimeZoneField(
+    timezone = models.CharField(
         verbose_name=_("timezone"),
+        max_length=50,
         default="UTC",
+        choices=[(tz, tz) for tz in common_timezones]
     )
     start_date = models.DateTimeField(
         _("opening date (UTC)"),
@@ -124,6 +124,11 @@ class Competition(models.Model):
         choices=SIGNUP_POLICY_CHOICES,
         default="open",
     )
+    latitude = models.FloatField(_('latitude'),
+                                 validators=[validate_latitude])
+    longitude = models.FloatField(_('longitude'),
+                                  validators=[validate_longitude])
+    zoom = models.PositiveIntegerField(_('default zoom'))
 
     @property
     def publisher_name(self):
@@ -265,7 +270,8 @@ class Competition(models.Model):
 
 
 class Map(models.Model):
-    competition = models.OneToOneField(Competition, related_name='defined_map',
+    competition = models.OneToOneField(Competition,
+                                       related_name='defined_map',
                                        primary_key=True)
     update_date = models.DateTimeField(auto_now=True)
     image = models.ImageField(
@@ -291,12 +297,7 @@ class Map(models.Model):
         max_length=255,
         blank=True,
         null=True,
-        help_text=mark_safe(
-            "<a"
-            " target='_blank'"
-            " href='https://rphl.net/dropbox/calibrate_map2.html'"
-            ">" + force_unicode(_("Online calibration tool")) + "</a>"
-        ),
+        help_text=_("Use online calibration tool if unsure"),
     )
     display_mode = models.CharField(
         _("display mode"),
@@ -308,9 +309,9 @@ class Map(models.Model):
         _('background tile url'),
         blank=True,
         help_text=''.join([
-            force_unicode(_("e.g")) +
+            ugettext("e.g") +
             " https://{s}.example.com/{x}_{y}_{z}.png, " +
-            force_unicode(_("Leave blank to use OpenStreetMap"))
+            ugettext("Leave blank to use OpenStreetMap")
         ]),
     )
 
@@ -556,15 +557,22 @@ class Competitor(models.Model):
 
     absolute_url = property(get_absolute_url)
 
-    @property
-    def route(self):
-        route_sections = self.route_sections.all()
-        route = GeoLocationSeries('')
-        print '----'
-        for route_section in route_sections:
-            print route_section.route
-            route = route.union(route_section.route)
-        return route
+    def get_route(self):
+        if hasattr(self, 'defined_route'):
+            return self.defined_route
+        return Route(competitor_id=self.pk)
+
+    def set_route(self, value):
+        print "-- Saving Value: %s" % value
+        if hasattr(self, 'defined_route'):
+            self.defined_route.route = value
+            self.defined_route.save()
+        else:
+            new_route = Route(competitor_id=self.pk)
+            new_route.route = value
+            new_route.save()
+
+    route = property(get_route, set_route)
 
     def reset_access_code(self):
         while True:
@@ -628,10 +636,11 @@ class Competitor(models.Model):
         return json.dumps(self.serialize())
 
 
-class RouteSection(models.Model):
-    competitor = models.ForeignKey(Competitor,
-                                   verbose_name=_("competitor"),
-                                   related_name="route_sections")
+class Route(models.Model):
+    competitor = models.OneToOneField(Competitor,
+                                      verbose_name=_("route"),
+                                      related_name="defined_route",
+                                      primary_key=True)
     encoded_data = models.TextField(_("encoded data"), blank=True)
     update_date = models.DateTimeField(_("last update date"), auto_now=True)
     _start_datetime = models.DateTimeField(blank=True, null=True,
@@ -710,7 +719,7 @@ class RouteSection(models.Model):
             self._west = bounds['west']
             self._east = bounds['east']
         self._point_nb = len(self.route)
-        super(RouteSection, self).save(*args, **kwargs)
+        super(Route, self).save(*args, **kwargs)
 
     class Meta:
         ordering = ["-update_date"]

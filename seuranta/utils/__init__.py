@@ -18,7 +18,7 @@ def slugify(s):
     try:
         from unidecode import unidecode
         s = unidecode(s)
-    except:
+    except ImportError:
         pass
     return _slugify(s)
 

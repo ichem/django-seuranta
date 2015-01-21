@@ -44,6 +44,7 @@ setup(
         'markdown',
         'simplejson',
         'unidecode',
+        'django',
         'djangorestframework >= 3.0.0',
         'django-timezone-field >= 1.0',
         'pytz'

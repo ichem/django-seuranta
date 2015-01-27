@@ -200,6 +200,7 @@ class CompetitionSerializer(serializers.ModelSerializer):
         fields = ('id',
                   'publisher',
                   'name', 'slug',
+                  'live_delay',
                   'latitude', 'longitude', 'zoom',
                   'publication_policy', 'signup_policy',
                   'publish_date', 'update_date', 'start_date', 'end_date',

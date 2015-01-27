@@ -48,7 +48,7 @@ class CompetitionPermission(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         if request.method == 'POST':
-            return not request.user.is_anonymous
+            return not request.user.is_anonymous()
         return (obj.publisher == request.user) or request.user.is_superuser
 
 
@@ -74,7 +74,7 @@ class CompetitionListView(generics.ListCreateAPIView):
 
       - id -- Select single **competition** by its id
       - id[] -- Select multiple **competition** by their id
-      - q -- Search terms
+      - publisher -- Select competition from publisher using its username
       - page -- Page number (Default: 1)
       - results_per_page -- Number of result per page (Default:20 Max: 1000)
     """
@@ -84,10 +84,20 @@ class CompetitionListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         qs = super(CompetitionListView, self).get_queryset()
-        query = Q(publication_policy='public')
-        if not self.request.user.is_anonymous:
-            query |= Q(publisher=self.request.user)
-        qs.filter(query)
+        competition_id = self.request.query_params.get("id")
+        competition_ids = self.request.query_params.getlist("id[]")
+        publisher = self.request.query_params.get("publisher")
+        if competition_id:
+            qs = qs.filter(pk=competition_id)
+        elif competition_ids:
+            qs = qs.filter(pk__in=competition_ids)
+        else:
+            query = Q(publication_policy='public')
+            if not self.request.user.is_anonymous():
+                query |= Q(publisher=self.request.user)
+            qs = qs.filter(query)
+        if publisher:
+            qs = qs.filter(publisher__username=publisher)
         return qs
 
     def perform_create(self, serializer):
@@ -234,7 +244,7 @@ class CompetitorListView(generics.ListCreateAPIView):
         if not (competition_ids or competition_id
                 or competitor_id or competitor_ids):
             query = Q(publication_policy='public')
-            if not self.request.user.is_anonymous:
+            if not self.request.user.is_anonymous():
                 query |= Q(publisher=self.request.user)
             competition_ids = Competition.objects.filter(
                 query
@@ -368,7 +378,7 @@ class RouteListView(generics.ListAPIView):
         if not (competition_ids or competition_id
                 or competitor_id or competitor_ids):
             query = Q(publication_policy='public')
-            if not self.request.user.is_anonymous:
+            if not self.request.user.is_anonymous():
                 query |= Q(publisher=self.request.user)
             competition_ids = Competition.objects.filter(
                 query

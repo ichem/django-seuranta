@@ -1,7 +1,7 @@
 import os
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+BASE_DIR = os.path.dirname(__file__)
 
-SECRET_KEY = '27=y9odjqrshzyu%c3fr26znrpo(@j#1dcrs2-_ax_9rr3n3yf'
+SECRET_KEY = 'your_secret_here'
 
 DEBUG = True
 TEMPLATE_DEBUG = True
@@ -17,6 +17,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
     'rest_framework',
+    'bootstrap3',
     'seuranta',
 )
 
@@ -34,7 +35,6 @@ AUTHENTICATION_BACKENDS = (
 )
 
 ANONYMOUS_USER_ID = -1
-AUTH_PROFILE_MODULE = 'seuranta.UserProfile'
 ROOT_URLCONF = 'seuranta.tests.urls'
 
 DATABASES = {
@@ -53,6 +53,16 @@ USE_TZ = True
 DATETIME_FORMAT = 'r'
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 SITE_ID = 1
-TEMPLATE_DIRS = ('templates', )
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+REST_FRAMEWORK = {
+    'PAGINATE_BY': 20,                       # Default to 10
+    'PAGINATE_BY_PARAM': 'result_per_page',  # Allow client to override, using `?page_size=xxx`.
+    'MAX_PAGINATE_BY': 1000                  # Maximum limit allowed when using `?page_size=xxx`.
+}

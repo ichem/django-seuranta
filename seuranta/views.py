@@ -31,7 +31,7 @@ def home(request):
         end_date__lt=timestamp,
     ).order_by('-end_date')
     return render_to_response(
-        'seuranta/home.html',
+        'seuranta/index.html',
         {
             'live': live,
             'upcoming': upcoming,
@@ -162,8 +162,7 @@ def map_latest_mod(request, pk):
 
 @condition(last_modified_func=map_latest_mod, etag_func=None)
 def download_map(request, pk):
-    competition = get_object_or_404(Competition,
-                                    pk=pk, )
+    competition = get_object_or_404(Competition, pk=pk)
     if any([all([not request.user.is_anonymous(),
                  competition.publisher == request.user]),
             all([competition.publication_policy != 'private',
@@ -180,4 +179,7 @@ def admin_map_image(request, publisher, hash, pk):
        or publisher != request.user.username:
         print request.user.username, publisher
         return HttpResponse(status=403)
-    return download_map(request, pk)
+    competition = get_object_or_404(Competition, pk=pk)
+    response = competition.map.image_data
+    mime = competition.map.format
+    return HttpResponse(response, content_type=mime)

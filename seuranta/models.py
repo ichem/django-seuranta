@@ -3,7 +3,7 @@ import base64
 import json
 import re
 from PIL import Image
-from pytz import timezone, common_timezones
+from pytz import common_timezones
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -14,7 +14,6 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.utils.translation import ugettext_lazy as _, ugettext
 from django.utils.timezone import utc, now
-from django.utils.safestring import mark_safe
 from django.core.validators import MinLengthValidator
 from django.core.exceptions import ValidationError
 from django.conf import settings
@@ -125,10 +124,17 @@ class Competition(models.Model):
         default="open",
     )
     latitude = models.FloatField(_('latitude'),
-                                 validators=[validate_latitude])
+                                 validators=[validate_latitude],
+                                 default=0.0)
     longitude = models.FloatField(_('longitude'),
-                                  validators=[validate_longitude])
-    zoom = models.PositiveIntegerField(_('default zoom'))
+                                  validators=[validate_longitude],
+                                  default=0.0)
+    zoom = models.PositiveIntegerField(_('default zoom'),
+                                       default=1)
+
+    live_delay = models.PositiveIntegerField(
+        _('live delay'), default=30, help_text=_('delay of live in seconds')
+    )
 
     @property
     def publisher_name(self):
@@ -550,12 +556,12 @@ class Competitor(models.Model):
         blank=False,
     )
 
-    @models.permalink
-    def get_absolute_url(self):
-        kwargs = {'pk': self.pk}
-        return "seuranta_api_v2_competitor_detail", (), kwargs
+    # @models.permalink
+    # def get_absolute_url(self):
+    #     kwargs = {'pk': self.pk}
+    #     return "seuranta_api_v2_competitor_detail", (), kwargs
 
-    absolute_url = property(get_absolute_url)
+    # absolute_url = property(get_absolute_url)
 
     def get_route(self):
         if hasattr(self, 'defined_route'):

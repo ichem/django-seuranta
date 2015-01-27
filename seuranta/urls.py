@@ -23,6 +23,12 @@ urlpatterns = patterns(
         'race_view',
         name='seuranta_race'
     ),
+    url(
+        r'media/seuranta/maps/(?P<publisher>[^/]+)/'
+        r'(?P<hash>[-0-9a-zA-Z_])/(?P<pk>(?P=hash)[-0-9a-zA-Z_]{21})',
+        'admin_map_image',
+        name='seuranta_admin_map_image',
+    )
 )
 
 urlpatterns += patterns(
@@ -33,7 +39,6 @@ urlpatterns += patterns(
         name='seuranta_api_v1'
     ),
 )
-
 
 urlpatterns += patterns(
     'seuranta.api.v2',

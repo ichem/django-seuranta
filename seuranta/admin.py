@@ -51,7 +51,7 @@ class CompetitorInlineAdmin(admin.StackedInline):
     prepopulated_fields = {'short_name': ('name',), }
 
 
-class MapInlineAdmin(admin.TabularInline):
+class MapInlineAdmin(admin.StackedInline):
     model = Map
 
 
@@ -121,10 +121,11 @@ class CompetitionAdmin(PublisherAdmin):
                     'publication_policy', 'signup_policy')
     fieldsets = (
         (None, {
-            'fields': ('name', 'publication_policy', 'signup_policy')
+            'fields': ('name', 'publication_policy', 'signup_policy',
+                       'timezone', 'live_delay', )
         }),
         (_('Schedule'), {
-            'fields': ('start_date', 'end_date', 'timezone')
+            'fields': ('start_date', 'end_date', )
         }),
         (_('Location'), {
             'fields': ('latitude', 'longitude', 'zoom', )
@@ -137,10 +138,9 @@ class CompetitionAdmin(PublisherAdmin):
 
     class Media:
         js = {
-            "//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js",
             "seuranta/js/jstz-1.0.5.min.js",
             "seuranta/admin/js/competition.js",
         }
 
 admin.site.register(Competition, CompetitionAdmin)
-admin.site.register(Competitor, CompetitorAdmin)
+#admin.site.register(Competitor, CompetitorAdmin)

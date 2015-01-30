@@ -1,0 +1,12 @@
+{% load url from future %}
+{% load i18n %}
+
+<form id="signup_form" method="post" action="{% url "account_signup" %}" autocapitalize="off" {% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
+<legend>{% trans "Sign up" %}</legend>
+{% csrf_token %}
+{{ form }}
+{% if redirect_field_value %}
+<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+{% endif %}
+<button type="submit" class="btn btn-primary">{% trans "Sign up" %}</button>
+</form>

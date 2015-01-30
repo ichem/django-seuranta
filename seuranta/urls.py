@@ -1,4 +1,6 @@
 from django.conf.urls import patterns, url
+from django.views.generic import TemplateView
+from django.contrib.auth.decorators import login_required
 from seuranta.api import v2
 
 
@@ -6,28 +8,38 @@ urlpatterns = patterns(
     'seuranta.views',
     url(
         r'^$',
-        'home',
-        name='seuranta_home'),
-    url(
-        r'^tracker/(?P<api_token>[-a-zA-Z0-9_]{22})?$',
-        'tracker',
-        name='seuranta_tracker'
+        TemplateView.as_view(template_name='seuranta/home.html'),
+        name='seuranta_home'
     ),
     url(
-        r'^(?P<publisher>(?!tracker|dashboard|api|rerun)[^/]+)/$',
-        'user_home',
-        name='seuranta_user_home'
-    ),
-    url(
-        r'^(?P<publisher>[^/]+)/(?P<slug>[-a-zA-Z0-9_]+)\.html$',
-        'race_view',
-        name='seuranta_race'
+        r'^dashboard/?$',
+        login_required(
+            TemplateView.as_view(template_name='seuranta/dashboard.html')
+        ),
+        name='seuranta_dashboard'
     ),
     url(
         r'media/seuranta/maps/(?P<publisher>[^/]+)/'
         r'(?P<hash>[-0-9a-zA-Z_])/(?P<pk>(?P=hash)[-0-9a-zA-Z_]{21})',
         'admin_map_image',
         name='seuranta_admin_map_image',
+    ),
+    url(
+        r'^tracker/?$',
+        'tracker',
+        name='seuranta_tracker'
+    ),
+    url(
+        r'^(?P<publisher>(?!accounts|api|dashboard|media|static|tracker)[^/]+)'
+        r'/?$',
+        'user_home',
+        name='seuranta_user_home'
+    ),
+    url(
+        r'^(?P<publisher>(?!accounts|api|dashboard|media|static|tracker)[^/]+)'
+        r'/(?P<slug>[-a-zA-Z0-9_]+)\.html$',
+        'race_view',
+        name='seuranta_race'
     )
 )
 

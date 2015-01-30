@@ -17,7 +17,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
     'rest_framework',
-    'bootstrap3',
+    'account',
     'seuranta',
 )
 
@@ -28,13 +28,32 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    "account.middleware.LocaleMiddleware",
+    "account.middleware.TimezoneMiddleware",
+)
+
+TEMPLATE_CONTEXT_PROCESSORS = (
+    "django.contrib.auth.context_processors.auth",
+    "django.core.context_processors.debug",
+    "django.core.context_processors.i18n",
+    "django.core.context_processors.media",
+    "django.core.context_processors.static",
+    "django.core.context_processors.tz",
+    "django.contrib.messages.context_processors.messages",
+
+    "account.context_processors.account",
+)
+
+TEMPLATE_DIRS = (
+    BASE_DIR + '/templates/',
 )
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-ANONYMOUS_USER_ID = -1
+
 ROOT_URLCONF = 'seuranta.tests.urls'
 
 DATABASES = {
@@ -56,6 +75,8 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 SITE_ID = 1
+
+ANONYMOUS_USER_ID = -1
 
 
 MEDIA_URL = '/media/'

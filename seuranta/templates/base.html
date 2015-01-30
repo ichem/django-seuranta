@@ -14,9 +14,9 @@
 <div class="container">
     <div id="header">
         {% block header %}
-        <a href="{% url 'seuranta.views.home' %}"><i class="fa fa-home" ></i> {% trans "Home" %}</a> -
-        <a href="{% url 'seuranta.views.tracker' %}"><i class="fa fa-location-arrow" ></i> {% trans "Web Tracker" %}</a> -
-        <a href="{% url 'admin:index' %}"><i class="fa fa-cogs"></i> {% trans "Admin" %}</a>
+        <a href="{% url 'seuranta_home' %}"><i class="fa fa-home" ></i> {% trans "Home" %}</a> -
+        <a href="{% url 'seuranta_tracker' %}"><i class="fa fa-location-arrow" ></i> {% trans "Web Tracker" %}</a> -
+        <a href="{% url 'seuranta_dashboard' %}"><i class="fa fa-cogs"></i> {% trans "Dashboard" %}</a>
         <hr />
         {% endblock %}
     </div>

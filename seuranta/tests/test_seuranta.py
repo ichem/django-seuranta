@@ -56,4 +56,4 @@ class SeurantaTestCase(TestCase):
         self.assertTrue(tgl > tgl3)
         s = GeoLocationSeries([tgl, tgl3])
         s.union(GeoLocationSeries([GeoLocation(100000.9, [23, 67]), ]))
-        print "%r" % s
+        self.assertEqual("`m}mlw@_|l_I_expAA??")

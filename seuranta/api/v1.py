@@ -1,5 +1,5 @@
 import datetime
-import simplejson as json
+import json
 import time
 
 from django.http import HttpResponse

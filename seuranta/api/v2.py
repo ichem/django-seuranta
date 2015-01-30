@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from django.db.models import Q
 
@@ -9,6 +10,7 @@ from rest_framework import renderers
 from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 
 from seuranta.models import Competitor, Competition
 from seuranta.serializers import (CompetitorSerializer,
@@ -75,8 +77,10 @@ class CompetitionListView(generics.ListCreateAPIView):
       - id -- Select single **competition** by its id
       - id[] -- Select multiple **competition** by their id
       - publisher -- Select competition from publisher using its username
+      - status -- Competition status (live, archived, upcoming)
       - page -- Page number (Default: 1)
       - results_per_page -- Number of result per page (Default:20 Max: 1000)
+      - reverse_order -- set to reverse the default ordering
     """
     queryset = Competition.objects.all()
     permission_classes = (CompetitionPermission, )
@@ -87,6 +91,8 @@ class CompetitionListView(generics.ListCreateAPIView):
         competition_id = self.request.query_params.get("id")
         competition_ids = self.request.query_params.getlist("id[]")
         publisher = self.request.query_params.get("publisher")
+        status = self.request.query_params.get("status")
+        reverse_order = self.request.query_params.get("reverse_order")
         if competition_id:
             qs = qs.filter(pk=competition_id)
         elif competition_ids:
@@ -98,6 +104,21 @@ class CompetitionListView(generics.ListCreateAPIView):
             qs = qs.filter(query)
         if publisher:
             qs = qs.filter(publisher__username=publisher)
+        if status:
+            if status not in ('live', 'archived', 'upcoming'):
+                raise ParseError("Invalid value for parameter status")
+            current_date = datetime.utcnow()
+            if status == "live":
+                qs = qs.filter(start_date__lte=current_date,
+                               end_date__gte=current_date)
+            if status == "archived":
+                qs = qs.filter(end_date__lt=current_date)
+            if status == "upcoming":
+                qs = qs.filter(start_date__gt=current_date)
+        if reverse_order:
+            qs = qs.order_by('start_date', 'name')
+        else:
+            qs = qs.order_by('-start_date', 'name')
         return qs
 
     def perform_create(self, serializer):

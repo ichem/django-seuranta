@@ -9,18 +9,25 @@ your django project.
 Requirement
 -----------
 
-This application use Python and as been tested with Python version 2.7
+Python version 2.7
 
 
 Installation
 ------------
 
-using pip
-
-run ```pip install -r requirement```
+run ```./install.sh```
 
 
-Usage
------
+API Endpoints
+-------------
 
-To run as standalone
+  * /api/time
+  * /api/token
+  * /api/competition
+  * /api/competition/<competition_id>
+  * /api/map/<competition_id>[.jpg]
+  * /api/competitor
+  * /api/competitor/<competitor_id>
+  * /api/route/
+  * /api/route/<competitor_id>
+

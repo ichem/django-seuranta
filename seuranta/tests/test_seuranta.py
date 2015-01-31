@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
+import time
 from seuranta.utils.geo import GeoLocation, GeoCoordinates, GeoLocationSeries
 
 
@@ -27,22 +28,35 @@ class ApiTestCase(APITestCase):
             'timezone': 'Europe/Helsinki',
         }
 
-    def test_get_token(self):
+    def test_api_time(self):
         client = APIClient()
-        url = reverse('seuranta_api_v2_token')
+        url = reverse('seuranta_api_time')
+        t0 = time.time()
         response = client.get(url, format='json')
-        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        t1 = time.time()
+        ts = response.data['time']
+        self.assertTrue(t0 < response.data['time'] < t1)
+        self.assertAlmostEqual(t0, ts, places=1)
+        self.assertAlmostEqual(t1, ts, places=1)
+
+    def test_api_token(self):
+        client = APIClient()
+        url = reverse('seuranta_api_token')
+        response = client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         client.login(username='alice', password='passw0rd!')
-        response1 = client.get(url)
-        response2 = client.get(url)
-        response3 = client.get(url)
+        response = client.get(url, format='json')
+        client.delete(url)
+        response2 = client.get(url, format='json')
+        self.assertTrue(response.data != response2.data)
+
 
     def test_create_public_competition(self):
         """
         Test creating and listing public competition
         """
         client = APIClient()
-        url = reverse('seuranta_api_v2_competition_list')
+        url = reverse('seuranta_api_competition_list')
         data = self.basic_competition_data
         client.login(username='alice', password='passw0rd!')
         response = client.post(url, data, format='json')
@@ -57,7 +71,7 @@ class ApiTestCase(APITestCase):
         Test creating and listing public competition
         """
         client = APIClient()
-        url = reverse('seuranta_api_v2_competition_list')
+        url = reverse('seuranta_api_competition_list')
         data = self.basic_competition_data
         data['publication_policy'] = 'secret'
         client.login(username='alice', password='passw0rd!')
@@ -74,7 +88,7 @@ class ApiTestCase(APITestCase):
         Test creating and listing private competition
         """
         client = APIClient()
-        url = reverse('seuranta_api_v2_competition_list')
+        url = reverse('seuranta_api_competition_list')
         data = self.basic_competition_data
         data['publication_policy'] = 'private'
         client.login(username='alice', password='passw0rd!')

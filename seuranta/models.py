@@ -140,17 +140,14 @@ class Competition(models.Model):
     def publisher_name(self):
         return self.publisher.username
 
-    @property
     def is_started(self):
         return self.start_date < now()
 
-    @property
     def is_completed(self):
         return self.end_date < now()
 
-    @property
-    def is_current(self):
-        return self.is_started and not self.is_completed
+    def is_live(self):
+        return self.is_started() and not self.is_completed()
 
     @property
     def approved_competitors(self):
@@ -233,46 +230,6 @@ class Competition(models.Model):
         ordering = ["-start_date"]
         verbose_name = _("competition")
         verbose_name_plural = _("competitions")
-
-    def serialize(self, include_private_data=False):
-        result = {
-            'id': self.id,
-            'name': self.name,
-            'slug': self.slug,
-            'publisher': self.publisher.username,
-            'publish_date': format_date_iso(self.publish_date),
-            'update_date': format_date_iso(self.update_date),
-            'publication_policy': self.publication_policy,
-            'signup_policy': self.signup_policy,
-            'timezone': str(self.timezone),
-            'schedule': {
-                'start_date': format_date_iso(self.start_date),
-                'end_date': format_date_iso(self.end_date),
-            },
-            'competitors': [],
-            'map': {},
-        }
-        if (self.is_started or include_private_data) and self.map:
-            result['map']['image_data_uri'] = self.map.data_uri
-            result['map']['calibration'] = self.map.calibration_string
-            result['map']['size'] = self.map.size
-            result['map']['format'] = self.map.format
-        else:
-            result['map']['image_data_uri'] = self.map.data_uri
-            result['map']['calibration'] = BLANK_CALIBRATION_STRING
-            result['map']['size'] = BLANK_SIZE
-            result['map']['format'] = BLANK_FORMAT
-        competitor_set = self.competitors.all()
-        if not include_private_data and self.signup_policy != "open":
-            competitor_set = competitor_set.filter(approved=True)
-        for competitor in competitor_set:
-            result['competitors'].append(
-                competitor.serialize(include_private_data)
-            )
-        return result
-
-    def dump_json(self, include_private_data=False):
-        return json.dumps(self.serialize(include_private_data))
 
 
 class Map(models.Model):
@@ -381,7 +338,7 @@ class Map(models.Model):
     @models.permalink
     def get_image_url(self):
         kwargs = {'pk': self.competition.pk, }
-        return "seuranta_api_v2_map_download", (), kwargs
+        return "seuranta_api_map_download", (), kwargs
     image_url = property(get_image_url)
 
     @property
@@ -494,6 +451,9 @@ class Map(models.Model):
     def bottom_left_lng(self, value):
         self._set_corner(BOT_L_IDX, LNG_IDX, value)
 
+    class Meta:
+        verbose_name = _("map")
+        verbose_name_plural = _("maps")
 
 @receiver(post_delete, sender=Map)
 def map_post_delete_handler(sender, **kwargs):
@@ -559,7 +519,7 @@ class Competitor(models.Model):
     # @models.permalink
     # def get_absolute_url(self):
     #     kwargs = {'pk': self.pk}
-    #     return "seuranta_api_v2_competitor_detail", (), kwargs
+    #     return "seuranta_api_competitor_detail", (), kwargs
 
     # absolute_url = property(get_absolute_url)
 
@@ -622,24 +582,6 @@ class Competitor(models.Model):
         ordering = ["competition", "start_time", "name"]
         verbose_name = _("competitor")
         verbose_name_plural = _("competitors")
-
-    def serialize(self, include_private_data=False):
-        if self.start_time is not None:
-            start_time = format_date_iso(self.start_time)
-        else:
-            start_time = None
-        result = {
-            'id': self.id,
-            'name': self.name,
-            'short_name': self.short_name,
-            'starting_time': start_time,
-        }
-        if include_private_data:
-            result['access_code'] = self.access_code
-        return result
-
-    def dump_json(self):
-        return json.dumps(self.serialize())
 
 
 class Route(models.Model):

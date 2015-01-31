@@ -151,10 +151,10 @@
                         <a href="{% url 'seuranta_dashboard' %}"><i class="fa fa-fw fa-cogs"></i> {% trans 'Dashboard' %}</a>
                     </li>
                     <li>
-                        <a href="#upcoming-competition-list"><i class="fa fa-fw fa-calendar"></i> {% trans 'Upcoming events' %} (<span class="upcoming_competition_counter">0</span>)</a>
+                        <a href="#live-competition-list"><i class="fa fa-fw fa-bolt"></i> {% trans 'Live events' %} (<span class="live_competition_counter">0</span>)</a>
                     </li>
                     <li>
-                        <a href="#live-competition-list"><i class="fa fa-fw fa-bolt"></i> {% trans 'Live events' %} (<span class="live_competition_counter">0</span>)</a>
+                        <a href="#upcoming-competition-list"><i class="fa fa-fw fa-calendar"></i> {% trans 'Upcoming events' %} (<span class="upcoming_competition_counter">0</span>)</a>
                     </li>
                     <li>
                         <a href="#archived-competition-list"><i class="fa fa-fw fa-archive"></i> {% trans 'Archived events' %} (<span class="archived_competition_counter">0</span>)</a>
@@ -169,15 +169,7 @@
                 <div class="row">
                     <div class="col-lg-12">
                         <h1 class="page-header">
-                            {% trans 'Upcoming events' %}
-                        </h1>
-                    </div>
-                    <div class="col-lg-12" id="upcoming-competition-list">
-                        <div><p class="bg-warning">{% trans 'there is currently no upcoming events.' %}</p></div>
-                    </div>
-                    <div class="col-lg-12">
-                        <h1 class="page-header">
-                            {% trans 'Live events' %}
+                            {% trans 'Live events' %} <small>{% trans 'page' %}  1/1</small>
                         </h1>
                     </div>
                     <div class="col-lg-12" id="live-competition-list">
@@ -185,7 +177,15 @@
                     </div>
                     <div class="col-lg-12">
                         <h1 class="page-header">
-                            {% trans 'Archived events' %}
+                            {% trans 'Upcoming events' %} <small>{% trans 'page' %}  1/1</small>
+                        </h1>
+                    </div>
+                    <div class="col-lg-12" id="upcoming-competition-list">
+                        <div><p class="bg-warning">{% trans 'there is currently no upcoming events.' %}</p></div>
+                    </div>
+                    <div class="col-lg-12">
+                        <h1 class="page-header">
+                            {% trans 'Archived events' %} <small>{% trans 'page' %} 1/1</small>
                         </h1>
                     </div>
                     <div class="col-lg-12" id="archived-competition-list">
@@ -279,10 +279,11 @@
     </script>
     <script>
         window.onload =function(){
+          var competition_api_url = '{% url 'seuranta_api_competition_list' %}'
           // UPCOMING
 
           $.ajax({
-            url: "api/v2/competition",
+            url: competition_api_url,
             data: {status: 'upcoming', reverse_order: true},
             dataType: 'JSON'
           }).success(
@@ -305,7 +306,7 @@
           // LIVE
 
           $.ajax({
-            url: "api/v2/competition",
+            url: competition_api_url,
             data: {status: 'live', reverse_order: true},
             dataType: 'JSON'
           }).success(
@@ -328,7 +329,7 @@
           // ARCHIVED
 
           $.ajax({
-            url: "api/v2/competition",
+            url: competition_api_url,
             data: {status: 'archived'},
             dataType: 'JSON'
           }).success(

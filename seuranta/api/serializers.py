@@ -117,15 +117,16 @@ class CompetitorSerializer(serializers.ModelSerializer):
 
 
 class CompetitorFullSerializer(CompetitorSerializer):
-    api_token = serializers.CharField(read_only=True, default="",
-                                      allow_blank=True)
+    token = serializers.CharField(source='api_token',
+                                  read_only=True, default="",
+                                  allow_blank=True)
     access_code = serializers.CharField(read_only=True, default="",
                                         allow_blank=True)
 
     class Meta:
         model = Competitor
         fields = ('id', 'competition', 'name', 'short_name', 'start_time',
-                  'approved', 'access_code', 'api_token', )
+                  'approved', 'access_code', 'token', )
 
 
 class MapSerializer(serializers.ModelSerializer):
@@ -215,3 +216,10 @@ class CompetitionSerializer(serializers.ModelSerializer):
                 'Invalid schedule'
             )
         return data
+
+
+class TokenSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Token
+        fields = ('key', )

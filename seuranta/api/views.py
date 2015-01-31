@@ -1,8 +1,7 @@
 import logging
 from datetime import datetime
-from django.contrib.auth.decorators import login_required
+import time
 from django.db.models import Q
-from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework import generics
 from rest_framework import permissions
@@ -11,16 +10,18 @@ from rest_framework.authtoken.models import Token
 from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
-from rest_framework.exceptions import AuthenticationFailed, ParseError
+from rest_framework.exceptions import (ParseError,
+                                       PermissionDenied)
 from seuranta.models import Competitor, Competition
-from seuranta.serializers import (CompetitorSerializer,
-                                  CompetitorFullSerializer,
-                                  CompetitionSerializer,
-                                  MapSerializer, MapFullSerializer,
-                                  CompetitorRouteSerializer,
-                                  EncodedRouteSerializer,)
+from seuranta.api.serializers import (CompetitorSerializer,
+                                      CompetitorFullSerializer,
+                                      CompetitionSerializer,
+                                      MapSerializer,
+                                      MapFullSerializer,
+                                      CompetitorRouteSerializer,
+                                      EncodedRouteSerializer,
+                                      TokenSerializer)
 from seuranta.utils.geo import GeoLocationSeries
-from seuranta.views import download_map as orig_download_map_view
 
 
 logger = logging.getLogger(__name__)
@@ -39,23 +40,30 @@ class JPEGRenderer(renderers.BaseRenderer):
 @api_view(['GET', ])
 @renderer_classes((JPEGRenderer, ))
 def download_map(request, pk):
-    return orig_download_map_view(request, pk)
+    competition = get_object_or_404(Competition, pk=pk)
+    # Check if competition is started or private
+    if (competition.publication_policy == 'private'
+        and competition.publisher != request.user) \
+       or not competition.is_started():
+        raise PermissionDenied
+    return Response(competition.map.image_data)
 
 
 @api_view(['GET', ])
-@login_required
-def fetch_token(request):
-    reset = request.query_params.get("reset")
-    token, created = Token.objects.get_or_create(user=request.user)
-    if reset and not created:
-        token.delete()
-        token.key = None
-        token.save()
+def time_view(request):
+    now = time.time()
     return Response({
-        "username": request.user.username,
-        "token": token.key
+        "time": now,
     })
 
+
+class TokenAPIView(generics.RetrieveDestroyAPIView):
+    serializer_class = TokenSerializer
+    permission_classes = (permissions.IsAuthenticated, )
+
+    def get_object(self):
+        token, created = Token.objects.get_or_create(user=self.request.user)
+        return token
 
 
 class CompetitionPermission(permissions.BasePermission):
@@ -320,7 +328,7 @@ class CompetitorDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     Optional query parameters:
 
-      - api_token -- Specify the api_token for this competitor
+      - competitor_token -- Specify the token for this competitor
     """
     queryset = Competitor.objects.all()
     permission_classes = (permissions.AllowAny, )
@@ -329,22 +337,22 @@ class CompetitorDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.user.is_superuser:
             return CompetitorFullSerializer
         instance = self.get_object()
-        api_token = self.request.query_params.get('api_token')
+        competitor_token = self.request.query_params.get('competitor_token')
         is_publisher = (instance.competition.publisher == self.request.user)
-        has_valid_api_token = (instance.api_token == api_token)
-        if is_publisher or has_valid_api_token:
+        has_valid_competitor_token = (instance.api_token == competitor_token)
+        if is_publisher or has_valid_competitor_token:
             return CompetitorFullSerializer
         return CompetitorSerializer
 
     def perform_update(self, serializer):
         instance = serializer.instance
-        api_token = self.request.query_params.get('api_token')
+        competitor_token = self.request.query_params.get('competitor_token')
         competition_signup_policy = instance.competition.signup_policy
         is_publisher = (instance.competition.publisher == self.request.user)
-        has_valid_api_token = (instance.api_token == api_token)
+        has_valid_competitor_token = (instance.api_token == competitor_token)
         if not (self.request.user.is_superuser
                 or is_publisher
-                or has_valid_api_token):
+                or has_valid_competitor_token):
             self.permission_denied(self.request)
         if competition_signup_policy != 'open':
             if not (self.request.user.is_superuser
@@ -354,12 +362,13 @@ class CompetitorDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_destroy(self, instance):
         is_publisher = (instance.competition.publisher == self.request.user)
-        api_token = self.request.query_params.get('api_token')
+        competitor_token = self.request.query_params.get('competitor_token')
         competition_signup_policy = instance.competition.signup_policy
-        has_valid_api_token = (instance.api_token == api_token)
+        has_valid_competitor_token = (instance.api_token == competitor_token)
         if not (self.request.user.is_superuser
                 or is_publisher
-                or (has_valid_api_token and competition_signup_policy == 'open')):
+                or (has_valid_competitor_token
+                    and competition_signup_policy == 'open')):
             self.permission_denied(self.request)
         super(CompetitorDetailView, self).perform_destroy(instance)
 
@@ -432,7 +441,7 @@ class RouteDetailView(generics.RetrieveUpdateAPIView):
 
     Optional query parameters:
 
-      - api_token -- Specify the api_token for this competitor
+      - competitor_token -- Specify the token for this competitor
       - start -- Minimum time of route data (unix timestamp)
       - end -- Maximum time of route data (unix timestamp)
       - encoded_route_portion -- encoded portion of route to add
@@ -465,12 +474,12 @@ class RouteDetailView(generics.RetrieveUpdateAPIView):
         return Response(serializer.data)
 
     def perform_update(self, serializer):
-        api_token = self.request.query_params.get('api_token')
+        competitor_token = self.request.query_params.get('competitor_token')
         instance = serializer.instance
         is_publisher = (instance.competition.publisher == self.request.user)
-        has_valid_api_token = (instance.api_token == api_token)
+        has_valid_competitor_token = (instance.api_token == competitor_token)
         if not (self.request.user.is_superuser
                 or is_publisher
-                or has_valid_api_token):
+                or has_valid_competitor_token):
             self.permission_denied(self.request)
         super(RouteDetailView, self).perform_update(serializer)

@@ -1,2 +1,1 @@
 -r requirements.txt
-django-user-accounts

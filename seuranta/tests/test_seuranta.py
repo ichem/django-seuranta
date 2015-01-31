@@ -27,6 +27,16 @@ class ApiTestCase(APITestCase):
             'timezone': 'Europe/Helsinki',
         }
 
+    def test_get_token(self):
+        client = APIClient()
+        url = reverse('seuranta_api_v2_token')
+        response = client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        client.login(username='alice', password='passw0rd!')
+        response1 = client.get(url)
+        response2 = client.get(url)
+        response3 = client.get(url)
+
     def test_create_public_competition(self):
         """
         Test creating and listing public competition

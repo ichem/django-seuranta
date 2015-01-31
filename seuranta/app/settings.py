@@ -18,7 +18,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'account',
     'seuranta',
 )
 
@@ -29,9 +28,6 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
-    "account.middleware.LocaleMiddleware",
-    "account.middleware.TimezoneMiddleware",
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -42,8 +38,6 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "django.core.context_processors.static",
     "django.core.context_processors.tz",
     "django.contrib.messages.context_processors.messages",
-
-    "account.context_processors.account",
 )
 
 TEMPLATE_DIRS = (
@@ -78,7 +72,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 SITE_ID = 1
 
 ANONYMOUS_USER_ID = -1
-
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

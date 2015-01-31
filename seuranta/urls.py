@@ -55,6 +55,11 @@ urlpatterns += patterns(
 urlpatterns += patterns(
     'seuranta.api.v2',
     url(
+        r'^api/v2/token/?$',
+        v2.fetch_token,
+        name='seuranta_api_v2_token'
+    ),
+    url(
         r'^api/v2/competition/?$',
         v2.CompetitionListView.as_view(),
         name='seuranta_api_v2_competition_list'

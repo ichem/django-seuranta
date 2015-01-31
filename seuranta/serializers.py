@@ -1,5 +1,6 @@
 from pytz import timezone, common_timezones
 from rest_framework import serializers
+from rest_framework.authtoken.models import Token
 from seuranta.models import Competitor, Competition, Map, Route
 from seuranta.utils.geo import GeoLocationSeries
 

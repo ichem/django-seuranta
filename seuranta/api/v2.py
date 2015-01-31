@@ -1,17 +1,17 @@
 import logging
 from datetime import datetime
-
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-
+from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework import generics
 from rest_framework import permissions
 from rest_framework import renderers
+from rest_framework.authtoken.models import Token
 from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
-
+from rest_framework.exceptions import AuthenticationFailed, ParseError
 from seuranta.models import Competitor, Competition
 from seuranta.serializers import (CompetitorSerializer,
                                   CompetitorFullSerializer,
@@ -40,6 +40,22 @@ class JPEGRenderer(renderers.BaseRenderer):
 @renderer_classes((JPEGRenderer, ))
 def download_map(request, pk):
     return orig_download_map_view(request, pk)
+
+
+@api_view(['GET', ])
+@login_required
+def fetch_token(request):
+    reset = request.query_params.get("reset")
+    token, created = Token.objects.get_or_create(user=request.user)
+    if reset and not created:
+        token.delete()
+        token.key = None
+        token.save()
+    return Response({
+        "username": request.user.username,
+        "token": token.key
+    })
+
 
 
 class CompetitionPermission(permissions.BasePermission):

@@ -2,6 +2,7 @@ build
 *CACHE*
 dist
 MANIFEST
+.coverage
 *.pyc
 *.egg-info
 *.egg

@@ -1,9 +1,83 @@
-from django.test import TestCase
-from seuranta.utils.geo import GeoLocation, GeoCoordinates, GeoLocationSeries
 from decimal import Decimal
+from django.core.urlresolvers import reverse
+from django.contrib.auth.models import User
+from django.test import TestCase
+from rest_framework.test import APIClient, APITestCase
+from rest_framework import status
+from seuranta.utils.geo import GeoLocation, GeoCoordinates, GeoLocationSeries
 
 
-class SeurantaTestCase(TestCase):
+class ApiTestCase(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user('alice', 'alice@aol.com',
+                                             'passw0rd!')
+        self.user_b = User.objects.create_user('bob', 'bob@bing.com',
+                                               'L3tmeIn')
+        self.basic_competition_data = {
+            'name': "Jukola 2015",
+            'live_delay': 30,
+            'latitude': 62,
+            'longitude': 22,
+            'zoom': 12,
+            'publication_policy': 'public',
+            'signup_policy': 'closed',
+            'start_date': '2015-06-17T23:00',
+            'end_date': '2015-06-18T12:00',
+            'timezone': 'Europe/Helsinki',
+        }
+
+    def test_create_public_competition(self):
+        """
+        Test creating and listing public competition
+        """
+        client = APIClient()
+        url = reverse('seuranta_api_v2_competition_list')
+        data = self.basic_competition_data
+        client.login(username='alice', password='passw0rd!')
+        response = client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        client.logout()
+        response = client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+
+    def test_create_secret_competition(self):
+        """
+        Test creating and listing public competition
+        """
+        client = APIClient()
+        url = reverse('seuranta_api_v2_competition_list')
+        data = self.basic_competition_data
+        data['publication_policy'] = 'secret'
+        client.login(username='alice', password='passw0rd!')
+        response = client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        response = client.get(url, format='json')
+        self.assertEqual(response.data['count'], 1)
+        client.logout()
+        response = client.get(url, format='json')
+        self.assertEqual(response.data['count'], 0)
+
+    def test_create_private_competition(self):
+        """
+        Test creating and listing private competition
+        """
+        client = APIClient()
+        url = reverse('seuranta_api_v2_competition_list')
+        data = self.basic_competition_data
+        data['publication_policy'] = 'private'
+        client.login(username='alice', password='passw0rd!')
+        response = client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        response = client.get(url, format='json')
+        self.assertEqual(response.data['count'], 1)
+        client.logout()
+        response = client.get(url, format='json')
+        self.assertEqual(response.data['count'], 0)
+
+
+class GeoToolTestCase(TestCase):
 
     def setUp(self):
         self.valid_lat_lon_str = '61.4682694,23.7594638'
@@ -20,7 +94,7 @@ class SeurantaTestCase(TestCase):
         self.invalid_lat_overflow = '92.35'
         self.expected_lat_overflow = '87.65'
 
-    def test_init(self):
+    def test_geo(self):
         gp1 = GeoCoordinates(self.valid_lat_lon_str)
         gp2 = GeoCoordinates(self.valid_lat_str, self.valid_lon_str)
         gp3 = GeoCoordinates(self.valid_lat_dec, self.valid_lon_dec)
@@ -55,5 +129,8 @@ class SeurantaTestCase(TestCase):
         self.assertNotEqual(tgl, tgl3)
         self.assertTrue(tgl > tgl3)
         s = GeoLocationSeries([tgl, tgl3])
-        s.union(GeoLocationSeries([GeoLocation(100000.9, [23, 67]), ]))
-        self.assertEqual("`m}mlw@_|l_I_expAA??")
+        joined_route = s.union(
+            GeoLocationSeries([GeoLocation(100000.9, [23, 67]), ])
+        )
+        self.assertEqual("`m}mlw@_|l_I_expAA??A~u`sD_wcfI",
+                         str(joined_route))

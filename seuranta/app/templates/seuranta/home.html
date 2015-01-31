@@ -41,7 +41,7 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="index.html">Routechoices Admin</a>
+                <a class="navbar-brand" href="index.html">Routechoices</a>
             </div>
             <!-- Top Menu Items -->
             <ul class="nav navbar-right top-nav">
@@ -147,7 +147,10 @@
             <!-- Sidebar Menu Items - These collapse to the responsive navigation menu on small screens -->
             <div class="collapse navbar-collapse navbar-ex1-collapse">
                 <ul class="nav navbar-nav side-nav" id="sidebar_nav">
-                    <li class="active">
+                    <li>
+                        <a href="{% url 'seuranta_dashboard' %}"><i class="fa fa-fw fa-cogs"></i> {% trans 'Dashboard' %}</a>
+                    </li>
+                    <li>
                         <a href="#upcoming-competition-list"><i class="fa fa-fw fa-calendar"></i> {% trans 'Upcoming events' %} (<span class="upcoming_competition_counter">0</span>)</a>
                     </li>
                     <li>

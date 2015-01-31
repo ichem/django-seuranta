@@ -17,6 +17,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'account',
     'seuranta',
 )
@@ -54,7 +55,7 @@ AUTHENTICATION_BACKENDS = (
 )
 
 
-ROOT_URLCONF = 'seuranta.tests.urls'
+ROOT_URLCONF = 'seuranta.app.urls'
 
 DATABASES = {
     'default': {
@@ -85,5 +86,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 REST_FRAMEWORK = {
     'PAGINATE_BY': 20,                       # Default to 10
     'PAGINATE_BY_PARAM': 'result_per_page',  # Allow client to override, using `?page_size=xxx`.
-    'MAX_PAGINATE_BY': 1000                  # Maximum limit allowed when using `?page_size=xxx`.
+    'MAX_PAGINATE_BY': 1000,                 # Maximum limit allowed when using `?page_size=xxx`.
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ),
 }

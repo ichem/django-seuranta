@@ -107,9 +107,10 @@ class CompetitorSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        if data['start_time'] \
-           and not (data['competition'].start_date <= data['start_time']
-                    <= data['competition'].end_date):
+        start_time = data.get('start_time')
+        if start_time \
+           and (start_time < data['competition'].start_date
+                or start_time > data['competition'].end_date):
             raise serializers.ValidationError(
                 'start_time does not respect competition schedule'
             )
@@ -211,7 +212,7 @@ class CompetitionSerializer(serializers.ModelSerializer):
                   'competitors', 'pending_competitors')
 
     def validate(self, data):
-        if data['start_date'] >= data['end_date']:
+        if data.get('start_date') >= data.get('end_date'):
             raise serializers.ValidationError(
                 'Invalid schedule'
             )

@@ -16,7 +16,7 @@ class ApiTestCase(APITestCase):
         self.user_b = User.objects.create_user('bob', 'bob@bing.com',
                                                'L3tmeIn')
         self.basic_competition_data = {
-            'name': "Jukola 2015",
+            'name': 'Jukola 2015',
             'live_delay': 30,
             'latitude': 62,
             'longitude': 22,
@@ -26,6 +26,11 @@ class ApiTestCase(APITestCase):
             'start_date': '2015-06-17T23:00',
             'end_date': '2015-06-18T12:00',
             'timezone': 'Europe/Helsinki',
+        }
+        self.basic_competitor_data = {
+            'name': 'Kapteeni Kiila',
+            'short_name': 'KK',
+            'approved': True,
         }
 
     def test_api_time(self):
@@ -58,6 +63,8 @@ class ApiTestCase(APITestCase):
         client = APIClient()
         url = reverse('seuranta_api_competition_list')
         data = self.basic_competition_data
+        response = client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         client.login(username='alice', password='passw0rd!')
         response = client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -99,6 +106,30 @@ class ApiTestCase(APITestCase):
         client.logout()
         response = client.get(url, format='json')
         self.assertEqual(response.data['count'], 0)
+
+    def test_create_competitor_api(self):
+        # First create a competition (closed signed up)
+        client = APIClient()
+        url_api_competition = reverse('seuranta_api_competition_list')
+        competition_data = self.basic_competition_data
+        client.login(username='alice', password='passw0rd!')
+        response = client.post(url_api_competition, competition_data,
+                               format='json')
+        competition_id = response.data['id']
+        print competition_id
+        # now create competitor (still logged in)
+        url_api_competitor = reverse('seuranta_api_competitor_list')
+        competitor_data = self.basic_competitor_data
+        competitor_data['competition'] = competition_id
+        response = client.post(url_api_competitor, competitor_data,
+                               format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        client.logout()
+        # logged out this competition is not a valid option anymore,
+        #  hence return bad request
+        response = client.post(url_api_competitor, competitor_data,
+                               format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class GeoToolTestCase(TestCase):

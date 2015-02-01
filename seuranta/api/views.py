@@ -238,8 +238,8 @@ class CompetitorListView(generics.ListCreateAPIView):
             ).exclude(signup_policy='closed')
         else:
             open_competitions = open_competitions.filter(
-                Q(publisher=self.request) | (Q(publication_policy='public')
-                                             & ~Q(signup_policy='closed'))
+                Q(publisher=self.request.user)
+                | (Q(publication_policy='public') & ~Q(signup_policy='closed'))
             )
 
         class CompetitorCustomSerializer(CompetitorSerializer):
@@ -315,7 +315,7 @@ class CompetitorListView(generics.ListCreateAPIView):
         if not (self.request.user.is_superuser
                 or is_publisher
                 or competition_signup_policy != 'closed'):
-            self.permission_denied(self.request)
+            raise PermissionDenied
         if competition_signup_policy != 'open' and not is_publisher:
             serializer.validated_data['approved'] = False
         super(CompetitorListView, self).perform_create(serializer)

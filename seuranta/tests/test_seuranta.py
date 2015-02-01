@@ -107,30 +107,49 @@ class ApiTestCase(APITestCase):
         response = client.get(url, format='json')
         self.assertEqual(response.data['count'], 0)
 
-    def test_create_competitor_api(self):
-        # First create a competition (closed signed up)
-        client = APIClient()
+    def test_create_competitor_in_closed_competition(self):
         url_api_competition = reverse('seuranta_api_competition_list')
-        competition_data = self.basic_competition_data
+        url_api_competitor = reverse('seuranta_api_competitor_list')
+        client = APIClient()
         client.login(username='alice', password='passw0rd!')
+        competition_data = self.basic_competition_data
         response = client.post(url_api_competition, competition_data,
                                format='json')
         competition_id = response.data['id']
-        print competition_id
-        # now create competitor (still logged in)
-        url_api_competitor = reverse('seuranta_api_competitor_list')
         competitor_data = self.basic_competitor_data
         competitor_data['competition'] = competition_id
         response = client.post(url_api_competitor, competitor_data,
                                format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         client.logout()
-        # logged out this competition is not a valid option anymore,
+        # logged out, this competition is not a valid option anymore,
         #  hence return bad request
         response = client.post(url_api_competitor, competitor_data,
                                format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_create_competitor_in_org_val_competition(self):
+        url_api_competition = reverse('seuranta_api_competition_list')
+        url_api_competitor = reverse('seuranta_api_competitor_list')
+        client = APIClient()
+        client.login(username='alice', password='passw0rd!')
+        competition_data = self.basic_competition_data
+        competition_data['signup_policy'] = 'org_val'
+        response = client.post(url_api_competition, competition_data,
+                               format='json')
+        competition_id = response.data['id']
+        competitor_data = self.basic_competitor_data
+        competitor_data['competition'] = competition_id
+        response = client.post(url_api_competitor, competitor_data,
+                               format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data['approved'])
+        client.logout()
+        # logged out, this competitor wont be approved right away
+        response = client.post(url_api_competitor, competitor_data,
+                               format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(response.data['approved'])
 
 class GeoToolTestCase(TestCase):
 

@@ -151,6 +151,30 @@ class ApiTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertFalse(response.data['approved'])
 
+    def test_create_competitor_in_open_competition(self):
+        url_api_competition = reverse('seuranta_api_competition_list')
+        url_api_competitor = reverse('seuranta_api_competitor_list')
+        client = APIClient()
+        client.login(username='alice', password='passw0rd!')
+        competition_data = self.basic_competition_data
+        competition_data['signup_policy'] = 'open'
+        response = client.post(url_api_competition, competition_data,
+                               format='json')
+        competition_id = response.data['id']
+        competitor_data = self.basic_competitor_data
+        competitor_data['competition'] = competition_id
+        response = client.post(url_api_competitor, competitor_data,
+                               format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data['approved'])
+        client.logout()
+        # logged out, everything goes!
+        response = client.post(url_api_competitor, competitor_data,
+                               format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data['approved'])
+
+
 class GeoToolTestCase(TestCase):
 
     def setUp(self):

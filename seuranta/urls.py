@@ -1,6 +1,7 @@
 from django.conf.urls import patterns, url
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import login_required
+from rest_framework.authtoken.views import obtain_auth_token
 from seuranta.api import views as api_views
 
 
@@ -32,9 +33,14 @@ urlpatterns += patterns(
         name='seuranta_api_time'
     ),
     url(
-        r'^api/token/?$',
-        api_views.TokenAPIView.as_view(),
-        name='seuranta_api_token'
+        r'^api/auth_token/obtain/?$',
+        obtain_auth_token,
+        name='seuranta_api_auth_token_obtain'
+    ),
+    url(
+        r'^api/auth_token/destroy/?$',
+        api_views.destroy_auth_token,
+        name='seuranta_api_auth_token_destroy'
     ),
     url(
         r'^api/competition/?$',

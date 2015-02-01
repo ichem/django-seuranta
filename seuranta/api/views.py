@@ -6,25 +6,47 @@ from rest_framework import serializers
 from rest_framework import generics
 from rest_framework import permissions
 from rest_framework import renderers
+from rest_framework import parsers
 from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
 from rest_framework.exceptions import (ParseError,
                                        PermissionDenied)
-from seuranta.models import Competitor, Competition
+from rest_framework import status
+from rest_framework.views import APIView
+from seuranta.models import Competitor, Competition, Route
 from seuranta.api.serializers import (CompetitorSerializer,
                                       CompetitorFullSerializer,
                                       CompetitionSerializer,
                                       MapSerializer,
                                       MapFullSerializer,
                                       CompetitorRouteSerializer,
-                                      EncodedRouteSerializer,
-                                      TokenSerializer)
+                                      EncodedRouteSerializer)
 from seuranta.utils.geo import GeoLocationSeries
 
 
 logger = logging.getLogger(__name__)
+
+
+class DestroyAuthToken(APIView):
+    throttle_classes = ()
+    permission_classes = ()
+    parser_classes = (parsers.FormParser, parsers.MultiPartParser, parsers.JSONParser,)
+    renderer_classes = (renderers.JSONRenderer,)
+
+    def post(self, request):
+        serializer = AuthTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token = Token.objects.filter(user=user)
+        if token.count() > 0:
+            token.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+destroy_auth_token = DestroyAuthToken.as_view()
 
 
 class JPEGRenderer(renderers.BaseRenderer):
@@ -55,16 +77,6 @@ def time_view(request):
     return Response({
         "time": now,
     })
-
-
-class TokenAPIView(generics.RetrieveDestroyAPIView):
-    serializer_class = TokenSerializer
-    permission_classes = (permissions.IsAuthenticated, )
-
-    def get_object(self):
-        token, created = Token.objects.get_or_create(user=self.request.user)
-        return token
-
 
 class CompetitionPermission(permissions.BasePermission):
     """
@@ -380,8 +392,8 @@ class RouteListView(generics.ListAPIView):
 
     Optional query parameters:
 
-      - id -- Select single **competitor** by its id
-      - id[] -- Select multiple **competitor** by their id
+      - competitor_id -- Select single **competitor** by its id
+      - competitor_id[] -- Select multiple **competitor** by their id
       - competition_id -- Select **competitors** in a single **competition**
       - competition_id[] -- Select **competitors** in multiple **competition**
       - start -- Minimum time of route data (unix timestamp)
@@ -389,7 +401,7 @@ class RouteListView(generics.ListAPIView):
       - page -- Page number (Default: 1)
       - results_per_page -- Number of result per page (Default:20 Max: 1000)
     """
-    queryset = Competitor.objects.all()
+    queryset = Route.objects.all()
     permission_classes = (permissions.AllowAny, )
     lookup_fields = ('name', )
 
@@ -399,28 +411,32 @@ class RouteListView(generics.ListAPIView):
         self.max_paginate_by = 1000
         super(RouteListView, self).__init__()
 
-    def get_serializer_class(self):
-        class CustomCompetitorRouteSerializer(CompetitorRouteSerializer):
-            class CustomRouteSerializer(EncodedRouteSerializer):
-                min_timestamp = float(self.request.query_params.get("start",
-                                                                    '-inf'))
-                max_timestamp = float(self.request.query_params.get("end",
-                                                                    '+inf'))
-            encoded_route = CustomRouteSerializer(source='route')
-        return CustomCompetitorRouteSerializer
+#    def get_serializer_class(self):
+#        class CustomCompetitorRouteSerializer(CompetitorRouteSerializer):
+#            class CustomRouteSerializer(EncodedRouteSerializer):
+#                min_timestamp = float(self.request.query_params.get("start",
+#                                                                    '-inf'))
+#                max_timestamp = float(self.request.query_params.get("end",
+#                                                                    '+inf'))
+#            encoded_route = CustomRouteSerializer(source='route')
+#        return CustomCompetitorRouteSerializer
 
     def get_queryset(self):
         qs = super(RouteListView, self).get_queryset()
         competition_id = self.request.query_params.get("competition_id")
         competition_ids = self.request.query_params.getlist("competition_id[]")
-        competitor_id = self.request.query_params.get("id")
-        competitor_ids = self.request.query_params.getlist("id[]")
-        if competition_id:
-            qs = qs.filter(competition_id=competition_id)
+        competitor_id = self.request.query_params.get("competitor_id")
+        competitor_ids = self.request.query_params.getlist("competitor_id[]")
         if competitor_id:
-            qs = qs.filter(id=competitor_id)
-        elif competitor_ids:
-            qs = qs.filter(id__in=competitor_ids)
+            qs = qs.filter(competitor_id=competitor_id)
+        if competition_id:
+            competitor_ids = Competitor.filter(
+                competition_id=competition_id
+            ).values_list('pk', flat=True)
+        elif competition_ids:
+            competitor_ids = Competitor.filter(
+                competition_id__in=competition_ids
+            ).values_list('pk', flat=True)
         if not (competition_ids or competition_id
                 or competitor_id or competitor_ids):
             query = Q(publication_policy='public')
@@ -429,8 +445,11 @@ class RouteListView(generics.ListAPIView):
             competition_ids = Competition.objects.filter(
                 query
             ).values_list('pk', flat=True)
-        if competition_ids:
-            qs.filter(competition_id__in=competition_ids)
+            competitor_ids = Competitor.filter(
+                competition_id__in=competition_ids
+            ).values_list('pk', flat=True)
+        if competitor_ids:
+            qs.filter(competitor_id__in=competitor_ids)
         return qs
 
 

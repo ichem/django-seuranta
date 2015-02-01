@@ -516,29 +516,20 @@ class Competitor(models.Model):
         blank=False,
     )
 
-    # @models.permalink
-    # def get_absolute_url(self):
-    #     kwargs = {'pk': self.pk}
-    #     return "seuranta_api_competitor_detail", (), kwargs
+    def get_full_route(self):
+        result = GeoLocationSeries('')
+        for route in self.defined_routes:
+            result.union(route.data)
+        return result
 
-    # absolute_url = property(get_absolute_url)
+    def set_full_route(self, value):
+        if len(self.defined_routes) > 0:
+            self.defined_routes.delete()
+        new_route = Route(competitor_id=self.pk)
+        new_route.route = value
+        new_route.save()
 
-    def get_route(self):
-        if hasattr(self, 'defined_route'):
-            return self.defined_route
-        return Route(competitor_id=self.pk)
-
-    def set_route(self, value):
-        print "-- Saving Value: %s" % value
-        if hasattr(self, 'defined_route'):
-            self.defined_route.route = value
-            self.defined_route.save()
-        else:
-            new_route = Route(competitor_id=self.pk)
-            new_route.route = value
-            new_route.save()
-
-    route = property(get_route, set_route)
+    route = property(get_full_route, set_full_route)
 
     def reset_access_code(self):
         while True:
@@ -585,73 +576,33 @@ class Competitor(models.Model):
 
 
 class Route(models.Model):
-    competitor = models.OneToOneField(Competitor,
-                                      verbose_name=_("route"),
-                                      related_name="defined_route",
-                                      primary_key=True)
-    encoded_data = models.TextField(_("encoded data"), blank=True)
-    update_date = models.DateTimeField(_("last update date"), auto_now=True)
-    _start_datetime = models.DateTimeField(blank=True, null=True,
-                                           editable=False)
-    _finish_datetime = models.DateTimeField(blank=True, null=True,
-                                            editable=False)
-    _north = models.FloatField(
-        blank=True, null=True,
-        validators=[validate_latitude], editable=False
-    )
-    _south = models.FloatField(
-        blank=True, null=True,
-        validators=[validate_latitude], editable=False
-    )
-    _east = models.FloatField(
-        blank=True, null=True,
-        validators=[validate_longitude], editable=False
-    )
-    _west = models.FloatField(
-        blank=True, null=True,
-        validators=[validate_longitude], editable=False
-    )
-    _point_nb = models.PositiveIntegerField(
-        default=0
-    )
+    id = ShortUUIDField(_("identifier"), primary_key=True)
+    competitor = models.ForeignKey(Competitor,
+                                   verbose_name=_("route"),
+                                   related_name="defined_routes",)
+    encoded_data = models.TextField(_("encoded route points"))
+    _start_datetime = models.DateTimeField(editable=False)
+    _finish_datetime = models.DateTimeField(editable=False)
+    _north = models.FloatField(validators=[validate_latitude], editable=False)
+    _south = models.FloatField(validators=[validate_latitude], editable=False)
+    _east = models.FloatField(validators=[validate_longitude], editable=False)
+    _west = models.FloatField(validators=[validate_longitude], editable=False)
+    _count = models.PositiveIntegerField()
 
     @property
-    def route(self):
+    def data(self):
         return GeoLocationSeries(self.encoded_data)
 
-    @route.setter
-    def route(self, value):
+    @data.setter
+    def data(self, value):
         if not isinstance(value, GeoLocationSeries):
             value = GeoLocationSeries(value)
         self.encoded_data = str(value)
 
-    @property
-    def bounds(self):
-        route = self.route
-        if route is None or len(route) == 0:
+    def get_bounds(self):
+        if not self.encoded_data:
             return None
-        route = sorted(route)
-        north = -90
-        south = 90
-        east = -180
-        west = 180
-        start_t = float('inf')
-        end_t = -float('inf')
-        for p in route:
-            north = max(north, p.coordinates.latitude)
-            south = min(south, p.coordinates.latitude)
-            west = min(west, p.coordinates.longitude)
-            east = max(east, p.coordinates.longitude)
-            start_t = min(start_t, p.timestamp)
-            end_t = max(end_t, p.timestamp)
-        return {
-            'start_timestamp': start_t,
-            'finish_timestamp': end_t,
-            'north': north,
-            'south': south,
-            'west': west,
-            'east': east,
-        }
+        return self.data.get_bounds()
 
     def save(self, *args, **kwargs):
         bounds = self.bounds
@@ -666,10 +617,10 @@ class Route(models.Model):
             self._south = bounds['south']
             self._west = bounds['west']
             self._east = bounds['east']
-        self._point_nb = len(self.route)
+        self._count = len(self.data)
         super(Route, self).save(*args, **kwargs)
 
     class Meta:
-        ordering = ["-update_date"]
-        verbose_name = _("route section")
-        verbose_name_plural = _("route sections")
+        ordering = ["-_start_datetime", 'competitor']
+        verbose_name = _("route")
+        verbose_name_plural = _("routes")

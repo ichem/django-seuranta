@@ -45,14 +45,30 @@ class ApiTestCase(APITestCase):
         self.assertAlmostEqual(t1, ts, places=1)
 
     def test_api_token(self):
+        """
+        Create a token for an user void it and create another one,
+        ensure new token is different
+        """
         client = APIClient()
-        url = reverse('seuranta_api_token')
-        response = client.get(url, format='json')
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        client.login(username='alice', password='passw0rd!')
-        response = client.get(url, format='json')
-        client.delete(url)
-        response2 = client.get(url, format='json')
+        url = reverse('seuranta_api_auth_token_obtain')
+        response = client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = client.post(
+            url,
+            {'username': 'alice', 'password': 'passw0rd!'},
+            format='json'
+        )
+        del_resp = client.post(
+            reverse('seuranta_api_auth_token_destroy'),
+            {'username': 'alice', 'password': 'passw0rd!'},
+            format='json'
+        )
+        self.assertEqual(del_resp.status_code, status.HTTP_204_NO_CONTENT)
+        response2 = client.post(
+            url,
+            {'username': 'alice', 'password': 'passw0rd!'},
+            format='json'
+        )
         self.assertTrue(response.data != response2.data)
 
 

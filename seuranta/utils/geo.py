@@ -317,6 +317,30 @@ class GeoLocationSeries(object):
             return self._items[i]
         raise ValueError('No item found with key above: %r' % (k,))
 
+    def get_bounds(self):
+        north = -90
+        south = 90
+        east = -180
+        west = 180
+        start_t = float('inf')
+        end_t = -float('inf')
+        for pt in self:
+            coords = pt.coordinates
+            north = max(north, coords.latitude)
+            south = min(south, coords.latitude)
+            west = min(west, coords.longitude)
+            east = max(east, coords.longitude)
+            start_t = min(start_t, pt.timestamp)
+            end_t = max(end_t, pt.timestamp)
+        return {
+            'start_timestamp': start_t,
+            'finish_timestamp': end_t,
+            'north': north,
+            'south': south,
+            'west': west,
+            'east': east,
+        }
+
     def __str__(self):
         result = ""
         prev_tim = YEAR2000

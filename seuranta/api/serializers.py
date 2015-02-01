@@ -71,7 +71,7 @@ class EncodedRouteSerializer(serializers.CharField):
         min_timestamp = self.min_timestamp or float('-inf')
         max_timestamp = self.max_timestamp or float('inf')
         ret = GeoLocationSeries('')
-        for point in value.route:
+        for point in value:
             if point.timestamp < min_timestamp:
                 continue
             elif point.timestamp > max_timestamp:
@@ -90,6 +90,14 @@ class CompetitorRouteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Competitor
         fields = ('id', 'encoded_route')
+
+
+class RouteSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Route
+        fields = ('id', 'competitor', 'encoded_data')
+
 
 
 class CompetitorSerializer(serializers.ModelSerializer):
@@ -217,10 +225,3 @@ class CompetitionSerializer(serializers.ModelSerializer):
                 'Invalid schedule'
             )
         return data
-
-
-class TokenSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Token
-        fields = ('key', )

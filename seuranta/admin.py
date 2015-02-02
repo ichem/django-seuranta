@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
 
-from seuranta.models import Competition, Competitor, Route, Map
+from seuranta.models import (Competition, Competitor, Route, Map,
+                             CompetitorToken)
 
 
 class PublisherAdmin(admin.ModelAdmin):
@@ -142,5 +143,13 @@ class CompetitionAdmin(PublisherAdmin):
             "seuranta/admin/js/competition.js",
         }
 
+
+class CompetitorTokenAdmin(admin.ModelAdmin):
+    list_display = ('key', 'competitor', 'created')
+    fields = ('competitor',)
+    ordering = ('-created',)
+
+
+admin.site.register(CompetitorToken, CompetitorTokenAdmin)
 admin.site.register(Competition, CompetitionAdmin)
-#admin.site.register(Competitor, CompetitorAdmin)
+admin.site.register(Competitor, CompetitorAdmin)

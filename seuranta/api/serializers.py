@@ -1,7 +1,9 @@
 from pytz import timezone, common_timezones
 from rest_framework import exceptions, serializers
 from django.utils.translation import ugettext_lazy as _
-from seuranta.models import Competitor, Competition, Map, Route
+from seuranta.models import Competitor, Competition, Map, Route, \
+    CompetitorToken
+from seuranta.utils import make_random_code
 from seuranta.utils.geo import GeoLocationSeries
 
 
@@ -93,11 +95,36 @@ class CompetitorRouteSerializer(serializers.ModelSerializer):
 
 
 class RouteSerializer(serializers.ModelSerializer):
-    received = serializers.DateTimeField(source='created_at')
+    received = serializers.DateTimeField(source='created')
 
     class Meta:
         model = Route
         fields = ('received', 'competitor', 'encoded_data')
+
+
+class CompetitorTokenSerializer(serializers.Serializer):
+    competitor = serializers.CharField()
+    access_code = serializers.CharField()
+
+    def validate(self, attrs):
+        competitor = attrs.get('competitor')
+        access_code = attrs.get('access_code')
+        if competitor and access_code:
+            competitor = Competitor.objects.filter(pk=competitor,
+                                                   access_code=access_code)
+            if competitor.exists():
+                if not competitor.approved:
+                    msg = _('Competitor is not approved.')
+                    raise exceptions.ValidationError(msg)
+            else:
+                msg = _('Unable to retrieve competitor with given'
+                        ' credentials.')
+                raise exceptions.ValidationError(msg)
+        else:
+            msg = _('Must include "competitor" and "access_code"')
+            raise exceptions.ValidationError(msg)
+        attrs['competitor'] = competitor
+        return attrs
 
 
 class PostRouteSerializer(RouteSerializer):
@@ -105,9 +132,10 @@ class PostRouteSerializer(RouteSerializer):
 
     def validate(self, attrs):
         validated_data = super(PostRouteSerializer, self).validate(attrs)
-        token = validated_data.get('token')
+        key = validated_data.get('token')
         competitor = validated_data.get('competitor')
-        if competitor.api_token != token:
+        token = CompetitorToken.objects.filter(competitor=competitor, key=key)
+        if not token.exists():
             msg = _('Invalid competitor token')
             raise exceptions.ValidationError(msg)
         return validated_data
@@ -118,17 +146,15 @@ class PostRouteSerializer(RouteSerializer):
 
 
 class CompetitorSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Competitor
         fields = ('id', 'competition', 'name', 'short_name', 'start_time',
-                  'approved')
+                  'approved',)
 
     def validate_competition(self, value):
         if self.instance is not None and self.instance.competition != value:
-            raise serializers.ValidationError(
-                "Competitor cannot be moved to another competition"
-            )
+            msg = _("Competitor cannot be moved to another competition")
+            raise serializers.ValidationError(msg)
         return value
 
     def validate(self, data):
@@ -136,23 +162,39 @@ class CompetitorSerializer(serializers.ModelSerializer):
         if start_time \
            and (start_time < data['competition'].start_date
                 or start_time > data['competition'].end_date):
-            raise serializers.ValidationError(
-                'start_time does not respect competition schedule'
-            )
-        return data
+            msg = _('start_time does not respect competition schedule')
+            raise serializers.ValidationError(msg)
+        return super(AnonCompetitorSerializer, self).validate(data)
 
 
-class CompetitorFullSerializer(CompetitorSerializer):
-    token = serializers.CharField(source='api_token',
-                                  read_only=True, default="",
-                                  allow_blank=True)
-    access_code = serializers.CharField(read_only=True, default="",
-                                        allow_blank=True)
+class AnonCompetitorSerializer(CompetitorSerializer):
+    token = serializers.CharField(write_only=True)
 
     class Meta:
         model = Competitor
         fields = ('id', 'competition', 'name', 'short_name', 'start_time',
-                  'approved', 'access_code', 'token', )
+                  'approved', 'token')
+
+    def validate(self, data):
+        validated_data = super(AnonCompetitorSerializer, self).validate(data)
+        key = validated_data.get('token')
+        competitor_id = validated_data.get('id')
+        token = CompetitorToken.objects.filter(competitor_id=competitor_id,
+                                               key=key)
+        if not token.exists():
+            msg = _('Invalid competitor token')
+            raise exceptions.ValidationError(msg)
+        return validated_data
+
+
+class AdminCompetitorSerializer(serializers.ModelSerializer):
+    access_code = serializers.CharField(allow_blank=False,
+                                        default=lambda:make_random_code(5))
+
+    class Meta:
+        model = Competitor
+        fields = ('id', 'competition', 'name', 'short_name', 'start_time',
+                  'approved', 'access_code', )
 
 
 class MapSerializer(serializers.ModelSerializer):

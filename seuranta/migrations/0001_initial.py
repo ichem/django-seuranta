@@ -49,14 +49,26 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=50, verbose_name='name')),
                 ('short_name', models.CharField(max_length=50, verbose_name='short name')),
                 ('start_time', models.DateTimeField(null=True, verbose_name='start time (UTC)', blank=True)),
-                ('api_token', seuranta.fields.ShortUUIDField(default=b'', verbose_name='api token', editable=False)),
-                ('access_code', models.CharField(default=b'', verbose_name='access code', max_length=8, editable=False, blank=True)),
+                ('access_code', models.CharField(default=seuranta.models.generate_access_code, max_length=8, verbose_name='access code', blank=True)),
                 ('approved', models.BooleanField(default=False, verbose_name='approved')),
             ],
             options={
                 'ordering': ['competition', 'start_time', 'name'],
                 'verbose_name': 'competitor',
                 'verbose_name_plural': 'competitors',
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='CompetitorToken',
+            fields=[
+                ('key', models.CharField(max_length=40, serialize=False, primary_key=True)),
+                ('created', models.DateTimeField(auto_now_add=True)),
+                ('competitor', models.OneToOneField(related_name=b'token', to='seuranta.Competitor')),
+            ],
+            options={
+                'verbose_name': 'competitor publishing token',
+                'verbose_name_plural': 'competitor publishing tokens',
             },
             bases=(models.Model,),
         ),
@@ -82,7 +94,7 @@ class Migration(migrations.Migration):
             name='Route',
             fields=[
                 ('id', seuranta.fields.ShortUUIDField(primary_key=True, serialize=False, editable=False, verbose_name='identifier')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created', models.DateTimeField(auto_now_add=True)),
                 ('encoded_data', models.TextField(verbose_name='encoded route points')),
                 ('_start_datetime', models.DateTimeField(editable=False)),
                 ('_finish_datetime', models.DateTimeField(editable=False)),
@@ -90,7 +102,7 @@ class Migration(migrations.Migration):
                 ('_south', models.FloatField(editable=False, validators=[seuranta.utils.validators.validate_latitude])),
                 ('_east', models.FloatField(editable=False, validators=[seuranta.utils.validators.validate_longitude])),
                 ('_west', models.FloatField(editable=False, validators=[seuranta.utils.validators.validate_longitude])),
-                ('_count', models.PositiveIntegerField()),
+                ('_count', models.PositiveIntegerField(editable=False)),
                 ('competitor', models.ForeignKey(related_name=b'defined_routes', verbose_name='route', to='seuranta.Competitor')),
             ],
             options={
@@ -105,10 +117,6 @@ class Migration(migrations.Migration):
             name='competition',
             field=models.ForeignKey(related_name=b'competitors', verbose_name='competition', to='seuranta.Competition'),
             preserve_default=True,
-        ),
-        migrations.AlterUniqueTogether(
-            name='competitor',
-            unique_together=set([('api_token', 'competition'), ('access_code', 'competition')]),
         ),
         migrations.AddField(
             model_name='competition',

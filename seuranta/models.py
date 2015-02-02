@@ -338,7 +338,7 @@ class Map(models.Model):
     @models.permalink
     def get_image_url(self):
         kwargs = {'pk': self.competition.pk, }
-        return "seuranta_api_map_download", (), kwargs
+        return "seuranta_api_download_map", (), kwargs
     image_url = property(get_image_url)
 
     @property
@@ -468,10 +468,12 @@ def map_post_delete_handler(sender, **kwargs):
 class CompetitorManager(models.Manager):
 
     def create(self, *args, **kwargs):
-        kwargs.setdefault('api_token', short_uuid())
         kwargs.setdefault('access_code', make_random_code(5))
         return super(CompetitorManager, self).create(*args, **kwargs)
 
+
+def generate_access_code():
+    make_random_code(5)
 
 class Competitor(models.Model):
     objects = CompetitorManager()
@@ -494,20 +496,12 @@ class Competitor(models.Model):
         null=True,
         blank=True,
     )
-    api_token = ShortUUIDField(
-        _("api token"),
-        blank=True,
-        null=False,
-        editable=False,
-        default='',
-    )
     access_code = models.CharField(
         _('access code'),
         max_length=8,
         blank=True,
         null=False,
-        editable=False,
-        default='',
+        default=generate_access_code,
     )
     approved = models.BooleanField(
         _('approved'),
@@ -542,9 +536,6 @@ class Competitor(models.Model):
                 self.access_code = code
                 break
 
-    def reset_api_token(self):
-        self.api_token = short_uuid()
-
     def clean(self):
         super(Competitor, self).clean()
         if self.start_time \
@@ -555,10 +546,6 @@ class Competitor(models.Model):
             )
 
     def save(self, *args, **kwargs):
-        if not self.api_token:
-            self.reset_api_token()
-        if not self.access_code:
-            self.reset_access_code()
         super(Competitor, self).save(*args, **kwargs)
 
     def __unicode__(self):
@@ -566,18 +553,36 @@ class Competitor(models.Model):
                                         self.competition)
 
     class Meta:
-        unique_together = (
-            ("api_token", "competition"),
-            ("access_code", "competition"),
-        )
         ordering = ["competition", "start_time", "name"]
         verbose_name = _("competitor")
         verbose_name_plural = _("competitors")
 
 
+class CompetitorToken(models.Model):
+    key = models.CharField(max_length=40, primary_key=True)
+    competitor = models.OneToOneField(Competitor, related_name='token')
+    created = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.generate_key()
+        return super(CompetitorToken, self).save(*args, **kwargs)
+
+    @staticmethod
+    def generate_key():
+        return make_random_code(32)
+
+    def __str__(self):
+        return self.key
+
+    class Meta:
+        verbose_name = _("competitor publishing token")
+        verbose_name_plural = _("competitor publishing tokens")
+
+
 class Route(models.Model):
     id = ShortUUIDField(_("identifier"), primary_key=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(auto_now_add=True)
     competitor = models.ForeignKey(Competitor,
                                    verbose_name=_("route"),
                                    related_name="defined_routes",)
@@ -588,7 +593,7 @@ class Route(models.Model):
     _south = models.FloatField(validators=[validate_latitude], editable=False)
     _east = models.FloatField(validators=[validate_longitude], editable=False)
     _west = models.FloatField(validators=[validate_longitude], editable=False)
-    _count = models.PositiveIntegerField()
+    _count = models.PositiveIntegerField(editable=False)
 
     @property
     def data(self):

@@ -45,42 +45,57 @@ urlpatterns += patterns(
     url(
         r'^api/competition/?$',
         api_views.CompetitionListView.as_view(),
-        name='seuranta_api_competition_list'
+        name='seuranta_api_competitions'
     ),
     url(
         r'^api/competition/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        api_views.CompetitionDetailView.as_view(),
-        name='seuranta_api_competition_detail'
+        api_views.competition,
+        name='seuranta_api_competition'
     ),
     url(
         r'^api/map/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        api_views.MapDetailView.as_view(),
-        name='seuranta_api_map_detail'
+        api_views.competition_map,
+        name='seuranta_api_competition_map'
     ),
     url(
         r'^api/map/(?P<pk>[-a-zA-Z0-9_]{22})\.jpg$',
         api_views.download_map,
-        name='seuranta_api_map_download'
+        name='seuranta_api_download_map'
     ),
     url(
         r'^api/competitor/?$',
-        api_views.CompetitorListView.as_view(),
-        name='seuranta_api_competitor_list'
+        api_views.competitors,
+        name='seuranta_api_competitors'
     ),
     url(
         r'^api/competitor/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        api_views.CompetitorDetailView.as_view(),
+        api_views.competitor,
         name='seuranta_api_competitor_detail'
     ),
     url(
+        r'^api/competitor_token/obtain/?$',
+        api_views.obtain_competitor_token,
+        name='seuranta_api_obtain_competitor_token'
+    ),
+    url(
+        r'^api/competitor_token/destroy/?$',
+        api_views.destroy_competitor_token,
+        name='seuranta_api_destroy_competitor_detail'
+    ),
+    url(
         r'^api/route/?$',
-        api_views.RouteListView.as_view(),
-        name='seuranta_api_route_list'
+        api_views.routes,
+        name='seuranta_api_routes'
     ),
     url(
         r'^api/route/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        api_views.CompetitorRouteDetailView.as_view(),
-        name='seuranta_api_route_list'
+        api_views.competitor_route,
+        name='seuranta_api_competitor_route'
     ),
+    # url(
+    #    r'^api/location/post'
+    #    api_views.RouteListView.as_view(),
+    #    name='seuranta_api_route_list'
+    # ),
 )
 

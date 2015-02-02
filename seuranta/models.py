@@ -518,8 +518,8 @@ class Competitor(models.Model):
 
     def get_full_route(self):
         result = GeoLocationSeries('')
-        for route in self.defined_routes:
-            result.union(route.data)
+        for route in self.defined_routes.all():
+            result = result.union(route.data)
         return result
 
     def set_full_route(self, value):
@@ -577,6 +577,7 @@ class Competitor(models.Model):
 
 class Route(models.Model):
     id = ShortUUIDField(_("identifier"), primary_key=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     competitor = models.ForeignKey(Competitor,
                                    verbose_name=_("route"),
                                    related_name="defined_routes",)
@@ -605,7 +606,7 @@ class Route(models.Model):
         return self.data.get_bounds()
 
     def save(self, *args, **kwargs):
-        bounds = self.bounds
+        bounds = self.get_bounds()
         if bounds:
             self._start_datetime = utc.localize(
                 datetime.datetime.fromtimestamp(bounds['start_timestamp'])
@@ -619,6 +620,11 @@ class Route(models.Model):
             self._east = bounds['east']
         self._count = len(self.data)
         super(Route, self).save(*args, **kwargs)
+
+    # define token property to use with serializer
+    @property
+    def token(self):
+        return None
 
     class Meta:
         ordering = ["-_start_datetime", 'competitor']

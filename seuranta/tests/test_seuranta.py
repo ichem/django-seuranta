@@ -69,8 +69,7 @@ class ApiTestCase(APITestCase):
             {'username': 'alice', 'password': 'passw0rd!'},
             format='json'
         )
-        self.assertTrue(response.data != response2.data)
-
+        self.assertTrue(response.data['token'] != response2.data['token'])
 
     def test_create_public_competition(self):
         """

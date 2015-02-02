@@ -82,6 +82,7 @@ class Migration(migrations.Migration):
             name='Route',
             fields=[
                 ('id', seuranta.fields.ShortUUIDField(primary_key=True, serialize=False, editable=False, verbose_name='identifier')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('encoded_data', models.TextField(verbose_name='encoded route points')),
                 ('_start_datetime', models.DateTimeField(editable=False)),
                 ('_finish_datetime', models.DateTimeField(editable=False)),

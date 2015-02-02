@@ -1,6 +1,6 @@
 from pytz import timezone, common_timezones
-from rest_framework import serializers
-from rest_framework.authtoken.models import Token
+from rest_framework import exceptions, serializers
+from django.utils.translation import ugettext_lazy as _
 from seuranta.models import Competitor, Competition, Map, Route
 from seuranta.utils.geo import GeoLocationSeries
 
@@ -93,11 +93,28 @@ class CompetitorRouteSerializer(serializers.ModelSerializer):
 
 
 class RouteSerializer(serializers.ModelSerializer):
+    received = serializers.DateTimeField(source='created_at')
 
     class Meta:
         model = Route
-        fields = ('id', 'competitor', 'encoded_data')
+        fields = ('received', 'competitor', 'encoded_data')
 
+
+class PostRouteSerializer(RouteSerializer):
+    token = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        validated_data = super(PostRouteSerializer, self).validate(attrs)
+        token = validated_data.get('token')
+        competitor = validated_data.get('competitor')
+        if competitor.api_token != token:
+            msg = _('Invalid competitor token')
+            raise exceptions.ValidationError(msg)
+        return validated_data
+
+    class Meta:
+        model = Route
+        fields = ('id', 'competitor', 'encoded_data', 'token')
 
 
 class CompetitorSerializer(serializers.ModelSerializer):

@@ -79,7 +79,7 @@ urlpatterns += patterns(
     ),
     url(
         r'^api/route/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        api_views.RouteDetailView.as_view(),
+        api_views.CompetitorRouteDetailView.as_view(),
         name='seuranta_api_route_list'
     ),
 )

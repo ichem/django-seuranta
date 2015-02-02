@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 import time
+import re
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework import generics
@@ -23,7 +24,8 @@ from seuranta.api.serializers import (CompetitorSerializer,
                                       MapSerializer,
                                       MapFullSerializer,
                                       CompetitorRouteSerializer,
-                                      EncodedRouteSerializer)
+                                      EncodedRouteSerializer, RouteSerializer,
+                                      PostRouteSerializer)
 from seuranta.utils.geo import GeoLocationSeries
 
 
@@ -33,7 +35,8 @@ logger = logging.getLogger(__name__)
 class DestroyAuthToken(APIView):
     throttle_classes = ()
     permission_classes = ()
-    parser_classes = (parsers.FormParser, parsers.MultiPartParser, parsers.JSONParser,)
+    parser_classes = (parsers.FormParser, parsers.MultiPartParser,
+                      parsers.JSONParser,)
     renderer_classes = (renderers.JSONRenderer,)
 
     def post(self, request):
@@ -77,6 +80,7 @@ def time_view(request):
     return Response({
         "time": now,
     })
+
 
 class CompetitionPermission(permissions.BasePermission):
     """
@@ -127,7 +131,7 @@ class CompetitionListView(generics.ListCreateAPIView):
         competition_id = self.request.query_params.get("id")
         competition_ids = self.request.query_params.getlist("id[]")
         publisher = self.request.query_params.get("publisher")
-        status = self.request.query_params.get("status")
+        state = self.request.query_params.get("status")
         reverse_order = self.request.query_params.get("reverse_order")
         if competition_id:
             qs = qs.filter(pk=competition_id)
@@ -140,16 +144,16 @@ class CompetitionListView(generics.ListCreateAPIView):
             qs = qs.filter(query)
         if publisher:
             qs = qs.filter(publisher__username=publisher)
-        if status:
-            if status not in ('live', 'archived', 'upcoming'):
+        if state:
+            if state not in ('live', 'archived', 'upcoming'):
                 raise ParseError("Invalid value for parameter status")
             current_date = datetime.utcnow()
-            if status == "live":
+            if state == "live":
                 qs = qs.filter(start_date__lte=current_date,
                                end_date__gte=current_date)
-            if status == "archived":
+            if state == "archived":
                 qs = qs.filter(end_date__lt=current_date)
-            if status == "upcoming":
+            if state == "upcoming":
                 qs = qs.filter(start_date__gt=current_date)
         if reverse_order:
             qs = qs.order_by('start_date', 'name')
@@ -385,7 +389,7 @@ class CompetitorDetailView(generics.RetrieveUpdateDestroyAPIView):
         super(CompetitorDetailView, self).perform_destroy(instance)
 
 
-class RouteListView(generics.ListAPIView):
+class RouteListView(generics.ListCreateAPIView):
     """
     List Routes API
     ---------------
@@ -411,15 +415,31 @@ class RouteListView(generics.ListAPIView):
         self.max_paginate_by = 1000
         super(RouteListView, self).__init__()
 
-#    def get_serializer_class(self):
-#        class CustomCompetitorRouteSerializer(CompetitorRouteSerializer):
-#            class CustomRouteSerializer(EncodedRouteSerializer):
-#                min_timestamp = float(self.request.query_params.get("start",
-#                                                                    '-inf'))
-#                max_timestamp = float(self.request.query_params.get("end",
-#                                                                    '+inf'))
-#            encoded_route = CustomRouteSerializer(source='route')
-#        return CustomCompetitorRouteSerializer
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            if self.request.user.is_superuser:
+                return PostRouteSerializer
+            if self.request.user.is_anonymous():
+                possible_competition_ids = Competition.objects.filter(
+                    publication_policy='public'
+                )
+            else:
+                possible_competition_ids = Competition.objects.filter(
+                    Q(publisher=self.request.user)
+                    | Q(publication_policy='public')
+                ).values_list('pk', flat=True)
+            possible_competitor = Competitor.objects.filter(
+                competition_id__in=possible_competition_ids
+            )
+
+            class CustomPostRouteSerializer(PostRouteSerializer):
+                competitor = serializers.PrimaryKeyRelatedField(
+                    queryset=possible_competitor
+                )
+
+            return CustomPostRouteSerializer
+        else:
+            return RouteSerializer
 
     def get_queryset(self):
         qs = super(RouteListView, self).get_queryset()
@@ -430,11 +450,11 @@ class RouteListView(generics.ListAPIView):
         if competitor_id:
             qs = qs.filter(competitor_id=competitor_id)
         if competition_id:
-            competitor_ids = Competitor.filter(
+            competitor_ids = Competitor.objects.filter(
                 competition_id=competition_id
             ).values_list('pk', flat=True)
         elif competition_ids:
-            competitor_ids = Competitor.filter(
+            competitor_ids = Competitor.objects.filter(
                 competition_id__in=competition_ids
             ).values_list('pk', flat=True)
         if not (competition_ids or competition_id
@@ -445,7 +465,7 @@ class RouteListView(generics.ListAPIView):
             competition_ids = Competition.objects.filter(
                 query
             ).values_list('pk', flat=True)
-            competitor_ids = Competitor.filter(
+            competitor_ids = Competitor.objects.filter(
                 competition_id__in=competition_ids
             ).values_list('pk', flat=True)
         if competitor_ids:
@@ -453,30 +473,36 @@ class RouteListView(generics.ListAPIView):
         return qs
 
 
-class RouteDetailView(generics.RetrieveUpdateAPIView):
+class CompetitorRouteDetailView(generics.RetrieveUpdateAPIView):
     """
     Retrieve or Update competitor Route
     -----------------------------------
-
     Optional query parameters:
-
-      - competitor_token -- Specify the token for this competitor
       - start -- Minimum time of route data (unix timestamp)
       - end -- Maximum time of route data (unix timestamp)
-      - encoded_route_portion -- encoded portion of route to add
     """
     queryset = Competitor.objects.all()
     permission_classes = (permissions.AllowAny, )
 
     def get_serializer_class(self):
-        class CustomCompetitorRouteSerializer(CompetitorRouteSerializer):
-            class CustomRouteSerializer(EncodedRouteSerializer):
-                min_timestamp = float(self.request.query_params.get("start",
-                                                                    '-inf'))
-                max_timestamp = float(self.request.query_params.get("end",
-                                                                    '+inf'))
-            encoded_route = CustomRouteSerializer(source='route')
-        return CustomCompetitorRouteSerializer
+        if self.request.method == 'GET':
+            min_timestamp = self.request.query_params.get("start", '-inf')
+            max_timestamp = self.request.query_params.get("end", '+inf')
+            if (min_timestamp != '-inf'
+                and not re.match(r'\d+(\.\d+)?', min_timestamp)) \
+               or (max_timestamp != '+inf' \
+                   and not re.match(r'\d+(\.\d+)?', max_timestamp)):
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            min_timestamp_arg = float(min_timestamp)
+            max_timestamp_arg = float(max_timestamp)
+
+            class CustomCompetitorRouteSerializer(CompetitorRouteSerializer):
+                class CustomRouteSerializer(EncodedRouteSerializer):
+                    min_timestamp = min_timestamp_arg
+                    max_timestamp = max_timestamp_arg
+                encoded_route = CustomRouteSerializer(source='route')
+            return CustomCompetitorRouteSerializer
+        return CompetitorRouteSerializer
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)

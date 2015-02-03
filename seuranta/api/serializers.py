@@ -1,9 +1,8 @@
 from pytz import timezone, common_timezones
-from rest_framework import exceptions, serializers
 from django.utils.translation import ugettext_lazy as _
-from seuranta.models import Competitor, Competition, Map, Route, \
-    CompetitorToken
-from seuranta.utils import make_random_code
+from rest_framework import exceptions, serializers
+from seuranta.models import (Competitor, Competition, Map, Route,
+                             CompetitorToken)
 from seuranta.utils.geo import GeoLocationSeries
 
 
@@ -151,8 +150,15 @@ class CompetitorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Competitor
-        fields = ('id', 'competition', 'name', 'short_name', 'start_time',
-                  'approved', 'access_code')
+        fields = (
+            'id',
+            'updated',
+            'competition',
+            'name', 'short_name',
+            'start_time',
+            'approved',
+            'access_code'
+        )
 
     def validate_competition(self, value):
         if self.instance is not None and self.instance.competition != value:
@@ -175,8 +181,16 @@ class AnonCompetitorSerializer(CompetitorSerializer):
 
     class Meta:
         model = Competitor
-        fields = ('id', 'competition', 'name', 'short_name', 'start_time',
-                  'approved', 'access_code', 'token')
+        fields = (
+            'id',
+            'updated',
+            'competition',
+            'name', 'short_name',
+            'start_time',
+            'approved',
+            'access_code',
+            'token'
+        )
 
     def validate(self, data):
         validated_data = super(AnonCompetitorSerializer, self).validate(data)
@@ -200,19 +214,20 @@ class MapSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Map
-        fields = ('update_date',
-                  'public_url',
-                  'size',
-                  'top_left_lat',
-                  'top_left_lng',
-                  'top_right_lat',
-                  'top_right_lng',
-                  'bottom_right_lat',
-                  'bottom_right_lng',
-                  'bottom_left_lat',
-                  'bottom_left_lng',
-                  'display_mode',
-                  'background_tile_url',
+        fields = (
+            'updated',
+            'public_url',
+            'size',
+            'top_left_lat',
+            'top_left_lng',
+            'top_right_lat',
+            'top_right_lng',
+            'bottom_right_lat',
+            'bottom_right_lng',
+            'bottom_left_lat',
+            'bottom_left_lng',
+            'display_mode',
+            'background_tile_url',
         )
 
 
@@ -230,20 +245,21 @@ class MapFullSerializer(MapSerializer):
 
     class Meta:
         model = Map
-        fields = ('update_date',
-                  'data_uri',
-                  'public_url',
-                  'size',
-                  'top_left_lat',
-                  'top_left_lng',
-                  'top_right_lat',
-                  'top_right_lng',
-                  'bottom_right_lat',
-                  'bottom_right_lng',
-                  'bottom_left_lat',
-                  'bottom_left_lng',
-                  'display_mode',
-                  'background_tile_url',
+        fields = (
+            'updated',
+            'data_uri',
+            'public_url',
+            'size',
+            'top_left_lat',
+            'top_left_lng',
+            'top_right_lat',
+            'top_right_lng',
+            'bottom_right_lat',
+            'bottom_right_lng',
+            'bottom_left_lat',
+            'bottom_left_lng',
+            'display_mode',
+            'background_tile_url',
         )
 
 
@@ -264,16 +280,19 @@ class CompetitionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Competition
-        fields = ('id',
-                  'publisher',
-                  'name', 'slug',
-                  'live_delay',
-                  'latitude', 'longitude', 'zoom',
-                  'publication_policy', 'signup_policy',
-                  'publish_date', 'update_date', 'start_date', 'end_date',
-                  'timezone',
-                  'map',
-                  'competitors', 'pending_competitors')
+        fields = (
+            'id',
+            'updated',
+            'publisher',
+            'name', 'slug',
+            'live_delay',
+            'latitude', 'longitude', 'zoom',
+            'publication_policy', 'signup_policy',
+            'publish_date', 'update_date', 'start_date', 'end_date',
+            'timezone',
+            'map',
+            'competitors', 'pending_competitors'
+        )
 
     def validate(self, data):
         if data.get('start_date') >= data.get('end_date'):

@@ -68,6 +68,7 @@ def map_upload_path(instance=None, file_name=None):
     basename = os.path.basename(filename)
     tmp_path.append(instance.competition.publisher.username)
     tmp_path.append(basename[0])
+    tmp_path.append(basename[1])
     tmp_path.append(basename)
     return os.path.join(*tmp_path)
 

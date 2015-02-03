@@ -8,11 +8,6 @@ def make_random_code(length):
     return out
 
 
-def format_date_iso(val):
-    from django.utils.timezone import utc
-    return (val.astimezone(utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
 def slugify(s):
     from django.template.defaultfilters import slugify as _slugify
     try:
@@ -55,27 +50,6 @@ def format_size(amount, si=True):
     return u"%s%.1f%s%s" % (sign, amount, unit_prefix[ui], unit)
 
 
-def short_uuid():
-    import uuid
-    return uuid.uuid4().bytes.encode('base64').rstrip('=\n')\
-        .replace('/', '_').replace('+', '-')
-
-
-def short_sha256(val):
-    from hashlib import sha256
-    return sha256(val).digest().encode('base64')\
-        .rstrip('=\n').replace('/', '_').replace('+', '-')
-
-
-def cmp_float(a, b):
-    if abs(a-b) < 1e-9:
-        return 0
-    elif a-b < 0:
-        return -1
-    else:
-        return 1
-
-
 def solve_affine_matrix(r1, s1, t1, r2, s2, t2, r3, s3, t3):
     a = (((t2 - t3) * (s1 - s2)) - ((t1 - t2) * (s2 - s3))) \
         / (((r2 - r3) * (s1 - s2)) - ((r1 - r2) * (s2 - s3)))
@@ -98,12 +72,3 @@ def derive_affine_transform(a0x, a0y, a1x, a1y, b0x, b0y, b1x, b1y, c0x, c0y,
         c0x, c0y, c1y
     )
     return tuple(x+y)
-
-
-def remote_file_exist(url):
-    import requests
-    try:
-        requests.head(url).raise_for_status()
-        return True
-    except:
-        return False

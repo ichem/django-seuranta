@@ -13,8 +13,7 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
-from rest_framework.exceptions import (ParseError,
-                                       PermissionDenied)
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework import status
 from rest_framework.views import APIView
 from seuranta.models import Competitor, Competition, Route, CompetitorToken
@@ -110,7 +109,7 @@ def download_map(request, pk):
 
 
 @api_view(['GET', ])
-def time_view(request):
+def get_time(request):
     now = time.time()
     return Response({
         "time": now,

@@ -77,9 +77,9 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 REST_FRAMEWORK = {
-    'PAGINATE_BY': 20,                       # Default to 10
-    'PAGINATE_BY_PARAM': 'result_per_page',  # Allow client to override, using `?page_size=xxx`.
-    'MAX_PAGINATE_BY': 1000,                 # Maximum limit allowed when using `?page_size=xxx`.
+    'PAGINATE_BY': 20,
+    'PAGINATE_BY_PARAM': 'result_per_page',
+    'MAX_PAGINATE_BY': 1000,
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',

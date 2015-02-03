@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
-
 from seuranta.models import (Competition, Competitor, Route, Map,
                              CompetitorToken)
 
@@ -10,37 +9,6 @@ class PublisherAdmin(admin.ModelAdmin):
         if obj.publisher_id is None:
             obj.publisher = request.user
         obj.save()
-
-    def get_queryset(self, request):
-        qs = super(PublisherAdmin, self).get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(publisher=request.user)
-
-    def has_add_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        if obj is None:
-            return True
-        else:
-            return obj.publisher == request.user
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        if obj is None:
-            return True
-        else:
-            return obj.publisher == request.user
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-
-        if obj is None:
-            return True
-        else:
-            return obj.publisher == request.user
 
 
 class RouteInlineAdmin(admin.TabularInline):
@@ -96,31 +64,6 @@ class CompetitorAdmin(admin.ModelAdmin):
             competitor.merge_route()
             competitor.save()
     merge_route_points.short_description = _("Merge Route Points")
-
-    def get_queryset(self, request):
-        qs = super(CompetitorAdmin, self).get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(competition__publisher=request.user)
-
-    #def has_add_permission(self, request, obj=None):
-    #    return False
-
-    #def has_change_permission(self, request, obj=None):
-    #    if request.user.is_superuser:
-    #        return True
-    #    if obj is None:
-    #        return True
-    #    else:
-    #        return obj.competition.publisher == request.user
-
-    #def has_delete_permission(self, request, obj=None):
-    #    if request.user.is_superuser:
-    #        return True
-    #    if obj is None:
-    #        return True
-    #    else:
-    #        return obj.competition.publisher == request.user
 
 
 class CompetitionAdmin(PublisherAdmin):

@@ -1,8 +1,7 @@
 markdown
 pillowfight
 pytz
-requests
-unidecode
+unidecodel
 django == 1.7
 django-appconf
 djangorestframework >= 3.0.0

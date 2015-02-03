@@ -1,2 +1,2 @@
--r app_requirements.txt
+-r requirements.txt
 coverage

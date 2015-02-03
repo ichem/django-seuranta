@@ -87,11 +87,11 @@ class EncodedRouteSerializer(serializers.CharField):
 
 
 class CompetitorRouteSerializer(serializers.ModelSerializer):
-    encoded_route = EncodedRouteSerializer(source='route')
+    encoded_data = EncodedRouteSerializer(source='route')
 
     class Meta:
         model = Competitor
-        fields = ('id', 'encoded_route')
+        fields = ('id', 'encoded_data')
 
 
 class RouteSerializer(serializers.ModelSerializer):

@@ -190,7 +190,42 @@ class ApiTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(response.data['approved'])
 
-    def test_publish_route_as_anon(self):
+    def test_competitor_token(self):
+        url_api_competition = reverse('seuranta_api_competitions')
+        url_api_competitor = reverse('seuranta_api_competitors')
+        url_api_token = reverse('seuranta_api_obtain_competitor_token')
+        client = APIClient()
+        client.login(username='alice', password='passw0rd!')
+        competition_data = self.basic_competition_data
+        response = client.post(url_api_competition, competition_data,
+                               format='json')
+        competition_id = response.data['id']
+        competitor_data = self.basic_competitor_data
+        competitor_data['competition'] = competition_id
+        response = client.post(url_api_competitor, competitor_data,
+                               format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        competitor_id = response.data['id']
+        access_code = self.basic_competitor_data['access_code']
+        client.logout()
+        cred = {
+            'competitor': competitor_id,
+            'access_code': access_code,
+        }
+        response = client.post(url_api_token, cred, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pub_token1 = response.data['token']
+        response = client.post(
+            reverse('seuranta_api_destroy_competitor_token'),
+            cred,
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = client.post(url_api_token, cred, format='json')
+        pub_token2 = response.data['token']
+        self.assertTrue(pub_token1 != pub_token2)
+
+    def test_publish_route(self):
         url_api_competition = reverse('seuranta_api_competitions')
         url_api_competitor = reverse('seuranta_api_competitors')
         client = APIClient()
@@ -205,6 +240,7 @@ class ApiTestCase(APITestCase):
                                format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         competitor_id = response.data['id']
+        client.logout()
         response = client.post(
             reverse('seuranta_api_obtain_competitor_token'),
             {
@@ -215,17 +251,29 @@ class ApiTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         pub_token = response.data['token']
-        client.logout()
         response = client.post(
             reverse('seuranta_api_routes'),
             {
                 'competitor': competitor_id,
-                'encoded_data': 'A??AAA',
+                'encoded_data': 'A??',
                 'token': pub_token,
             }
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
+        client.post(
+            reverse('seuranta_api_routes'),
+            {
+                'competitor': competitor_id,
+                'encoded_data': 'CAA',
+                'token': pub_token,
+            }
+        )
+        response = client.get(
+            reverse('seuranta_api_competitor_route',
+                    kwargs={'pk': competitor_id}),
+            format='json'
+        )
+        self.assertEqual(response.data['encoded_data'], 'A??AAA')
 
 class GeoToolTestCase(TestCase):
 

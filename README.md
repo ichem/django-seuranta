@@ -1,10 +1,7 @@
 django-seuranta
 ===============
 
-An application dedicated to live gps tracking for orienteering events.
-You can either use django-seuranta as standalone application or add it to
-your django project.
-
+Live gps tracking server for orienteering events.
 
 [![Build Status](https://travis-ci.org/rphlo/django-seuranta.svg?branch=dev)](https://travis-ci.org/rphlo/django-seuranta)
 [![Coverage Status](https://coveralls.io/repos/rphlo/django-seuranta/badge.svg?branch=dev)](https://coveralls.io/r/rphlo/django-seuranta?branch=dev)

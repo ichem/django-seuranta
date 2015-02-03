@@ -77,7 +77,7 @@ class DestroyCompetitorToken(APIView):
     renderer_classes = (renderers.JSONRenderer,)
 
     def post(self, request):
-        serializer = AuthTokenSerializer(data=request.data)
+        serializer = CompetitorTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         competitor = serializer.validated_data['competitor']
         token = CompetitorToken.objects.filter(competitor=competitor)
@@ -508,7 +508,7 @@ class CompetitorRouteDetailView(generics.RetrieveUpdateAPIView):
                 class CustomRouteSerializer(EncodedRouteSerializer):
                     min_timestamp = min_timestamp_arg
                     max_timestamp = max_timestamp_arg
-                encoded_route = CustomRouteSerializer(source='route')
+                encoded_data = CustomRouteSerializer(source='route')
             return CustomCompetitorRouteSerializer
         return CompetitorRouteSerializer
 

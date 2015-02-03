@@ -79,7 +79,7 @@ urlpatterns += patterns(
     url(
         r'^api/competitor_token/destroy/?$',
         api_views.destroy_competitor_token,
-        name='seuranta_api_destroy_competitor_detail'
+        name='seuranta_api_destroy_competitor_token'
     ),
     url(
         r'^api/route/?$',

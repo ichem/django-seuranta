@@ -245,7 +245,6 @@ class MapDetailView(generics.RetrieveUpdateDestroyAPIView):
         obj = competition.map
         # May raise a permission denied
         self.check_object_permissions(self.request, obj)
-
         return obj
 
 

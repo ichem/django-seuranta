@@ -176,7 +176,7 @@ class AnonCompetitorSerializer(CompetitorSerializer):
     class Meta:
         model = Competitor
         fields = ('id', 'competition', 'name', 'short_name', 'start_time',
-                  'approved', 'token')
+                  'approved', 'access_code', 'token')
 
     def validate(self, data):
         validated_data = super(AnonCompetitorSerializer, self).validate(data)

@@ -74,6 +74,7 @@ def map_upload_path(instance=None, file_name=None):
 
 class Competition(models.Model):
     id = ShortUUIDField(_("identifier"), primary_key=True)
+    updated = models.DateTimeField(auto_now=True)
     publish_date = models.DateTimeField(_('publication date'),
                                         auto_now_add=True)
     update_date = models.DateTimeField(_("last update"), auto_now=True)
@@ -233,7 +234,7 @@ class Map(models.Model):
     competition = models.OneToOneField(Competition,
                                        related_name='defined_map',
                                        primary_key=True)
-    update_date = models.DateTimeField(auto_now=True)
+    updated = models.DateTimeField(auto_now=True)
     image = models.ImageField(
         _("image"),
         upload_to=map_upload_path,
@@ -463,16 +464,9 @@ def map_post_delete_handler(sender, **kwargs):
         storage.delete(path)
 
 
-#class CompetitorManager(models.Manager):
-#
-#    def create(self, *args, **kwargs):
-#        #kwargs.setdefault('access_code', make_random_code(5))
-#        return super(CompetitorManager, self).create(*args, **kwargs)
-
-
 class Competitor(models.Model):
-#    objects = CompetitorManager()
     id = ShortUUIDField(_("identifier"), primary_key=True)
+    updated = models.DateTimeField(auto_now=True)
     competition = models.ForeignKey(
         Competition,
         verbose_name=_('competition'),

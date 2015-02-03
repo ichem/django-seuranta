@@ -11,11 +11,11 @@ urlpatterns = patterns(
         TemplateView.as_view(template_name='seuranta/home.html'),
         name='seuranta_home'
     ),
-    url(
-        r'^dashboard/?$',
-        TemplateView.as_view(template_name='seuranta/dashboard.html'),
-        name='seuranta_dashboard'
-    ),
+    #url(
+    #    r'^dashboard/?$',
+    #    TemplateView.as_view(template_name='seuranta/dashboard.html'),
+    #    name='seuranta_dashboard'
+    #),
     url(
         r'media/seuranta/maps/(?P<publisher>[^/]+)/'
         r'(?P<hash>[-0-9a-zA-Z_])/(?P<pk>(?P=hash)[-0-9a-zA-Z_]{21})',

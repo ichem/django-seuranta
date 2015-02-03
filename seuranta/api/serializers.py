@@ -35,31 +35,31 @@ class CompetitorMiniSerializer(serializers.ModelSerializer):
         read_only = ('id', 'name', 'short_name', 'start_time', )
 
 
-class RouteSerializer(serializers.CharField):
-    min_timestamp = None
-    max_timestamp = None
-
-    def to_representation(self, value):
-        timestamps = []
-        coordinates = []
-        min_timestamp = self.min_timestamp or float('-inf')
-        max_timestamp = self.max_timestamp or float('inf')
-        for point in value:
-            if point.timestamp < min_timestamp:
-                continue
-            elif point.timestamp > max_timestamp:
-                continue
-            else:
-                timestamps.append(point.timestamp)
-                coordinates.append((float(point.coordinates.latitude),
-                                    float(point.coordinates.longitude)))
-        return {
-            'timestamps': timestamps,
-            'coordinates': coordinates,
-        }
-
-    def to_internal_value(self, data):
-        pass
+# class JsonRouteSerializer(serializers.CharField):
+#     min_timestamp = None
+#     max_timestamp = None
+#
+#     def to_representation(self, value):
+#         timestamps = []
+#         coordinates = []
+#         min_timestamp = self.min_timestamp or float('-inf')
+#         max_timestamp = self.max_timestamp or float('inf')
+#         for point in value:
+#             if point.timestamp < min_timestamp:
+#                 continue
+#             elif point.timestamp > max_timestamp:
+#                 continue
+#             else:
+#                 timestamps.append(point.timestamp)
+#                 coordinates.append((float(point.coordinates.latitude),
+#                                     float(point.coordinates.longitude)))
+#         return {
+#             'timestamps': timestamps,
+#             'coordinates': coordinates,
+#         }
+#
+#     def to_internal_value(self, data):
+#         pass
 
 
 class EncodedRouteSerializer(serializers.CharField):

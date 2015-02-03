@@ -463,15 +463,15 @@ def map_post_delete_handler(sender, **kwargs):
         storage.delete(path)
 
 
-class CompetitorManager(models.Manager):
-
-    def create(self, *args, **kwargs):
-        kwargs.setdefault('access_code', make_random_code(5))
-        return super(CompetitorManager, self).create(*args, **kwargs)
+#class CompetitorManager(models.Manager):
+#
+#    def create(self, *args, **kwargs):
+#        #kwargs.setdefault('access_code', make_random_code(5))
+#        return super(CompetitorManager, self).create(*args, **kwargs)
 
 
 class Competitor(models.Model):
-    objects = CompetitorManager()
+#    objects = CompetitorManager()
     id = ShortUUIDField(_("identifier"), primary_key=True)
     competition = models.ForeignKey(
         Competition,
@@ -548,9 +548,6 @@ class Competitor(models.Model):
             raise ValidationError(
                 'start_time does not respect competition schedule'
             )
-
-    def save(self, *args, **kwargs):
-        super(Competitor, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return u"{} \"{}\" > {}".format(_(u"Competitor"), self.name,

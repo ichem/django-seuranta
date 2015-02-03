@@ -30,6 +30,7 @@ class ApiTestCase(APITestCase):
         self.basic_competitor_data = {
             'name': 'Kapteeni Kiila',
             'short_name': 'KK',
+            'access_code': '12345',
             'approved': True,
         }
 
@@ -188,6 +189,42 @@ class ApiTestCase(APITestCase):
                                format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(response.data['approved'])
+
+    def test_publish_route_as_anon(self):
+        url_api_competition = reverse('seuranta_api_competitions')
+        url_api_competitor = reverse('seuranta_api_competitors')
+        client = APIClient()
+        client.login(username='alice', password='passw0rd!')
+        competition_data = self.basic_competition_data
+        response = client.post(url_api_competition, competition_data,
+                               format='json')
+        competition_id = response.data['id']
+        competitor_data = self.basic_competitor_data
+        competitor_data['competition'] = competition_id
+        response = client.post(url_api_competitor, competitor_data,
+                               format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        competitor_id = response.data['id']
+        response = client.post(
+            reverse('seuranta_api_obtain_competitor_token'),
+            {
+                'competitor': competitor_id,
+                'access_code': competitor_data['access_code']
+            },
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pub_token = response.data['token']
+        client.logout()
+        response = client.post(
+            reverse('seuranta_api_routes'),
+            {
+                'competitor': competitor_id,
+                'encoded_data': 'A??AAA',
+                'token': pub_token,
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
 class GeoToolTestCase(TestCase):

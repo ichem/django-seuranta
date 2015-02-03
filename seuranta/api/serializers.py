@@ -110,9 +110,10 @@ class CompetitorTokenSerializer(serializers.Serializer):
         competitor = attrs.get('competitor')
         access_code = attrs.get('access_code')
         if competitor and access_code:
-            competitor = Competitor.objects.filter(pk=competitor,
-                                                   access_code=access_code)
-            if competitor.exists():
+            competitors = Competitor.objects.filter(pk=competitor,
+                                                    access_code=access_code)
+            if competitors.exists():
+                competitor = competitors[0]
                 if not competitor.approved:
                     msg = _('Competitor is not approved.')
                     raise exceptions.ValidationError(msg)
@@ -146,10 +147,12 @@ class PostRouteSerializer(RouteSerializer):
 
 
 class CompetitorSerializer(serializers.ModelSerializer):
+    access_code = serializers.CharField(write_only=True)
+
     class Meta:
         model = Competitor
         fields = ('id', 'competition', 'name', 'short_name', 'start_time',
-                  'approved',)
+                  'approved', 'access_code')
 
     def validate_competition(self, value):
         if self.instance is not None and self.instance.competition != value:
@@ -187,14 +190,8 @@ class AnonCompetitorSerializer(CompetitorSerializer):
         return validated_data
 
 
-class AdminCompetitorSerializer(serializers.ModelSerializer):
-    access_code = serializers.CharField(allow_blank=False,
-                                        default=lambda:make_random_code(5))
-
-    class Meta:
-        model = Competitor
-        fields = ('id', 'competition', 'name', 'short_name', 'start_time',
-                  'approved', 'access_code', )
+class AdminCompetitorSerializer(CompetitorSerializer):
+    access_code = serializers.CharField()
 
 
 class MapSerializer(serializers.ModelSerializer):

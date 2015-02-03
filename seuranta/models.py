@@ -74,11 +74,8 @@ def map_upload_path(instance=None, file_name=None):
 
 
 class Competition(models.Model):
-    id = ShortUUIDField(_("identifier"), primary_key=True)
+    id = ShortUUIDField(primary_key=True)
     updated = models.DateTimeField(auto_now=True)
-    publish_date = models.DateTimeField(_('publication date'),
-                                        auto_now_add=True)
-    update_date = models.DateTimeField(_("last update"), auto_now=True)
     timezone = models.CharField(
         verbose_name=_("timezone"),
         max_length=50,

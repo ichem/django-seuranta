@@ -288,7 +288,7 @@ class CompetitionSerializer(serializers.ModelSerializer):
             'live_delay',
             'latitude', 'longitude', 'zoom',
             'publication_policy', 'signup_policy',
-            'publish_date', 'update_date', 'start_date', 'end_date',
+            'start_date', 'end_date',
             'timezone',
             'map',
             'competitors', 'pending_competitors'

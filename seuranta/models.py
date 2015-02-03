@@ -1,6 +1,5 @@
 import datetime
 import base64
-import json
 import re
 from PIL import Image
 from pytz import common_timezones
@@ -16,12 +15,10 @@ from django.utils.translation import ugettext_lazy as _, ugettext
 from django.utils.timezone import utc, now
 from django.core.validators import MinLengthValidator
 from django.core.exceptions import ValidationError
-from django.conf import settings
-
+from seuranta.conf import settings
 from seuranta.storage import OverwriteStorage
 from seuranta.fields import ShortUUIDField
-from seuranta.utils import (short_uuid, slugify, format_date_iso,
-                            make_random_code)
+from seuranta.utils import (slugify, make_random_code)
 from seuranta.utils.geo import GeoLocationSeries
 from seuranta.utils.validators import (validate_nice_slug, validate_latitude,
                                        validate_longitude)
@@ -48,7 +45,7 @@ SIGNUP_POLICY_CHOICES = (
 MAP_DISPLAY_CHOICES = (
     ("map+bck", _('Map displayed over background')),
     ("map", _('Map only')),
-    ("bck", _('Background')),
+    ("bck", _('Background only')),
 )
 FLOAT_RE = re.compile(r'^(\-?[0-9]{1,3}(\.[0-9]+)?)$')
 LAT_IDX = 0
@@ -87,10 +84,10 @@ class Competition(models.Model):
         choices=[(tz, tz) for tz in common_timezones]
     )
     start_date = models.DateTimeField(
-        _("opening date (UTC)"),
+        _("opening date") + " (%s)" % settings.TIME_ZONE,
     )
     end_date = models.DateTimeField(
-        _("closing date (UTC)"),
+        _("closing date") + " (%s)" % settings.TIME_ZONE,
     )
     publisher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -317,7 +314,7 @@ class Map(models.Model):
     @data_uri.setter
     def data_uri(self, value):
         data_matched = re.match(
-            r'^data\:image/(?P<format>jpeg|png|gif);base64,'
+            r'^data:image/(?P<format>jpeg|png|gif);base64,'
             r'(?P<data_b64>(?:[A-Za-z0-9+/]{4})*'
             r'(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)$',
             value
@@ -455,6 +452,7 @@ class Map(models.Model):
         verbose_name = _("map")
         verbose_name_plural = _("maps")
 
+
 @receiver(post_delete, sender=Map)
 def map_post_delete_handler(sender, **kwargs):
     if sender:
@@ -471,9 +469,6 @@ class CompetitorManager(models.Manager):
         kwargs.setdefault('access_code', make_random_code(5))
         return super(CompetitorManager, self).create(*args, **kwargs)
 
-
-def generate_access_code():
-    make_random_code(5)
 
 class Competitor(models.Model):
     objects = CompetitorManager()
@@ -492,7 +487,7 @@ class Competitor(models.Model):
         max_length=50,
     )
     start_time = models.DateTimeField(
-        _('start time (UTC)'),
+        _('start time') + " (%s)" % settings.TIME_ZONE,
         null=True,
         blank=True,
     )
@@ -501,7 +496,7 @@ class Competitor(models.Model):
         max_length=8,
         blank=True,
         null=False,
-        default=generate_access_code,
+        default='',
     )
     approved = models.BooleanField(
         _('approved'),
@@ -517,17 +512,26 @@ class Competitor(models.Model):
         return result
 
     def set_full_route(self, value):
-        if len(self.defined_routes) > 0:
-            self.defined_routes.delete()
-        new_route = Route(competitor_id=self.pk)
-        new_route.route = value
-        new_route.save()
+        if self.defined_routes.exists():
+            self.defined_routes.all().delete()
+        if len(value) > 0:
+            new_route = Route(competitor_id=self.pk)
+            new_route.data = value
+            new_route.save()
 
     route = property(get_full_route, set_full_route)
 
+    def merge_route(self):
+        route = self.get_full_route()
+        self.set_full_route(route)
+
+    @staticmethod
+    def generate_access_code():
+        return make_random_code(settings.SEURANTA_ACCESS_CODE_LENGTH)
+
     def reset_access_code(self):
         while True:
-            code = make_random_code(5)
+            code = self.generate_access_code()
             existing = Competitor.objects.filter(
                 access_code=code,
                 competition_id=self.competition_id

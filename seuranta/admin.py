@@ -65,12 +65,14 @@ class CompetitorAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
             'fields': ('name', 'short_name', )
-        }),(_('Schedule'), {
+        }), (_('Schedule'), {
             'fields': ('start_time', )
+        }), (_('Miscellaneous'), {
+            'fields': ('access_code', )
         }),
     )
     list_filter = ('competition__name', 'approved')
-    actions = ['make_approved', 'renew_access_code']
+    actions = ['make_approved', 'renew_access_code', 'merge_route_points']
     prepopulated_fields = {'short_name': ('name', ), }
 
     def make_approved(self, request, queryset):
@@ -86,9 +88,14 @@ class CompetitorAdmin(admin.ModelAdmin):
     def renew_access_code(self, request, queryset):
         for competitor in queryset:
             competitor.reset_access_code()
-            competitor.reset_api_token()
             competitor.save()
     renew_access_code.short_description = _("Issue new access codes")
+
+    def merge_route_points(self, request, queryset):
+        for competitor in queryset:
+            competitor.merge_route()
+            competitor.save()
+    merge_route_points.short_description = _("Merge Route Points")
 
     def get_queryset(self, request):
         qs = super(CompetitorAdmin, self).get_queryset(request)
@@ -96,24 +103,24 @@ class CompetitorAdmin(admin.ModelAdmin):
             return qs
         return qs.filter(competition__publisher=request.user)
 
-    def has_add_permission(self, request, obj=None):
-        return False
+    #def has_add_permission(self, request, obj=None):
+    #    return False
 
-    def has_change_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        if obj is None:
-            return True
-        else:
-            return obj.competition.publisher == request.user
+    #def has_change_permission(self, request, obj=None):
+    #    if request.user.is_superuser:
+    #        return True
+    #    if obj is None:
+    #        return True
+    #    else:
+    #        return obj.competition.publisher == request.user
 
-    def has_delete_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        if obj is None:
-            return True
-        else:
-            return obj.competition.publisher == request.user
+    #def has_delete_permission(self, request, obj=None):
+    #    if request.user.is_superuser:
+    #        return True
+    #    if obj is None:
+    #        return True
+    #    else:
+    #        return obj.competition.publisher == request.user
 
 
 class CompetitionAdmin(PublisherAdmin):

@@ -1,8 +1,8 @@
-requests
 markdown
-unidecode
-pillow
-django == 1.7
-djangorestframework >= 3.0.0
+pillowfight
 pytz
+requests
+unidecode
+django == 1.7
 django-appconf
+djangorestframework >= 3.0.0

@@ -164,7 +164,7 @@ class CompetitorSerializer(serializers.ModelSerializer):
                 or start_time > data['competition'].end_date):
             msg = _('start_time does not respect competition schedule')
             raise serializers.ValidationError(msg)
-        return super(AnonCompetitorSerializer, self).validate(data)
+        return super(CompetitorSerializer, self).validate(data)
 
 
 class AnonCompetitorSerializer(CompetitorSerializer):

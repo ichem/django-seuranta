@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=50, verbose_name='name')),
                 ('short_name', models.CharField(max_length=50, verbose_name='short name')),
                 ('start_time', models.DateTimeField(null=True, verbose_name='start time (UTC)', blank=True)),
-                ('access_code', models.CharField(default=seuranta.models.generate_access_code, max_length=8, verbose_name='access code', blank=True)),
+                ('access_code', models.CharField(default='', max_length=8, verbose_name='access code', blank=True)),
                 ('approved', models.BooleanField(default=False, verbose_name='approved')),
             ],
             options={

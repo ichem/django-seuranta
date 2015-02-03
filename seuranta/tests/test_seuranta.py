@@ -76,7 +76,7 @@ class ApiTestCase(APITestCase):
         Test creating and listing public competition
         """
         client = APIClient()
-        url = reverse('seuranta_api_competition_list')
+        url = reverse('seuranta_api_competitions')
         data = self.basic_competition_data
         response = client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -93,7 +93,7 @@ class ApiTestCase(APITestCase):
         Test creating and listing public competition
         """
         client = APIClient()
-        url = reverse('seuranta_api_competition_list')
+        url = reverse('seuranta_api_competitions')
         data = self.basic_competition_data
         data['publication_policy'] = 'secret'
         client.login(username='alice', password='passw0rd!')
@@ -110,7 +110,7 @@ class ApiTestCase(APITestCase):
         Test creating and listing private competition
         """
         client = APIClient()
-        url = reverse('seuranta_api_competition_list')
+        url = reverse('seuranta_api_competitions')
         data = self.basic_competition_data
         data['publication_policy'] = 'private'
         client.login(username='alice', password='passw0rd!')
@@ -123,8 +123,8 @@ class ApiTestCase(APITestCase):
         self.assertEqual(response.data['count'], 0)
 
     def test_create_competitor_in_closed_competition(self):
-        url_api_competition = reverse('seuranta_api_competition_list')
-        url_api_competitor = reverse('seuranta_api_competitor_list')
+        url_api_competition = reverse('seuranta_api_competitions')
+        url_api_competitor = reverse('seuranta_api_competitors')
         client = APIClient()
         client.login(username='alice', password='passw0rd!')
         competition_data = self.basic_competition_data
@@ -144,8 +144,8 @@ class ApiTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_competitor_in_org_val_competition(self):
-        url_api_competition = reverse('seuranta_api_competition_list')
-        url_api_competitor = reverse('seuranta_api_competitor_list')
+        url_api_competition = reverse('seuranta_api_competitions')
+        url_api_competitor = reverse('seuranta_api_competitors')
         client = APIClient()
         client.login(username='alice', password='passw0rd!')
         competition_data = self.basic_competition_data
@@ -167,8 +167,8 @@ class ApiTestCase(APITestCase):
         self.assertFalse(response.data['approved'])
 
     def test_create_competitor_in_open_competition(self):
-        url_api_competition = reverse('seuranta_api_competition_list')
-        url_api_competitor = reverse('seuranta_api_competitor_list')
+        url_api_competition = reverse('seuranta_api_competitions')
+        url_api_competitor = reverse('seuranta_api_competitors')
         client = APIClient()
         client.login(username='alice', password='passw0rd!')
         competition_data = self.basic_competition_data

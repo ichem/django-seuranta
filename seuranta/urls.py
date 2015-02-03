@@ -1,6 +1,5 @@
-from django.conf.urls import patterns, url
+from django.conf.urls import patterns, url, include
 from django.views.generic import TemplateView
-from django.contrib.auth.decorators import login_required
 from rest_framework.authtoken.views import obtain_auth_token
 from seuranta.api import views as api_views
 

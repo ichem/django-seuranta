@@ -37,6 +37,18 @@ API Endpoints
     - username
     - password
 
+  * /api/competitor_token/obtain
+   POST -- Return competitor publishing token
+   params:
+    - competitor
+    - access_code
+
+  * /api/competitor_token/destroy
+   POST -- Void competitor publishing token
+   params:
+    - competitor
+    - access_code
+
   * /api/competition
    GET
    POST
@@ -44,7 +56,7 @@ API Endpoints
   * /api/competition/<competition_id>
    GET
    UPDATE
-   DESTROY
+   DELETE
 
   * /api/map/<competition_id>[.jpg]
    GET
@@ -57,7 +69,7 @@ API Endpoints
   * /api/competitor/<competitor_id>
    GET
    UPDATE
-   DESTROY
+   DELETE
 
   * /api/route/
    GET
@@ -66,4 +78,4 @@ API Endpoints
   * /api/route/<competitor_id>
    GET
    UPDATE
-   DESTROY
+   DELETE

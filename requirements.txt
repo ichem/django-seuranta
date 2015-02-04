@@ -4,4 +4,5 @@ pytz
 unidecode
 django == 1.7
 django-appconf
+django-cors-headers
 djangorestframework >= 3.0.0

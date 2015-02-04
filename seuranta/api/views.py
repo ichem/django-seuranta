@@ -1,8 +1,8 @@
 import logging
-from datetime import datetime
 import time
 import re
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework import generics
 from rest_framework import permissions
@@ -16,18 +16,20 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework import status
 from rest_framework.views import APIView
-from seuranta.models import Competitor, Competition, Route, CompetitorToken
-from seuranta.api.serializers import (AnonCompetitorSerializer,
-                                      AdminCompetitorSerializer,
-                                      CompetitionSerializer,
-                                      MapSerializer,
-                                      MapFullSerializer,
-                                      CompetitorRouteSerializer,
-                                      EncodedRouteSerializer,
-                                      RouteSerializer,
-                                      PostRouteSerializer,
-                                      CompetitorSerializer,
-                                      CompetitorTokenSerializer)
+from seuranta.models import Competition, Competitor, CompetitorToken, Route
+from seuranta.api.serializers import (
+    AnonCompetitorSerializer,
+    AdminCompetitorSerializer,
+    CompetitionSerializer,
+    MapSerializer,
+    MapFullSerializer,
+    CompetitorRouteSerializer,
+    EncodedRouteSerializer,
+    RouteSerializer,
+    PostRouteSerializer,
+    CompetitorSerializer,
+    CompetitorTokenSerializer
+)
 
 
 logger = logging.getLogger(__name__)
@@ -181,7 +183,7 @@ class CompetitionListView(generics.ListCreateAPIView):
         if state:
             if state not in ('live', 'archived', 'upcoming'):
                 raise ParseError("Invalid value for parameter status")
-            current_date = datetime.utcnow()
+            current_date = timezone.now()
             if state == "live":
                 qs = qs.filter(start_date__lte=current_date,
                                end_date__gte=current_date)

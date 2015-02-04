@@ -264,7 +264,7 @@ class MapFullSerializer(MapSerializer):
 
 
 class CompetitionSerializer(serializers.ModelSerializer):
-    timezone = TimezoneField(label=_('Display Timezone'))
+    timezone = TimezoneField(label=_('Local Timezone'))
     slug = serializers.ReadOnlyField()
     competitors = CompetitorMiniSerializer(
         many=True,
@@ -287,9 +287,9 @@ class CompetitionSerializer(serializers.ModelSerializer):
             'name', 'slug',
             'live_delay',
             'latitude', 'longitude', 'zoom',
+            'timezone',
             'publication_policy', 'signup_policy',
             'start_date', 'end_date',
-            'timezone',
             'map',
             'competitors', 'pending_competitors'
         )

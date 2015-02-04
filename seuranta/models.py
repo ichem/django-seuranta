@@ -77,7 +77,7 @@ class Competition(models.Model):
     id = ShortUUIDField(primary_key=True)
     updated = models.DateTimeField(auto_now=True)
     timezone = models.CharField(
-        verbose_name=_("display timezone"),
+        verbose_name=_("local timezone"),
         max_length=50,
         default="UTC",
         choices=[(tz, tz) for tz in common_timezones]

@@ -53,12 +53,12 @@ API Endpoints
    GET
    POST
 
-  * /api/competition/<competition_id>
+  * /api/competition/*competition_id*
    GET
    UPDATE
    DELETE
 
-  * /api/map/<competition_id>[.jpg]
+  * /api/map/*competition_id*[.jpg]
    GET
    UPDATE
 
@@ -66,7 +66,7 @@ API Endpoints
    GET
    POST
 
-  * /api/competitor/<competitor_id>
+  * /api/competitor/*competitor_id*
    GET
    UPDATE
    DELETE
@@ -75,7 +75,7 @@ API Endpoints
    GET
    POST
 
-  * /api/route/<competitor_id>
+  * /api/route/*competitor_id*
    GET
    UPDATE
    DELETE

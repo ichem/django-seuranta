@@ -27,19 +27,22 @@ API Endpoints
 
   * /api/auth_token/obtain
    POST -- Return user authorization token
-   params:
+   parameters
+   ----------
     - username
     - password
 
   * /api/auth_token/destroy
    POST -- Void user authorization token
-   params:
+   parameters
+   ----------
     - username
     - password
 
   * /api/competitor_token/obtain
    POST -- Return competitor publishing token
-   params:
+   parameters
+   ----------
     - competitor
     - access_code
 

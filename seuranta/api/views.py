@@ -153,10 +153,10 @@ class CompetitionListView(generics.ListCreateAPIView):
       - id -- Select single **competition** by its id
       - id[] -- Select multiple **competition** by their id
       - publisher -- Select competition from publisher using its username
-      - status -- Competition status (live, archived, upcoming)
+      - status -- Competition status ("live", "archived", "upcoming")
       - page -- Page number (Default: 1)
       - results_per_page -- Number of result per page (Default:20 Max: 1000)
-      - reverse_order -- set to reverse the default ordering
+      - reverse_order -- "true" to reverse the default ordering (Default: false)
     """
     queryset = Competition.objects.all()
     permission_classes = (CompetitionPermission, )
@@ -168,7 +168,7 @@ class CompetitionListView(generics.ListCreateAPIView):
         competition_ids = self.request.query_params.getlist("id[]")
         publisher = self.request.query_params.get("publisher")
         state = self.request.query_params.get("status")
-        reverse_order = self.request.query_params.get("reverse_order")
+        reverse_order = self.request.query_params.get("reverse_order", "false")
         if competition_id:
             qs = qs.filter(pk=competition_id)
         elif competition_ids:
@@ -191,7 +191,9 @@ class CompetitionListView(generics.ListCreateAPIView):
                 qs = qs.filter(end_date__lt=current_date)
             if state == "upcoming":
                 qs = qs.filter(start_date__gt=current_date)
-        if reverse_order:
+        if reverse_order not in ('true', 'false'):
+            raise ParseError("Invalid value for parameter reverse_order")
+        if reverse_order == "true":
             qs = qs.order_by('start_date', 'name')
         else:
             qs = qs.order_by('-start_date', 'name')

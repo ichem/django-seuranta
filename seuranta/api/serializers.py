@@ -264,7 +264,7 @@ class MapFullSerializer(MapSerializer):
 
 
 class CompetitionSerializer(serializers.ModelSerializer):
-    timezone = TimezoneField()
+    timezone = TimezoneField(label=_('Display Timezone'))
     slug = serializers.ReadOnlyField()
     competitors = CompetitorMiniSerializer(
         many=True,

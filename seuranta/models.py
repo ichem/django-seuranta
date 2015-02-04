@@ -78,6 +78,7 @@ class Competition(models.Model):
     updated = models.DateTimeField(auto_now=True)
     timezone = models.CharField(
         verbose_name=_("local timezone"),
+        help_text=_("timezone used at competition center"),
         max_length=50,
         default="UTC",
         choices=[(tz, tz) for tz in common_timezones]

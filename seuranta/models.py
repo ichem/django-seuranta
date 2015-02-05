@@ -15,6 +15,7 @@ from django.utils.translation import ugettext_lazy as _, ugettext
 from django.utils.timezone import utc, now
 from django.core.validators import MinLengthValidator
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from seuranta.conf import settings
 from seuranta.storage import OverwriteStorage
 from seuranta.fields import ShortUUIDField
@@ -153,6 +154,10 @@ class Competition(models.Model):
         else:
             return self.competitors
 
+    @property
+    def approved_competitor_count(self):
+        return self.approved_competitors.count()
+
     def get_map(self):
         if hasattr(self, 'defined_map'):
             return self.defined_map
@@ -160,11 +165,16 @@ class Competition(models.Model):
 
     map = property(get_map)
 
+    @property
     def pending_competitors(self):
         if self.signup_policy == 'open':
             return self.competitors.none()
         else:
             return self.competitors.filter(approved=False)
+
+    @property
+    def pending_competitor_count(self):
+        return self.pending_competitors.count()
 
     def close_competition(self):
         self.end_date = now()
@@ -518,6 +528,20 @@ class Competitor(models.Model):
         route = self.get_full_route()
         self.set_full_route(route)
 
+    @property
+    def token(self):
+        if hasattr(self, 'set_token'):
+            return self.set_token.key
+        return None
+
+    @token.setter
+    def token(self, value):
+        if hasattr(self, 'set_token'):
+            self.set_token.key = value
+            self.set_token.save()
+        c = CompetitorToken(key=value, competitor=self, created=timezone.now())
+        c.save()
+
     @staticmethod
     def generate_access_code():
         return make_random_code(settings.SEURANTA_ACCESS_CODE_LENGTH)
@@ -554,7 +578,7 @@ class Competitor(models.Model):
 
 class CompetitorToken(models.Model):
     key = models.CharField(max_length=40, primary_key=True)
-    competitor = models.OneToOneField(Competitor, related_name='token')
+    competitor = models.OneToOneField(Competitor, related_name='set_token')
     created = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):

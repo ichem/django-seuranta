@@ -146,7 +146,7 @@ class PostRouteSerializer(RouteSerializer):
 
 
 class CompetitorSerializer(serializers.ModelSerializer):
-    access_code = serializers.CharField(write_only=True)
+    access_code = serializers.CharField(write_only=True, allow_blank=True)
 
     class Meta:
         model = Competitor
@@ -195,7 +195,7 @@ class AnonCompetitorSerializer(CompetitorSerializer):
     def validate(self, data):
         validated_data = super(AnonCompetitorSerializer, self).validate(data)
         key = validated_data.get('token')
-        competitor_id = validated_data.get('id')
+        competitor_id = self.instance.id
         token = CompetitorToken.objects.filter(competitor_id=competitor_id,
                                                key=key)
         if not token.exists():
@@ -266,15 +266,10 @@ class MapFullSerializer(MapSerializer):
 class CompetitionSerializer(serializers.ModelSerializer):
     timezone = TimezoneField(label=_('Local Timezone'))
     slug = serializers.ReadOnlyField()
-    competitors = CompetitorMiniSerializer(
-        many=True,
-        read_only=True,
-        source='approved_competitors',
+    competitor_count = serializers.ReadOnlyField(
+        source='approved_competitor_count'
     )
-    pending_competitors = CompetitorMiniSerializer(
-        many=True,
-        read_only=True
-    )
+    pending_competitor_count = serializers.ReadOnlyField()
     map = MapSerializer(read_only=True, source='get_map')
     publisher = serializers.ReadOnlyField(source='publisher_name')
 
@@ -291,7 +286,7 @@ class CompetitionSerializer(serializers.ModelSerializer):
             'publication_policy', 'signup_policy',
             'start_date', 'end_date',
             'map',
-            'competitors', 'pending_competitors'
+            'competitor_count', 'pending_competitor_count',
         )
 
     def validate(self, data):

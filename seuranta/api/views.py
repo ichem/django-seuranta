@@ -263,7 +263,7 @@ class CompetitorListView(generics.ListCreateAPIView):
       - q -- Search terms
       - competition_id -- Select **competitors** in a single **competition**
       - competition_id[] -- Select **competitors** in multiple **competition**
-      - access_code -- Given with competition_id to access full details
+      - approval_status -- Filter based on approval ("approved", "pending")
       - page -- Page number (Default: 1)
       - results_per_page -- Number of result per page (Default:20 Max: 1000)
     """
@@ -322,6 +322,7 @@ class CompetitorListView(generics.ListCreateAPIView):
         competitor_id = self.request.query_params.get("id")
         competitor_ids = self.request.query_params.getlist("id[]")
         search_text = self.request.query_params.get('q', '').strip()
+        approval_state = self.request.query_params.get("approval_status")
         if competition_id:
             qs = qs.filter(competition_id=competition_id)
         if competitor_id:
@@ -348,17 +349,25 @@ class CompetitorListView(generics.ListCreateAPIView):
                     sub_query |= Q(**kwargs)
                 query &= sub_query
             qs = qs.filter(query)
+        if approval_state:
+            if approval_state not in ('approved', 'pending'):
+                raise ParseError("Invalid value for parameter status")
+            if approval_state == "approved":
+                qs = qs.filter(approved=True)
+            else:
+                qs = qs.filter(approved=False)
         return qs
 
     def perform_create(self, serializer):
         obj = serializer.validated_data
         competition_signup_policy = obj.get('competition').signup_policy
         is_publisher = (obj.get('competition').publisher == self.request.user)
-        if not (self.request.user.is_superuser
-                or is_publisher
-                or competition_signup_policy != 'closed'):
+        if not (self.request.user.is_superuser or is_publisher) \
+           and competition_signup_policy == 'closed':
             raise PermissionDenied
-        if competition_signup_policy != 'open' and not is_publisher:
+        if competition_signup_policy == 'open':
+            serializer.validated_data['approved'] = True
+        elif not (self.request.user.is_superuser or is_publisher):
             serializer.validated_data['approved'] = False
         super(CompetitorListView, self).perform_create(serializer)
 
@@ -384,11 +393,9 @@ class CompetitorDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance = serializer.instance
         competition_signup_policy = instance.competition.signup_policy
         is_publisher = (instance.competition.publisher == self.request.user)
-        if not (self.request.user.is_superuser or is_publisher):
-            self.permission_denied(self.request)
-        if competition_signup_policy != 'open':
-            if not (self.request.user.is_superuser
-                    or is_publisher):
+        if competition_signup_policy == 'open':
+            serializer.validated_data['approved'] = True
+        elif not (self.request.user.is_superuser or is_publisher):
                 serializer.validated_data['approved'] = False
         super(CompetitorDetailView, self).perform_update(serializer)
 

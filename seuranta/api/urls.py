@@ -38,7 +38,7 @@ urlpatterns = patterns(
     url(
         r'^map/(?P<pk>[-a-zA-Z0-9_]{22})\.jpg$',
         'download_map',
-        name='seuranta_api_download_map'
+        name='seuranta_api_competition_map_download'
     ),
     url(
         r'^competitor/?$',

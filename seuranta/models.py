@@ -27,8 +27,8 @@ from seuranta.utils.validators import (validate_nice_slug, validate_latitude,
 
 BLANK_SIZE = {'width': 1, 'height': 1}
 BLANK_FORMAT = "image/gif"
-BLANK_GIF = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
-BLANK_DATA_URI = "data:" + BLANK_FORMAT + ";base64," + BLANK_GIF
+BLANK_GIF_B64 = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+BLANK_DATA_URI = "data:" + BLANK_FORMAT + ";base64," + BLANK_GIF_B64
 BLANK_CALIBRATION_STRING = [90, -180,
                             90, 180,
                             -90, -180,
@@ -301,7 +301,7 @@ class Map(models.Model):
     @property
     def image_data(self):
         if not self.image:
-            return BLANK_GIF.decode('base64')
+            return BLANK_GIF_B64.decode('base64')
         compressed_file = self.image.name + '_l'
         if not self.image.storage.exists(compressed_file):
             with self.image.storage.open(self.image.file, 'rb') as fp_in, \
@@ -345,7 +345,7 @@ class Map(models.Model):
     @models.permalink
     def get_image_url(self):
         kwargs = {'pk': self.competition.pk, }
-        return "seuranta_api_download_map", (), kwargs
+        return "seuranta_api_competition_map_download", (), kwargs
     image_url = property(get_image_url)
 
     @property

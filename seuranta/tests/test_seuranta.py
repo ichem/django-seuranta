@@ -117,6 +117,12 @@ class ApiTestCase(APITestCase):
             'seuranta_api_competition_map_download',
             kwargs={'pk': competition_id2},
         )
+        map_api_url = reverse(
+            'seuranta_api_competition_map',
+            kwargs={'pk': competition_id2},
+        )
+        response = client.get(map_api_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         response = client.get(map_url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data.encode('base64').strip(),
@@ -206,6 +212,8 @@ class ApiTestCase(APITestCase):
         response = client.post(url_api_competitor, competitor_data,
                                format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = client.get(url_api_competitor, format='json')
+        self.assertEqual(response.data['count'], 1)
 
     def test_create_competitor_in_org_val_competition(self):
         url_api_competition = reverse('seuranta_api_competitions')
@@ -332,12 +340,15 @@ class ApiTestCase(APITestCase):
                 'token': pub_token,
             }
         )
+        response = client.get(reverse('seuranta_api_routes'), format='json')
+        self.assertEqual(response.data['count'], 2)
         response = client.get(
             reverse('seuranta_api_competitor_route',
                     kwargs={'pk': competitor_id}),
             format='json'
         )
         self.assertEqual(response.data['encoded_data'], 'A??AAA')
+
 
 class GeoToolTestCase(TestCase):
 

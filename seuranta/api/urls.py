@@ -48,7 +48,7 @@ urlpatterns = patterns(
     url(
         r'^competitor/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
         'competitor',
-        name='seuranta_api_competitor_detail'
+        name='seuranta_api_competitor'
     ),
     url(
         r'^competitor_token/obtain/?$',

@@ -192,6 +192,79 @@ class ApiTestCase(APITestCase):
         response = client.get(url, format='json')
         self.assertEqual(response.data['count'], 0)
 
+    def test_competitor_token(self):
+        url_api_competition = reverse('seuranta_api_competitions')
+        url_api_competitor = reverse('seuranta_api_competitors')
+        url_api_token = reverse('seuranta_api_obtain_competitor_token')
+        url_destroy_api_token = reverse(
+            'seuranta_api_destroy_competitor_token'
+        )
+        client = APIClient()
+        client.login(username='alice', password='passw0rd!')
+        competition_data = self.basic_competition_data
+        response = client.post(url_api_competition, competition_data,
+                               format='json')
+        competition_id = response.data['id']
+        competitor_data = self.basic_competitor_data
+        competitor_data['competition'] = competition_id
+        response = client.post(url_api_competitor, competitor_data,
+                               format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        competitor_id = response.data['id']
+        access_code = self.basic_competitor_data['access_code']
+        client.logout()
+        cred = {
+            'competitor': competitor_id,
+            'access_code': access_code,
+        }
+        response = client.post(url_destroy_api_token,  cred,  format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        response = client.post(url_api_token, cred, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pub_token1 = response.data['token']
+        response = client.post(url_destroy_api_token,  cred,  format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = client.post(url_api_token, cred, format='json')
+        pub_token2 = response.data['token']
+        self.assertTrue(pub_token1 != pub_token2)
+
+    def test_edit_competitor(self):
+        url_api_competition = reverse('seuranta_api_competitions')
+        url_api_competitor = reverse('seuranta_api_competitors')
+        url_api_competitor_token = reverse(
+            'seuranta_api_obtain_competitor_token'
+        )
+        client = APIClient()
+        client.login(username='alice', password='passw0rd!')
+        competition_data = self.basic_competition_data
+        response = client.post(url_api_competition, competition_data,
+                               format='json')
+        competition_id = response.data['id']
+        competitor_data = self.basic_competitor_data
+        competitor_data['competition'] = competition_id
+        response = client.post(url_api_competitor, competitor_data,
+                               format='json')
+        competitor_id = response.data['id']
+        access_code = self.basic_competitor_data['access_code']
+        client.logout()
+        cred = {
+            'competitor': competitor_id,
+            'access_code': access_code,
+        }
+        response = client.post(url_api_competitor_token, cred, format='json')
+        competitor_token = response.data['token']
+        url_api_competitor = reverse(
+            'seuranta_api_competitor',
+            kwargs={'pk': competitor_id}
+        )
+        response = client.patch(
+            url_api_competitor,
+            {'name': 'Bob Marcel',
+             'token': competitor_token},
+            format='json'
+        )
+        self.assertEquals(response.status_code, status.HTTP_200_OK)
+
     def test_create_competitor_in_closed_competition(self):
         url_api_competition = reverse('seuranta_api_competitions')
         url_api_competitor = reverse('seuranta_api_competitors')
@@ -260,42 +333,6 @@ class ApiTestCase(APITestCase):
                                format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(response.data['approved'])
-
-    def test_competitor_token(self):
-        url_api_competition = reverse('seuranta_api_competitions')
-        url_api_competitor = reverse('seuranta_api_competitors')
-        url_api_token = reverse('seuranta_api_obtain_competitor_token')
-        url_destroy_api_token = reverse(
-            'seuranta_api_destroy_competitor_token'
-        )
-        client = APIClient()
-        client.login(username='alice', password='passw0rd!')
-        competition_data = self.basic_competition_data
-        response = client.post(url_api_competition, competition_data,
-                               format='json')
-        competition_id = response.data['id']
-        competitor_data = self.basic_competitor_data
-        competitor_data['competition'] = competition_id
-        response = client.post(url_api_competitor, competitor_data,
-                               format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        competitor_id = response.data['id']
-        access_code = self.basic_competitor_data['access_code']
-        client.logout()
-        cred = {
-            'competitor': competitor_id,
-            'access_code': access_code,
-        }
-        response = client.post(url_destroy_api_token,  cred,  format='json')
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        response = client.post(url_api_token, cred, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        pub_token1 = response.data['token']
-        response = client.post(url_destroy_api_token,  cred,  format='json')
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        response = client.post(url_api_token, cred, format='json')
-        pub_token2 = response.data['token']
-        self.assertTrue(pub_token1 != pub_token2)
 
     def test_publish_route(self):
         url_api_competition = reverse('seuranta_api_competitions')

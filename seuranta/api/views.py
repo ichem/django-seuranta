@@ -393,10 +393,14 @@ class CompetitorDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance = serializer.instance
         competition_signup_policy = instance.competition.signup_policy
         is_publisher = (instance.competition.publisher == self.request.user)
+        approval = serializer.validated_data.get('approved')
+        approval_changed = all([approval is not None,
+                                approval != instance.approved])
         if competition_signup_policy == 'open':
             serializer.validated_data['approved'] = True
-        elif not (self.request.user.is_superuser or is_publisher):
-                serializer.validated_data['approved'] = False
+        elif (not (self.request.user.is_superuser or is_publisher)
+              and approval_changed):
+            serializer.validated_data['approved'] = instance.approved
         super(CompetitorDetailView, self).perform_update(serializer)
 
     def perform_destroy(self, instance):

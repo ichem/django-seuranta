@@ -76,7 +76,7 @@ Note: API is browsable and endpoints are documented on their own page.
    
     GET -- Retrieve a competition
 
-    UPDATE -- Update competition data (available to competition publisher)
+    PUT/PATCH -- Update competition data (available to competition publisher)
 
     DELETE -- Delete a competition (available to competition publisher)
 
@@ -84,7 +84,7 @@ Note: API is browsable and endpoints are documented on their own page.
 
     GET -- Retrieve info about competition Map
 
-    UPDATE -- Update info about competition map (available to competition publisher)
+    PUT/PATCH -- Update info about competition map (available to competition publisher)
 
   * /api/competitor
 
@@ -96,7 +96,7 @@ Note: API is browsable and endpoints are documented on their own page.
 
     GET -- Retrieve competitor info
 
-    UPDATE -- Update competitor info (may require a competitor publishing token)
+    PUT/PATCH -- Update competitor info (may require a competitor publishing token)
 
     DELETE -- Delete a competitor (competition publisher only)
 
@@ -110,4 +110,4 @@ Note: API is browsable and endpoints are documented on their own page.
 
     GET -- Retrieve a the full route for a competitor
 
-    UPDATE -- Update the full route for a competitor
+    PUT/PATCH -- Update the full route for a competitor

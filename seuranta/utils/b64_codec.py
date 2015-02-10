@@ -21,4 +21,4 @@ class B64Codec(object):
         return result
 
 
-UrlSafeB64Codec = B64Codec(char_map={'+': '-', '/': '_'})
+url_safe_b64_codec = B64Codec(char_map={'+': '-', '/': '_'})

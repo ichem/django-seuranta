@@ -6,7 +6,7 @@ except ImportError:
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Field, SubfieldBase
 from django.core.exceptions import ValidationError
-from seuranta.utils.b64_codec import UrlSafeB64Codec
+from seuranta.utils.b64_codec import url_safe_b64_codec
 
 
 class ShortUUIDField(Field):
@@ -38,7 +38,7 @@ class ShortUUIDField(Field):
 
     def validate(self, value, model_instance):
         try:
-            hex_val = str(uuid.UUID(bytes=UrlSafeB64Codec.decode(value)))
+            hex_val = str(uuid.UUID(bytes=url_safe_b64_codec.decode(value)))
         except ValueError:
             raise ValidationError(_(u'This is not a valid UUID'))
         if int(hex_val[14], 16) != self.version \
@@ -49,6 +49,6 @@ class ShortUUIDField(Field):
     def pre_save(self, model_instance, add):
         value = super(ShortUUIDField, self).pre_save(model_instance, add)
         if add and (value is None or not value):
-            value = force_unicode(UrlSafeB64Codec.encode(uuid.uuid4().bytes))
+            value = force_unicode(url_safe_b64_codec.encode(uuid.uuid4().bytes))
             setattr(model_instance, self.attname, value)
         return value

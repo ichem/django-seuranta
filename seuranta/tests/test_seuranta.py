@@ -1,5 +1,6 @@
 # coding=utf-8
 from decimal import Decimal
+import uuid
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
@@ -8,6 +9,7 @@ from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
 import time
 from seuranta.models import BLANK_GIF_B64
+from seuranta.utils.b64_codec import url_safe_b64_codec, B64Codec
 from seuranta.utils.geo import GeoLocation, GeoCoordinates, GeoLocationSeries
 from seuranta.utils.validators import validate_longitude, validate_latitude, \
     validate_nice_slug
@@ -391,7 +393,7 @@ class ApiTestCase(APITestCase):
         self.assertEqual(response.data['encoded_data'], 'A??AAA')
 
 
-class TestValidators(TestCase):
+class ValidatorsTestCase(TestCase):
     def test_lat_lon_validator(self):
         with self.assertRaises(ValidationError):
             validate_longitude(-180.00001)
@@ -407,6 +409,23 @@ class TestValidators(TestCase):
                      'this_is_way_too_long_to_be_a_slug'):
             with self.assertRaises(ValidationError):
                 validate_nice_slug(slug)
+
+
+class B64CodecTestCase(TestCase):
+    def test_symmetry(self):
+        original = uuid.uuid4().bytes
+        encoded = url_safe_b64_codec.encode(original)
+        decoded = url_safe_b64_codec.decode(encoded)
+        self.assertEqual(original, decoded)
+
+    def test_original(self):
+        with self.assertRaises(TypeError):
+            bad_codec = B64Codec('banana')
+        b64_codec = B64Codec()
+        original = uuid.uuid4().bytes
+        encoded = b64_codec.encode(original)
+        decoded = b64_codec.decode(encoded)
+        self.assertEqual(original, decoded)
 
 
 class GeoToolTestCase(TestCase):

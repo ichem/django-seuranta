@@ -30,6 +30,35 @@ class UuidVersionError(Exception):
     pass
 
 
+# class UniqueBigIntegerField(Field):
+#     empty_strings_allowed = False
+#     description = _("Big (8 byte) Integer represented as string")
+#     MAX_BIGINT = 9223372036854775807
+#
+#     def get_internal_type(self):
+#         return "BigIntegerField"
+#
+#     def create_value(self):
+#         try:
+#             import os
+#             byte_vals = (ord(b) for b in os.urandom(8))
+#         except:
+#             import random
+#             byte_vals = random.randrange(256) for i in range(8)
+#         int_val = 0
+#         for index, byte_val in byte_vals:
+#             int_val |= (byte_val << index*8)
+#         return int_val
+#
+#     def pre_save(self, model_instance, add):
+#         value = super(UniqueBigIntegerField, self).pre_save(model_instance,
+#                                                             add)
+#         if self.auto and add and (value is None or not value):
+#             value = force_unicode(self.create_value())
+#             setattr(model_instance, self.attname, value)
+#         return value
+
+
 class ShortUUIDField(Field):
     __metaclass__ = SubfieldBase
     """ ShortUUIDDField
@@ -41,6 +70,8 @@ class ShortUUIDField(Field):
     """
     node = None
     clock_seq = None
+    version = None
+    namespace = None
 
     def validate_version1(self, node, clock_seq):
         if node is None or clock_seq is None:

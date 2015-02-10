@@ -1,4 +1,6 @@
+# coding=utf-8
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -7,6 +9,8 @@ from rest_framework import status
 import time
 from seuranta.models import BLANK_GIF_B64
 from seuranta.utils.geo import GeoLocation, GeoCoordinates, GeoLocationSeries
+from seuranta.utils.validators import validate_longitude, validate_latitude, \
+    validate_nice_slug
 
 
 class ApiTestCase(APITestCase):
@@ -385,6 +389,24 @@ class ApiTestCase(APITestCase):
             format='json'
         )
         self.assertEqual(response.data['encoded_data'], 'A??AAA')
+
+
+class TestValidators(TestCase):
+    def test_lat_lon_validator(self):
+        with self.assertRaises(ValidationError):
+            validate_longitude(-180.00001)
+        with self.assertRaises(ValidationError):
+            validate_longitude(-180.00001)
+        with self.assertRaises(ValidationError):
+            validate_latitude(90.00001)
+        with self.assertRaises(ValidationError):
+            validate_latitude(-90.00001)
+
+    def test_nice_slug(self):
+        for slug in ('_hello', 'hello_', 'héllo', 'hello_-world', 'hei',
+                     'this_is_way_too_long_to_be_a_slug'):
+            with self.assertRaises(ValidationError):
+                validate_nice_slug(slug)
 
 
 class GeoToolTestCase(TestCase):

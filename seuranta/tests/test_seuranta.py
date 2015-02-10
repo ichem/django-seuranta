@@ -420,7 +420,7 @@ class B64CodecTestCase(TestCase):
 
     def test_original(self):
         with self.assertRaises(TypeError):
-            bad_codec = B64Codec('banana')
+            B64Codec('banana')
         b64_codec = B64Codec()
         original = uuid.uuid4().bytes
         encoded = b64_codec.encode(original)

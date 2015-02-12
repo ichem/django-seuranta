@@ -1,0 +1,15 @@
+[uwsgi]
+binary-path:    = /home/django-seuranta/uwsgi
+chdir           = /home/django-seuranta/
+chmod-socket    = 666
+daemonize       = /var/log/seuranta_uwsgi.log
+module          = seuranta.app.wsgi:application
+env             = DJANGO_SETTINGS_MODULE=seuranta.app.settings
+master          = True
+processes       = 4
+socket          = /var/run/seuranta_uwsgi.sock
+vacuum          = true
+pidfile         = /var/run/seuranta_uwsgi.pid
+harakiri        = 20
+max-request     = 500
+workers         = 8

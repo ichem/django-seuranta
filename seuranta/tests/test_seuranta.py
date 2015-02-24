@@ -150,14 +150,14 @@ class ApiTestCase(APITestCase):
         response = client.get(url, {'reverse_order': 'banana'},
                               format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        response = client.get(url, {'status': 'archived'}, format='json')
+        response = client.get(url, {'status[]': 'archived'}, format='json')
         self.assertEqual(response.data['count'], 1)
-        response = client.get(url, {'status': ['archived', 'upcoming']},
+        response = client.get(url, {'status[]': ['archived', 'upcoming']},
                               format='json')
         self.assertEqual(response.data['count'], 2)
-        response = client.get(url, {'status': 'live'}, format='json')
+        response = client.get(url, {'status[]': 'live'}, format='json')
         self.assertEqual(response.data['count'], 0)
-        response = client.get(url, {'status': 'potato'}, format='json')
+        response = client.get(url, {'status[]': 'potato'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 

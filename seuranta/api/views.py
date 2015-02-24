@@ -153,7 +153,7 @@ class CompetitionListView(generics.ListCreateAPIView):
       - id -- Select single **competition** by its id
       - id[] -- Select multiple **competition** by their id
       - publisher -- Select competition from publisher using its username
-      - status -- Competition status ("live", "archived", "upcoming")
+      - status[] -- Competition status ("live", "archived", "upcoming")
       - page -- Page number (Default: 1)
       - results_per_page -- Number of result per page (Default:20 Max: 1000)
       - reverse_order -- "true" to reverse the default ordering (Default: false)
@@ -167,7 +167,7 @@ class CompetitionListView(generics.ListCreateAPIView):
         competition_id = self.request.query_params.get("id")
         competition_ids = self.request.query_params.getlist("id[]")
         publisher = self.request.query_params.get("publisher")
-        states = self.request.query_params.getlist("status")
+        states = self.request.query_params.getlist("status[]")
         reverse_order = self.request.query_params.get("reverse_order", "false")
         if competition_id:
             qs = qs.filter(pk=competition_id)

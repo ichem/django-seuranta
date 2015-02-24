@@ -167,7 +167,7 @@ class CompetitionListView(generics.ListCreateAPIView):
         competition_id = self.request.query_params.get("id")
         competition_ids = self.request.query_params.getlist("id[]")
         publisher = self.request.query_params.get("publisher")
-        state = self.request.query_params.get("status")
+        states = self.request.query_params.getlist("status")
         reverse_order = self.request.query_params.get("reverse_order", "false")
         if competition_id:
             qs = qs.filter(pk=competition_id)
@@ -180,23 +180,27 @@ class CompetitionListView(generics.ListCreateAPIView):
             qs = qs.filter(query)
         if publisher:
             qs = qs.filter(publisher__username=publisher)
-        if state:
-            if state not in ('live', 'archived', 'upcoming'):
-                raise ParseError("Invalid value for parameter status")
+        if states:
+            states = set(states)
             current_date = timezone.now()
-            if state == "live":
-                qs = qs.filter(start_date__lte=current_date,
-                               end_date__gte=current_date)
-            if state == "archived":
-                qs = qs.filter(end_date__lt=current_date)
-            if state == "upcoming":
-                qs = qs.filter(start_date__gt=current_date)
+            state_filter = Q()
+            state_filters = {
+                'live': Q(start_date__lte=current_date,
+                          end_date__gte=current_date),
+                'archived': Q(end_date__lt=current_date),
+                'upcoming': Q(start_date__gt=current_date)
+            }
+            for state in states:
+                if state not in ('live', 'archived', 'upcoming'):
+                    raise ParseError("Invalid value for parameter status")
+                state_filter |= state_filters[state]
+            qs = qs.filter(state_filter)
         if reverse_order not in ('true', 'false'):
             raise ParseError("Invalid value for parameter reverse_order")
         if reverse_order == "true":
-            qs = qs.order_by('start_date', 'name')
+            qs = qs.order_by('end_date', 'name')
         else:
-            qs = qs.order_by('-start_date', 'name')
+            qs = qs.order_by('-end_date', 'name')
         return qs
 
     def perform_create(self, serializer):

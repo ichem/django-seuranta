@@ -1,6 +1,7 @@
 # coding=utf-8
 from decimal import Decimal
 import uuid
+import datetime
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
@@ -23,15 +24,15 @@ class ApiTestCase(APITestCase):
         self.user_b = User.objects.create_user('bob', 'bob@bing.com',
                                                'L3tmeIn')
         self.basic_competition_data = {
-            'name': 'Jukola 2015',
+            'name': 'Jukola 2014',
             'live_delay': 30,
             'latitude': 62,
             'longitude': 22,
             'zoom': 12,
             'publication_policy': 'public',
             'signup_policy': 'closed',
-            'start_date': '2015-06-17T23:00',
-            'end_date': '2015-06-18T12:00',
+            'start_date': '2014-06-17T23:00',
+            'end_date': '2014-06-18T12:00',
             'timezone': 'Europe/Helsinki',
         }
         self.basic_competitor_data = {
@@ -108,13 +109,14 @@ class ApiTestCase(APITestCase):
             kwargs={'pk': competition_id},
         )
         response = client.get(map_url, format='json')
-        # Competition not started 403
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        # Create a competition in past
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.encode('base64').strip(), BLANK_GIF_B64)
+        # Create a competition in future
         data2 = self.basic_competition_data
-        data2['name'] = 'Jukola 2014'
-        data2['start_date'] = '2014-06-17T23:00'
-        data2['end_date'] = '2014-06-18T12:00'
+        data2['name'] = 'next Jukola'
+        next_year = datetime.date.today().year + 1
+        data2['start_date'] = '%d-06-17T23:00' % next_year
+        data2['end_date'] = '%d-06-18T12:00' % next_year
         client.login(username='alice', password='passw0rd!')
         response = client.post(url, data2, format='json')
         client.logout()
@@ -129,40 +131,35 @@ class ApiTestCase(APITestCase):
         )
         response = client.get(map_api_url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Competition not started not allowed to see map 403
         response = client.get(map_url, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data.encode('base64').strip(),
-                         BLANK_GIF_B64)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         response = client.get(
             url,
             {'id': competition_id},
             format='json'
         )
         self.assertEqual(response.data['count'], 1)
-        response = client.get(
-            url,
-            {
-                'id[]': [competition_id, competition_id2]
-            },
-            format='json'
-        )
+        response = client.get(url, {'id[]': [competition_id, competition_id2]},
+                              format='json')
         self.assertEqual(response.data['count'], 2)
-        response = client.get(
-            url,
-            {
-                'reverse_order': 'true'
-            },
-            format='json'
-        )
+        response = client.get(url, {'reverse_order': 'true'}, format='json')
+        self.assertEqual(response.data['results'][0]['id'], competition_id)
+        response = client.get(url, {'reverse_order': 'false'}, format='json')
         self.assertEqual(response.data['results'][0]['id'], competition_id2)
-        response = client.get(
-            url,
-            {
-                'reverse_order': 'banana'
-            },
-            format='json'
-        )
+        response = client.get(url, {'reverse_order': 'banana'},
+                              format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = client.get(url, {'status': 'archived'}, format='json')
+        self.assertEqual(response.data['count'], 1)
+        response = client.get(url, {'status': ['archived', 'upcoming']},
+                              format='json')
+        self.assertEqual(response.data['count'], 2)
+        response = client.get(url, {'status': 'live'}, format='json')
+        self.assertEqual(response.data['count'], 0)
+        response = client.get(url, {'status': 'potato'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
 
     def test_create_secret_competition(self):
         """

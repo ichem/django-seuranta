@@ -1,10 +1,21 @@
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
+from django.views.generic import TemplateView
 
 admin.autodiscover()
 
 urlpatterns = patterns(
     '',
+    url(
+        r'^$',
+        TemplateView.as_view(template_name='seuranta/home.html'),
+        name='seuranta_home'
+    ),
+    url(
+        r'^tracker/?$',
+        TemplateView.as_view(template_name='seuranta/tracker.html'),
+        name='seuranta_tracker'
+    ),
     url(r'^api/', include('seuranta.api.urls')),
 
 )

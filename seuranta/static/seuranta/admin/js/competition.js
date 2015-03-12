@@ -5,19 +5,6 @@ if (jQuery !== undefined) {
 }
 (function($) {
   $(document).ready(function() {
-    if($("#id_timezone").length > 0){
-      $("<button/>")
-      .text("Detect")
-      .on(
-        "click",
-        function(e){
-          e.preventDefault();
-          $('#id_timezone').val(jstz.determine().name());
-        }
-      )
-      .appendTo($('#id_timezone').parent());
-    }
-
     $('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '//cdn.leafletjs.com/leaflet-0.7.3/leaflet.css') );
     $.getScript( "//cdn.leafletjs.com/leaflet-0.7.3/leaflet.js" , function(){
       $.each($(".field-latitude"), function(index, element){

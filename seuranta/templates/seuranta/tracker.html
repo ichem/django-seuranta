@@ -1,0 +1,123 @@
+{% extends "seuranta/base.html" %}
+{% load staticfiles %}
+{% load i18n %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <h2>Live Tracker</h2>
+    <hr/>
+    <p>
+      <a role="button" class="btn btn-primary" id="select-competitor-btn" data-toggle="modal" data-target="#select-competitor-modal" >
+        Select Competitor
+      </a>
+    </p>
+    <div class="alert" id="competitor-info"></div>
+    <p>
+      <a role="button" class="btn btn-danger disabled" id="schedule-start-btn" data-toggle="modal" data-target="#schedule-start-modal">Schedule Start</a>
+    </p>
+    <hr/>
+    <div id="app-status" class="alert" role="alert"></div>
+   </div>
+</div>
+
+
+<div class="modal fade" id="schedule-start-modal" tabindex="-1" role="dialog" aria-labelledby="schedule-start-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                <h4 class="modal-title" id="schedule-start-modal-label">Schedule start</h4>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning error-message" id="schedule-start-errors"></div>
+                <div class="form-group">
+                    <label for="start-delay-input">Minutes before start</label>
+                    <input type="integer" class="form-control" id="start-delay-input" placeholder="5" value="5">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="start-btn">Start now</button>
+                <button type="button" class="btn btn-primary" id="save-schedule-start-btn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="streaming-modal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="streaming-modal-label">Streaming Position</h4>
+            </div>
+            <div class="modal-body">
+                <div id="streamin-info-div"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="stop-streaming-btn">Stop</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="select-competitor-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="select-competitor-pane" id="select-competitor-pane-1">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title" id="select-competitor-modal-label">Select Competition</h4>
+                    <button class="btn btn-default" id="refresh-competition-list-btn">Refresh</button>
+                </div>
+                <div class="modal-body" id="competition-list">
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+            <div class="select-competitor-pane" id="select-competitor-pane-2">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title">Select Competitor</h4>
+                    <button class="btn btn-default" id="refresh-competitor-list-btn">Refresh</button>
+                </div>
+                <div class="modal-body" id="competitor-list">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default back-pane-btn" id="back-pane-btn-1">Back</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+            <div class="select-competitor-pane" id="select-competitor-pane-3">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title">Enter Access code</h4>
+                </div>
+                <div class="modal-body" id="access-code-form">
+                    <div class="alert alert-warning error-message" id="access-code-errors"></div>
+                    <div class="form-group">
+                        <label for="access-code-input">Access Code</label>
+                        <input type="password" class="form-control" id="access-code-input" placeholder="12345">
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary" id="validate-access-code-btn">Submit</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default back-pane-btn" id="back-pane-btn-2">Back</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="text/javascript" src="{% static 'vendor/jstorage/0.4.12/jstorage.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'seuranta/js/server_clock.js' %}"></script>
+<script type="text/javascript" src="{% static 'seuranta/js/positioning.js' %}"></script>
+<script type="text/javascript" src="{% static 'seuranta/js/tracker_app.js' %}"></script>
+{% endblock %}

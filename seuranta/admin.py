@@ -89,7 +89,7 @@ class CompetitionAdmin(PublisherAdmin):
 
     class Media:
         js = {
-            "seuranta/js/jstz-1.0.5.min.js",
+            "vendor/jstz/1.0.5/jstz-1.0.5.min.js",
             "seuranta/admin/js/competition.js",
         }
 

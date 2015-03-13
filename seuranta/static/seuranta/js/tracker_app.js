@@ -291,25 +291,25 @@ var pushPositionArchive = function(force){
   }else{
     $('#streaming-info-div').text("Fetching accurate position")
   }
-  if( force || (broadcastBuffer.getAge(now) > (competition.live_delay*1e3 - 1e3) && tks != "")){
+  if( tks != "" && (force || (broadcastBuffer.getAge(now) > (competition.live_delay*1e3 - 1e3)))){
     $('#streaming-info-div').text("Uploading Positions");
     $.ajax({
-	  type: "POST",
-	  url: getServerUrl()+"api/route",
-	  dataType:"json",
+      type: "POST",
+      url: getServerUrl()+"api/route",
+      dataType:"json",
       data:{
         competitor: competitor.id,
-	    token: competitor.token,
-		encoded_data: tks
-	  },
-	})
-	.done(function(response){
+        token: competitor.token,
+        encoded_data: tks
+      },
+    })
+    .done(function(response){
       broadcastBuffer.eraseInterval(-Infinity, now);
       $('#streaming-info-div').text("Buffering Positions");
-	})
-	.fail(function(){
-	  $('#streaming-info-div').text("Broadcast failed...");
-	});
+    })
+    .fail(function(){
+      $('#streaming-info-div').text("Broadcast failed...");
+    });
   }
 };
 
@@ -328,10 +328,10 @@ var onPositionUpdate = function(position){
   last_position = {
     timestamp:+position.timestamp+clock.getDrift(),
     coords:{
-	  latitude:position.coords.latitude,
-	  longitude:position.coords.longitude,
-	  accuracy:position.coords.accuracy
-	}
+      latitude:position.coords.latitude,
+      longitude:position.coords.longitude,
+      accuracy:position.coords.accuracy
+    }
   };
   var pos = Position(last_position);
   if(position.coords.accuracy < 50) {

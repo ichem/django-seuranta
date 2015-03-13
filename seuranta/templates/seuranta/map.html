@@ -81,7 +81,15 @@ var drawCompetitors = function(time){
   $.each(competitors, function(ii, c){
     if(c.positions.getPositionsCount()){
       var position = c.positions.getByTime(time),
+          lastPos = c.positions.getByIndex(c.positions.getPositionsCount()-1),
           coords = L.latLng(position.coords.latitude, position.coords.longitude);
+      if(lastPos.timestamp < time){
+        if(c.marker!==null){
+          map.removeLayer(c.marker);
+          c.marker=null;
+        }
+        return;
+      }
       if(c.marker===null){
         c.marker = new L.circleMarker(coords, {color: c.color, radius: 3, fillOpacity:1})
         c.marker.addTo(map)

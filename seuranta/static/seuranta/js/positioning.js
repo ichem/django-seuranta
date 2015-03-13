@@ -1,4 +1,4 @@
-/* Positioning.js 2014-03-22 */
+/* Positioning.js 2015-03-13 */
 var IntValCodec = (function(){
     var decodeValueFromString = function (encoded){
             var enc_len = encoded.length,
@@ -37,6 +37,8 @@ var IntValCodec = (function(){
     return {encodeSignedNumber:encodeSignedNumber, decodeValueFromString:decodeValueFromString};
 })(),
 Coordinates = function(c){
+    if (!(this instanceof Coordinates)) return new Coordinates(c);
+
     this.latitude = c.latitude;
     this.longitude = c.longitude;
     this.accuracy = c.accuracy;
@@ -54,6 +56,8 @@ Coordinates = function(c){
     };
 },
 Position = function(l){
+    if (!(this instanceof Position)) return new Position(l);
+
     this.timestamp = l.timestamp;
     this.coords = new Coordinates(l.coords);
 
@@ -84,6 +88,8 @@ Position = function(l){
     };
 },
 PositionArchive = function(){
+    if (!(this instanceof PositionArchive)) return new PositionArchive();
+
     var positions = [],
         _locationOf = function(element, start, end) {
             start = typeof(start)!=="undefined"?start:0;

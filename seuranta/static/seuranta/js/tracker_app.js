@@ -4,6 +4,8 @@ var competitorSelectionChoice = null;
 var watchPositionId = null;
 var isGpsSwitchedOn = false;
 var countdownTimeoutId = null;
+var lastPosition = null;
+var broadcastBuffer = PositionArchive();
 
 var setStatus = function(message, type){
   $("#app-status").text(message);
@@ -101,7 +103,8 @@ var fetchCompetitorList = function(url){
     url: url,
     data: {
       competition_id: competition.id,
-      result_per_page: 1000
+      result_per_page: 1000,
+      approval_status: 'approved'
     }
   }).success(function(response){
     var results;
@@ -237,6 +240,7 @@ var onPressStart = function(delay){
       $('#streaming-info-div').text("Starting in " + Math.round((start_time - new Date())/1e3) + "s");
     }else{
       startStreaming();
+      $('#streaming-info-div').text("Streaming");
     }
   })();
 };
@@ -277,7 +281,36 @@ var startStreaming = function(){
 
 var pushPositionArchive = function(force){
   force = force || false;
-  // Push data when Archive max age == competition delay -5s
+  // Push data when Archive max age == competition delay - Xs
+  var tks = broadcastBuffer.exportTks(),
+      now = +clock.now(),
+      competition = getCompetitionDetail();
+      competitor = getCompetitorDetail();
+  if(tks != ""){
+    $('#streaming-info-div').text("Uploading in "+ Math.round((competition.live_delay*1e3 - 1e3 - broadcastBuffer.getAge(now))/1e3)+" seconds");
+  }else{
+    $('#streaming-info-div').text("Fetching accurate position")
+  }
+  if( force || (broadcastBuffer.getAge(now) > (competition.live_delay*1e3 - 1e3) && tks != "")){
+    $('#streaming-info-div').text("Uploading Positions");
+    $.ajax({
+	  type: "POST",
+	  url: getServerUrl()+"api/route",
+	  dataType:"json",
+      data:{
+        competitor: competitor.id,
+	    token: competitor.token,
+		encoded_data: tks
+	  },
+	})
+	.done(function(response){
+      broadcastBuffer.eraseInterval(-Infinity, now);
+      $('#streaming-info-div').text("Buffering Positions");
+	})
+	.fail(function(){
+	  $('#streaming-info-div').text("Broadcast failed...");
+	});
+  }
 };
 
 var stopStreaming = function(){
@@ -292,6 +325,19 @@ var stopStreaming = function(){
 
 var onPositionUpdate = function(position){
   console.log(position)
+  last_position = {
+    timestamp:+position.timestamp+clock.getDrift(),
+    coords:{
+	  latitude:position.coords.latitude,
+	  longitude:position.coords.longitude,
+	  accuracy:position.coords.accuracy
+	}
+  };
+  var pos = Position(last_position);
+  if(position.coords.accuracy < 50) {
+    broadcastBuffer.add(pos);
+    pushPositionArchive();
+  }
 }
 
 var onPositionError = function(e){

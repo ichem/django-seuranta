@@ -16,6 +16,11 @@ urlpatterns = patterns(
         TemplateView.as_view(template_name='seuranta/tracker.html'),
         name='seuranta_tracker'
     ),
+    url(
+        r'^map/?$',
+        TemplateView.as_view(template_name='seuranta/map.html'),
+        name='seuranta_map'
+    ),
     url(r'^api/', include('seuranta.api.urls')),
 
 )

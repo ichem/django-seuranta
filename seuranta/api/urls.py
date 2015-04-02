@@ -1,13 +1,12 @@
-from django.conf.urls import patterns, url, include
+from django.conf.urls import url
 from rest_framework.authtoken.views import obtain_auth_token
-from seuranta.api import views as api_views
+from seuranta.api import views
 
 
-urlpatterns = patterns(
-    'seuranta.api.views',
+urlpatterns = [
     url(
         r'^time/?$',
-        'get_time',
+        views.get_time,
         name='seuranta_api_time'
     ),
     url(
@@ -17,63 +16,58 @@ urlpatterns = patterns(
     ),
     url(
         r'^auth_token/destroy/?$',
-        'destroy_auth_token',
+        views.destroy_auth_token,
         name='seuranta_api_auth_token_destroy'
     ),
     url(
         r'^competition/?$',
-        'competitions',
+        views.competitions,
         name='seuranta_api_competitions'
     ),
     url(
         r'^competition/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        'competition',
+        views.competition,
         name='seuranta_api_competition'
     ),
     url(
         r'^map/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        'competition_map',
+        views.competition_map,
         name='seuranta_api_competition_map'
     ),
     url(
         r'^map/(?P<pk>[-a-zA-Z0-9_]{22})\.jpg$',
-        'download_map',
+        views.download_map,
         name='seuranta_api_competition_map_download'
     ),
     url(
         r'^competitor/?$',
-        'competitors',
+        views.competitors,
         name='seuranta_api_competitors'
     ),
     url(
         r'^competitor/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        'competitor',
+        views.competitor,
         name='seuranta_api_competitor'
     ),
     url(
         r'^competitor_token/obtain/?$',
-        'obtain_competitor_token',
+        views.obtain_competitor_token,
         name='seuranta_api_obtain_competitor_token'
     ),
     url(
         r'^competitor_token/destroy/?$',
-        'destroy_competitor_token',
+        views.destroy_competitor_token,
         name='seuranta_api_destroy_competitor_token'
     ),
     url(
         r'^route/?$',
-        'routes',
+        views.routes,
         name='seuranta_api_routes'
     ),
     url(
         r'^route/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        'competitor_route',
+        views.competitor_route,
         name='seuranta_api_competitor_route'
     ),
-    # url(
-    #    r'^location/post'
-    #    'post_location_view',
-    #    name='seuranta_api_route_list'
-    # ),
-)
+]
 

@@ -1,11 +1,10 @@
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
 from django.views.generic import TemplateView
-
+from seuranta.views import admin_map_image
 admin.autodiscover()
 
-urlpatterns = patterns(
-    '',
+urlpatterns = [
     url(
         r'^$',
         TemplateView.as_view(template_name='seuranta/home.html'),
@@ -23,17 +22,13 @@ urlpatterns = patterns(
     ),
     url(r'^api/', include('seuranta.api.urls')),
 
-)
-
-# Django admin specifics
-urlpatterns += patterns(
-    '',
+    # Django admin specifics
     url(r'^admin/', include(admin.site.urls)),
     url(
         r'^media/seuranta/maps/(?P<publisher>[^/]+)/'
         r'(?P<hash>[-0-9a-zA-Z_])/(?P<hash2>[-0-9a-zA-Z_])/'
         r'(?P<pk>(?P=hash)(?P=hash2)[-0-9a-zA-Z_]{20})',
-        'seuranta.views.admin_map_image',
+        admin_map_image,
         name='seuranta_admin_map_image',
     ),
-)
+]

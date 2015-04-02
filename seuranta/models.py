@@ -212,7 +212,6 @@ class Competition(models.Model):
         qs = Competition.objects.all()
         if self.pk is not None:
             qs = qs.exclude(pk=self.pk)
-        qs = qs.filter(publisher_id=self.publisher_id)
         while qs.filter(slug=desired_slug)[:1].count() > 0:
             ending = "-%d" % counter
             desired_slug = "%s%s" % (orig_slug[:21 - len(ending)], ending)

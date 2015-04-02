@@ -35,7 +35,7 @@ var COLORS = new function(){
 
 var prev_timestamp = null;
 var competitors = {};
-var clock = ServerClock({url: 'api/time'});
+var clock = ServerClock({url: '/api/time'});
 var map = null;
 
 var fetchRoutes = function(url){
@@ -101,9 +101,17 @@ var drawCompetitors = function(time){
 }
 
 $(function() {
+  var url = window.location.href;
+  competition_id = url.match(/^.*\/watch\/(.{22})\/?$/)[1];
+  $.ajax({
+    url: "/api/competition/"+competition_id
+  }).done(load_map)
+})
+
+function load_map(competition){
   map = L.map('map', {
-    center: [62.2416, 25.7416],
-    zoom: 15
+    center: [competition.latitude, competition.longitude],
+    zoom: competition.zoom
   });
   L.tileLayer('http://{s}.tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png', {
     attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
@@ -115,7 +123,7 @@ $(function() {
     drawCompetitors(clock.now()-30*1e3)
     setTimeout(draw, 200);
   })();
-});
+};
 </script>
 </body>
 </html>

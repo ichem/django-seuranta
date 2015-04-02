@@ -275,12 +275,6 @@ class CompetitorListView(generics.ListCreateAPIView):
     permission_classes = (permissions.AllowAny, )
     lookup_fields = ('name', )
 
-    def __init__(self):
-        self.paginate_by = 20
-        self.paginate_by_param = 'results_per_page'
-        self.max_paginate_by = 1000
-        super(CompetitorListView, self).__init__()
-
     def get_serializer_class(self):
         competition_id = self.request.query_params.get("competition_id")
         open_competitions = Competition.objects.all()
@@ -433,12 +427,6 @@ class RouteListView(generics.ListCreateAPIView):
     queryset = Route.objects.all()
     permission_classes = (permissions.AllowAny, )
     lookup_fields = ('name', )
-
-    def __init__(self):
-        self.paginate_by = 20
-        self.paginate_by_param = 'results_per_page'
-        self.max_paginate_by = 1000
-        super(RouteListView, self).__init__()
 
     def get_serializer_class(self):
         if self.request.method == 'POST':

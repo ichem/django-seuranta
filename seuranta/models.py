@@ -228,9 +228,7 @@ class Competition(models.Model):
         super(Competition, self).save(*args, **kwargs)
 
     def __unicode__(self):
-        return u"{} \"{}\" by {}".format(_(u"Competition"),
-                                         self.name,
-                                         self.publisher)
+        return u"{} \"{}\"".format(_(u"Competition"), self.name)
 
     class Meta:
         ordering = ["-start_date"]

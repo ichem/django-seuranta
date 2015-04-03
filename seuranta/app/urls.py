@@ -17,7 +17,7 @@ urlpatterns = [
     ),
     url(
         r'^watch/(?P<competition_id>[-0-9a-zA-Z_]{22})/?$',
-        TemplateView.as_view(template_name='seuranta/map.html'),
+        TemplateView.as_view(template_name='seuranta/race_viewer.html'),
         name='seuranta_map'
     ),
     url(r'^api/', include('seuranta.api.urls')),

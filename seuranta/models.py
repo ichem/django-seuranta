@@ -270,7 +270,7 @@ class Map(models.Model):
         _("display mode"),
         max_length=8,
         choices=MAP_DISPLAY_CHOICES,
-        default="map"
+        default="map+bck"
     )
     background_tile_url = models.URLField(
         _('background tile url'),

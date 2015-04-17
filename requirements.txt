@@ -3,6 +3,6 @@ pillow
 pytz
 unidecode
 django>=1.8,<1.9
-django-appconf
+django-appconf>=1.0.1
 django-cors-headers>=1.0.0
 djangorestframework>=3.1

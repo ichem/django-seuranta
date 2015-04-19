@@ -1,12 +1,14 @@
-import time
 from datetime import timedelta
+import math
+import time
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.timezone import now
 
-from seuranta.models import Competition, Competitor
+from seuranta.models import Competition, Competitor, Route
 from seuranta.utils import make_random_code
+from seuranta.utils.geo import GeoLocation, GeoLocationSeries
 
 
 class Command(BaseCommand):
@@ -79,5 +81,14 @@ class Command(BaseCommand):
             competitor.save()
 
     def update_competitors(self):
-        for competitors in self.competition.approved_competitors.all():
-            pass
+        competitors = self.competition.approved_competitors.all()
+        for ii, competitor in enumerate(competitors):
+            time_offset = (now() - competitor.start_time).total_seconds()
+            angle = (2 * math.pi * time_offset) / 300
+            lon = 62 + .001 * (ii+1) * math.cos(angle)
+            lat = 22 + .001 * (ii+1) * math.sin(angle)
+            print lat, lon
+            pos = GeoLocation(time.time(), [lat, lon])
+            history = GeoLocationSeries([pos])
+            route = Route(competitor=competitor, encoded_data=str(history))
+            route.save()

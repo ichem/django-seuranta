@@ -6,10 +6,13 @@ class OverwriteImageStorage(FileSystemStorage):
     and its copy at different resolution
     """
 
-    def get_available_name(self, name):
+    def get_available_name(self, name, max_length=None):
         # If the filename already exists,
-        #  remove it as if it was a true file system
+        # remove it and its copy at different resolution as if it was a true
+        # file system
         for path in (name, name+'_l', name+'_s'):
             if self.exists(path):
                 self.delete(path)
-        return name
+        return super(OverwriteImageStorage,
+                     self).get_available_name(name,
+                                              max_length)

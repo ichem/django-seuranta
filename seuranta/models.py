@@ -557,8 +557,8 @@ class Competitor(models.Model):
     def clean(self):
         super(Competitor, self).clean()
         if self.start_time \
-           and not (self.competition.start_date <= self.start_time
-                    <= self.competition.end_date):
+           and not (self.competition.start_date <= self.start_time <=
+                    self.competition.end_date):
             raise ValidationError(
                 'start_time does not respect competition schedule'
             )

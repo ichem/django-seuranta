@@ -115,9 +115,9 @@ class GeoCoordinates(object):
         return len(str(self))
 
     def __eq__(self, other):
-        return (isinstance(other, GeoCoordinates)
-                and self.latitude == other.latitude
-                and self.longitude == other.longitude)
+        return (isinstance(other, GeoCoordinates) and
+                self.latitude == other.latitude and
+                self.longitude == other.longitude)
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -138,7 +138,8 @@ class GeoLocation(object):
             print timestamp, coordinates, type(coordinates)
             print isinstance(coordinates, (list, tuple)), len(coordinates) == 2
             raise ValueError("Wrong parameter 'coordinates', "
-                             "expecting GeoCoordinates or a tuple of length 2.")
+                             "expecting GeoCoordinates or a tuple of "
+                             "length 2.")
 
     def get_datetime(self):
         return datetime.fromtimestamp(self._timestamp, utc)
@@ -173,9 +174,9 @@ class GeoLocation(object):
         return len(str(self))
 
     def __eq__(self, other):
-        return (isinstance(other, GeoLocation)
-                and self.coordinates == other.coordinates
-                and self.timestamp == other.timestamp)
+        return (isinstance(other, GeoLocation) and
+                self.coordinates == other.coordinates and
+                self.timestamp == other.timestamp)
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -351,9 +352,9 @@ class GeoLocationSeries(object):
             tim_d = int(round(float(pt.timestamp) - prev_tim))
             lat_d = int(round(1e5*(float(coord.latitude) - prev_lat)))
             lng_d = int(round(1e5*(float(coord.longitude) - prev_lng)))
-            result += (encode_signed_number(tim_d)
-                       + encode_signed_number(lat_d)
-                       + encode_signed_number(lng_d))
+            result += (encode_signed_number(tim_d) +
+                       encode_signed_number(lat_d) +
+                       encode_signed_number(lng_d))
             prev_tim += tim_d
             prev_lat += lat_d/1e5
             prev_lng += lng_d/1e5

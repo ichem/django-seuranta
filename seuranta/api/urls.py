@@ -21,17 +21,17 @@ urlpatterns = [
     ),
     url(
         r'^competition/?$',
-        views.competitions,
+        views.competitions_view,
         name='seuranta_api_competitions'
     ),
     url(
         r'^competition/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        views.competition,
+        views.competition_view,
         name='seuranta_api_competition'
     ),
     url(
         r'^map/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        views.competition_map,
+        views.competition_map_view,
         name='seuranta_api_competition_map'
     ),
     url(
@@ -41,12 +41,12 @@ urlpatterns = [
     ),
     url(
         r'^competitor/?$',
-        views.competitors,
+        views.competitors_view,
         name='seuranta_api_competitors'
     ),
     url(
         r'^competitor/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        views.competitor,
+        views.competitor_view,
         name='seuranta_api_competitor'
     ),
     url(
@@ -61,12 +61,12 @@ urlpatterns = [
     ),
     url(
         r'^route/?$',
-        views.routes,
+        views.routes_view,
         name='seuranta_api_routes'
     ),
     url(
         r'^route/(?P<pk>[-a-zA-Z0-9_]{22})/?$',
-        views.competitor_route,
+        views.competitor_route_view,
         name='seuranta_api_competitor_route'
     ),
 ]

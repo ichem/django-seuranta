@@ -3,7 +3,7 @@ def make_random_code(length):
     random.seed()
     alpha = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     out = ''
-    for i in range(length):
+    for ii in range(length):
         out += alpha[random.randrange(len(alpha))]
     return out
 

@@ -103,9 +103,9 @@ class JPEGRenderer(renderers.BaseRenderer):
 def download_map(request, pk):
     competition = get_object_or_404(Competition, pk=pk)
     # Check if competition is started or private
-    if (competition.publication_policy == 'private'
-        and competition.publisher != request.user) \
-       or not competition.is_started():
+    if ((competition.publication_policy == 'private' and
+         competition.publisher != request.user) or
+            not competition.is_started()):
         raise PermissionDenied
     return Response(competition.map.image_data)
 
@@ -156,7 +156,7 @@ class CompetitionListView(generics.ListCreateAPIView):
       - status[] -- Competition status ("live", "archived", "upcoming")
       - page -- Page number (Default: 1)
       - results_per_page -- Number of result per page (Default:20 Max: 1000)
-      - reverse_order -- "true" to reverse the default ordering (Default: false)
+      - reverse_order -- "true" to reverse the ordering (Default: false)
     """
     queryset = Competition.objects.all()
     permission_classes = (CompetitionPermission, )
@@ -288,8 +288,8 @@ class CompetitorListView(generics.ListCreateAPIView):
             ).exclude(signup_policy='closed')
         else:
             open_competitions = open_competitions.filter(
-                Q(publisher=self.request.user)
-                | (Q(publication_policy='public') & ~Q(signup_policy='closed'))
+                Q(publisher=self.request.user) |
+                (Q(publication_policy='public') & ~Q(signup_policy='closed'))
             )
 
         class CustomCompetitorSerializer(CompetitorSerializer):
@@ -327,8 +327,8 @@ class CompetitorListView(generics.ListCreateAPIView):
             qs = qs.filter(id=competitor_id)
         elif competitor_ids:
             qs = qs.filter(id__in=competitor_ids)
-        if not (competition_ids or competition_id
-                or competitor_id or competitor_ids):
+        if not (competition_ids or competition_id or competitor_id or
+                competitor_ids):
             query = Q(publication_policy='public')
             if not self.request.user.is_anonymous():
                 query |= Q(publisher=self.request.user)
@@ -396,8 +396,8 @@ class CompetitorDetailView(generics.RetrieveUpdateDestroyAPIView):
                                 approval != instance.approved])
         if competition_signup_policy == 'open':
             serializer.validated_data['approved'] = True
-        elif (not (self.request.user.is_superuser or is_publisher)
-              and approval_changed):
+        elif (not (self.request.user.is_superuser or is_publisher) and
+                approval_changed):
             serializer.validated_data['approved'] = instance.approved
         super(CompetitorDetailView, self).perform_update(serializer)
 
@@ -438,8 +438,8 @@ class RouteListView(generics.ListCreateAPIView):
                 )
             else:
                 possible_competition_ids = Competition.objects.filter(
-                    Q(publisher=self.request.user)
-                    | Q(publication_policy='public')
+                    Q(publisher=self.request.user) |
+                    Q(publication_policy='public')
                 ).values_list('pk', flat=True)
             possible_competitor = Competitor.objects.filter(
                 competition_id__in=possible_competition_ids
@@ -470,8 +470,8 @@ class RouteListView(generics.ListCreateAPIView):
             competitor_ids = Competitor.objects.filter(
                 competition_id__in=competition_ids
             ).values_list('pk', flat=True)
-        if not (competition_ids or competition_id
-                or competitor_id or competitor_ids):
+        if not (competition_ids or competition_id or competitor_id or
+                    competitor_ids):
             query = Q(publication_policy='public')
             if not self.request.user.is_anonymous():
                 query |= Q(publisher=self.request.user)
@@ -501,10 +501,10 @@ class CompetitorRouteDetailView(generics.RetrieveUpdateAPIView):
         if self.request.method == 'GET':
             min_timestamp = self.request.query_params.get("start", '-inf')
             max_timestamp = self.request.query_params.get("end", '+inf')
-            if (min_timestamp != '-inf'
-                and not re.match(r'\d+(\.\d+)?', min_timestamp)) \
-               or (max_timestamp != '+inf' \
-                   and not re.match(r'\d+(\.\d+)?', max_timestamp)):
+            if (min_timestamp != '-inf' and
+                not re.match(r'\d+(\.\d+)?', min_timestamp)) or \
+                    (max_timestamp != '+inf' and
+                        not re.match(r'\d+(\.\d+)?', max_timestamp)):
                 return Response(status=status.HTTP_400_BAD_REQUEST)
             min_timestamp_arg = float(min_timestamp)
             max_timestamp_arg = float(max_timestamp)
@@ -521,10 +521,10 @@ class CompetitorRouteDetailView(generics.RetrieveUpdateAPIView):
 destroy_auth_token = DestroyAuthToken.as_view()
 obtain_competitor_token = ObtainCompetitorToken.as_view()
 destroy_competitor_token = DestroyCompetitorToken.as_view()
-competitions = CompetitionListView.as_view()
-competition = CompetitionDetailView.as_view()
-competition_map = MapDetailView.as_view()
-competitors = CompetitorListView.as_view()
-competitor = CompetitorDetailView.as_view()
-routes = RouteListView.as_view()
-competitor_route = CompetitorRouteDetailView.as_view()
+competitions_view = CompetitionListView.as_view()
+competition_view = CompetitionDetailView.as_view()
+competition_map_view = MapDetailView.as_view()
+competitors_view = CompetitorListView.as_view()
+competitor_view = CompetitorDetailView.as_view()
+routes_view = RouteListView.as_view()
+competitor_route_view = CompetitorRouteDetailView.as_view()

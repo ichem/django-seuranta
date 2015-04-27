@@ -1,4 +1,3 @@
-import uuid
 import re
 from decimal import Decimal
 from django.core.exceptions import ValidationError

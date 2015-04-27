@@ -168,9 +168,9 @@ class CompetitorSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         start_time = data.get('start_time')
-        if start_time \
-           and (start_time < data['competition'].start_date
-                or start_time > data['competition'].end_date):
+        if start_time and \
+                (start_time < data['competition'].start_date or
+                 start_time > data['competition'].end_date):
             msg = _('start_time does not respect competition schedule')
             raise serializers.ValidationError(msg)
         return super(CompetitorSerializer, self).validate(data)

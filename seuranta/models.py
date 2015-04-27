@@ -17,7 +17,7 @@ from django.core.validators import MinLengthValidator
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from seuranta.conf import settings
-from seuranta.storage import OverwriteStorage
+from seuranta.storage import OverwriteImageStorage
 from seuranta.fields import ShortUUIDField
 from seuranta.utils import (slugify, make_random_code)
 from seuranta.utils.geo import GeoLocationSeries
@@ -246,7 +246,7 @@ class Map(models.Model):
         upload_to=map_upload_path,
         height_field="height",
         width_field="width",
-        storage=OverwriteStorage(),
+        storage=OverwriteImageStorage(),
         blank=True, null=True
     )
     width = models.PositiveIntegerField(

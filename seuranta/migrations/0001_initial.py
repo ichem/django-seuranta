@@ -77,7 +77,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('competition', models.OneToOneField(related_name=b'defined_map', primary_key=True, serialize=False, to='seuranta.Competition')),
                 ('updated', models.DateTimeField(auto_now=True)),
-                ('image', models.ImageField(upload_to=seuranta.models.map_upload_path, width_field=b'width', storage=seuranta.storage.OverwriteStorage(), height_field=b'height', blank=True, null=True, verbose_name='image')),
+                ('image', models.ImageField(upload_to=seuranta.models.map_upload_path, width_field=b'width', storage=seuranta.storage.OverwriteImageStorage(), height_field=b'height', blank=True, null=True, verbose_name='image')),
                 ('width', models.PositiveIntegerField(verbose_name='width', null=True, editable=False, blank=True)),
                 ('height', models.PositiveIntegerField(verbose_name='height', null=True, editable=False, blank=True)),
                 ('calibration_string', models.CharField(help_text='Use online calibration tool if unsure', max_length=255, null=True, verbose_name='calibration string', blank=True)),

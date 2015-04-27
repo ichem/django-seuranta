@@ -1,7 +1,10 @@
 from django.core.files.storage import FileSystemStorage
 
 
-class OverwriteStorage(FileSystemStorage):
+class OverwriteImageStorage(FileSystemStorage):
+    """ Storage that delete a previous file with the same name
+    and its copy at different resolution
+    """
 
     def get_available_name(self, name):
         # If the filename already exists,

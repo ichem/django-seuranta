@@ -6,7 +6,7 @@ var replay_offset = 0;
 var competition = null;
 var open_street_map = null;
 var competitor_list = [];
-var competitor_routes_list = [];
+var competitor_routes = {};
 var routes_last_fetched = -Infinity;
 
 var COLORS = new function(){
@@ -95,14 +95,16 @@ var fetch_competitor_routes = function(url){
     url: url,
     data: data
   }).done(function(response){
-    var results;
-    if(response.previous === null){
-      results = [];
-    }else{
-      results = competitor_routes_list;
-    }
-    results = results.concat(response.results)
-    competitor_routes_list = results;
+    $.each(response.results, function(ii, route_data){
+      var route = PositionArchive.fromTks(route_data.encoded_data);
+      if(competitor_routes[route_data.competitor]!==undefined){
+        $.each(route.getArray(), function(jj, position){
+          competitor_routes[route_data.competitor].add(position);
+        });
+      } else {
+        competitor_routes[route_data.competitor] = route;
+      }
+    });
     if(response.next === null){
       routes_last_fetched = clock.now()/1e3
     } else {

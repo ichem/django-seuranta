@@ -473,7 +473,7 @@ class RouteListView(generics.ListCreateAPIView):
                 competition_id__in=competition_ids
             ).values_list('pk', flat=True)
         if not (competition_ids or competition_id or competitor_id or
-                    competitor_ids):
+                competitor_ids):
             query = Q(publication_policy='public')
             if not self.request.user.is_anonymous():
                 query |= Q(publisher=self.request.user)
@@ -484,7 +484,7 @@ class RouteListView(generics.ListCreateAPIView):
                 competition_id__in=competition_ids
             ).values_list('pk', flat=True)
         if competitor_ids:
-            qs.filter(competitor_id__in=competitor_ids)
+            qs = qs.filter(competitor_id__in=competitor_ids)
         return qs
 
 

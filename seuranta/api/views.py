@@ -16,6 +16,8 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework import status
 from rest_framework.views import APIView
+from seuranta.api import pagination
+from seuranta.api.pagination import RouteDataPagination
 from seuranta.models import Competition, Competitor, CompetitorToken, Route
 from seuranta.api.serializers import (
     AnonCompetitorSerializer,
@@ -426,7 +428,7 @@ class RouteListView(generics.ListCreateAPIView):
     """
     queryset = Route.objects.all()
     permission_classes = (permissions.AllowAny, )
-    lookup_fields = ('name', )
+    pagination_class = RouteDataPagination
 
     def get_serializer_class(self):
         if self.request.method == 'POST':

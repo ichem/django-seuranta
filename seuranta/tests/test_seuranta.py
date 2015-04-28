@@ -381,7 +381,7 @@ class ApiTestCase(APITestCase):
             }
         )
         response = client.get(reverse('seuranta_api_routes'), format='json')
-        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['results']), 2)
         response = client.get(
             reverse('seuranta_api_competitor_route',
                     kwargs={'pk': competitor_id}),

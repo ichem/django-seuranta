@@ -94,11 +94,10 @@ class CompetitorRouteSerializer(serializers.ModelSerializer):
 
 
 class RouteSerializer(serializers.ModelSerializer):
-    received = serializers.DateTimeField(source='created')
 
     class Meta:
         model = Route
-        fields = ('received', 'competitor', 'encoded_data')
+        fields = ('created', 'competitor', 'encoded_data')
 
 
 class CompetitorTokenSerializer(serializers.Serializer):

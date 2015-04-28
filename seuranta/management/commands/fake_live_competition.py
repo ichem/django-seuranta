@@ -87,7 +87,6 @@ class Command(BaseCommand):
             angle = (2 * math.pi * time_offset) / 300
             lon = 62 + .001 * (ii+1) * math.cos(angle)
             lat = 22 + .001 * (ii+1) * math.sin(angle)
-            print lat, lon
             pos = GeoLocation(time.time(), [lat, lon])
             history = GeoLocationSeries([pos])
             route = Route(competitor=competitor, encoded_data=str(history))

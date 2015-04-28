@@ -3,8 +3,9 @@ var map = null;
 var is_live = false;
 var is_real_time = false;
 var replay_offset = 0;
-var competition_data = null;
+var competition = null;
 var open_street_map = null;
+var competitor_list = []
 
 var COLORS = new function(){
     var colors = ["#09F","#3D0","#F09","#D30","#30D","#DD0","#2DD","#D00","#D33","#00D","#DD2","#BFB"],
@@ -31,46 +32,64 @@ var load_competition = function(competition_id){
 }
 
 var on_load_competition = function(response){
-  competition_data = response;
+  competition = response;
   map.setView(
-    [competition_data.latitude, competition_data.longitude],
-    competition_data.zoom
+    [competition.latitude, competition.longitude],
+    competition.zoom
   );
-  if(competition_data.map.display_mode === "map"){
+  if(competition.map.display_mode === "map"){
     map.removeLayer(open_street_map);
-  }else if(competition_data.map.background_tile_url !== ""){
+  }else if(competition.map.background_tile_url !== ""){
     map.removeLayer(open_street_map);
     L.tileLayer(
-      competition_data.map.background_tile_url,
+      competition.map.background_tile_url,
       {maxZoom: 18}
     ).addTo(map);
   }
-
+  fetch_competitor_list();
 }
 
-var load_competitors = function(competition_id){
+var fetch_competitor_list = function(url){
+  url = url || "/api/competitor";
   $.ajax({
-    url: "/api/competitor/",
+    url: url,
     data: {
-      competition_id: competition_id
+      competition_id: competition.id,
+      result_per_page: 1000,
+      approval_status: 'approved'
     }
-  }).done(
-    on_load_competitors
-  ).fail(
-    function(){
-      alert('Could not load competitors');
+  }).done(function(response){
+    var results;
+    if(response.previous === null){
+      results = [];
+    }else{
+      results = competitor_list;
     }
-  );
-}
-
-var on_load_competitors = function(response){
-/*
-  (function draw(){
-    drawCompetitors(clock.now()-30*1e3)
-    setTimeout(draw, 200);
-  })();
-*/
+    results = results.concat(response.results)
+    competitor_list = results;
+    if(response.next === null){
+      display_competitor_list();
+    } else {
+      fetch_competitor_list(response.next);
+    }
+  }).fail(function(){
+  });
 };
+
+var display_competitor_list = function(){
+    var list_div = $('<ul/>');
+    list_div.addClass('media-list');
+    $.each(competitor_list, function(ii, competitor){
+      competitor.color = COLORS.get();
+      var div = $('<li/>');
+      div.addClass('media').html('\
+        <div class="media-left"><a href="#"><i class="media-object fa fa-square fa-3x" style="color:'+competitor.color+'"></i></a></div>\
+        <div class="media-body"><b>'+competitor.name+'</b></div>')
+      list_div.append(div);
+      competitor.div = div;
+    });
+    $('#sidebar').append(list_div)
+}
 
 var drawCompetitors = function(time){
 
@@ -88,7 +107,6 @@ $(function() {
   open_street_map.addTo(map);
 
   var url = window.location.href;
-  var competition_id = url.match(/^.*\/watch\/(.{22})\/?$/)[1];
+  var competition_id = url.match(/^.*\/watch\/(.{22})\/?(\?(.*))?(#(.*))?$/)[1];
   load_competition(competition_id);
-  load_competitors(competition_id);
 })

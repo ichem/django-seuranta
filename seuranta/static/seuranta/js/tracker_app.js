@@ -75,7 +75,7 @@ var fetchCompetitionList = function(url){
       reverse_order: 'true',
       result_per_page: 1000
     }
-  }).success(function(response){
+  }).done(function(response){
     var results;
     if(response.previous === null){
       results = []
@@ -90,7 +90,7 @@ var fetchCompetitionList = function(url){
     } else {
       fetchCompetitionList(response.next);
     }
-  }).error(function(){
+  }).fail(function(){
     setStatus('Error fetching the competition list', 'danger');
   });
 };
@@ -106,7 +106,7 @@ var fetchCompetitorList = function(url){
       result_per_page: 1000,
       approval_status: 'approved'
     }
-  }).success(function(response){
+  }).done(function(response){
     var results;
     if(response.previous === null){
       results = []
@@ -208,7 +208,7 @@ var validateAccessCode = function(){
       access_code: accessCode
     },
     type: 'POST'
-  }).success(function(response){
+  }).done(function(response){
     setStatus('Competitor token fetched', 'success');
     competitorSelectionChoice.token = response.token;
     setCompetitorDetail(competitorSelectionChoice);
@@ -217,7 +217,7 @@ var validateAccessCode = function(){
     $('#select-competitor-modal').modal('hide');
     $('.select-competitor-pane').hide();
     $('#select-competitor-pane-1').show();
-  }).error(function(){
+  }).fail(function(){
     setStatus('Failed to fetch competitor token', 'danger');
     $('#access-code-errors')
     .text('Access code did not match selected competitor')

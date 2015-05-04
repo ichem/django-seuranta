@@ -8,6 +8,8 @@ var open_street_map = null;
 var competitor_list = [];
 var competitor_routes = {};
 var routes_last_fetched = -Infinity;
+var time_offset = 0;
+var playback_speed = 1;
 
 var COLORS = new function(){
     var colors = ["#09F","#3D0","#F09","#D30","#30D","#DD0","#2DD","#D00","#D33","#00D","#DD2","#BFB"],
@@ -32,7 +34,12 @@ var load_competition = function(competition_id){
     }
   );
 }
-
+var is_competition_live = function(){
+    var start = + new Date(competition.start_date);
+    var end = + new Date(competition.end_date);
+    var now = + clock.now();
+    return (start < now && now < end);
+}
 var on_load_competition = function(response){
   competition = response;
   map.setView(
@@ -48,8 +55,29 @@ var on_load_competition = function(response){
       {maxZoom: 18}
     ).addTo(map);
   }
+  if(is_competition_live()){
+    select_live_mode();
+  }
   fetch_competitor_list();
   fetch_competitor_routes();
+}
+
+var select_live_mode = function(){
+  $("#live_button").addClass('active');
+  $("#replay_button").removeClass('active');
+  $("#replay_mode_buttons").hide();
+  $("#replay_control_buttons").hide();
+  time_offset = -competition.live_delay;
+  playback_speed = 1;
+  is_live_mode=true;
+}
+
+var select_replay_mode = function(){
+  $("#live_button").removeClass('active');
+  $("#replay_button").addClass('active');
+  $("#replay_mode_buttons").show();
+  $("#replay_control_buttons").show();
+  is_live_mode=false
 }
 
 var fetch_competitor_list = function(url){
@@ -106,7 +134,8 @@ var fetch_competitor_routes = function(url){
       }
     });
     if(response.next === null){
-      routes_last_fetched = clock.now()/1e3
+      routes_last_fetched = clock.now()/1e3;
+      draw_competitors(true);
     } else {
       fetch_competitor_routes(response.next)
     }
@@ -154,12 +183,28 @@ var display_competitor_list = function(){
 }
 
 
-var zoom_on_competitor = function(competitor){
-
+var zoom_on_competitor = function(compr){
+  var route = competitor_routes[compr.id]
+  var loc = route.getByTime(+clock.now()+time_offset);
+  map.setView([loc.coords.latitude, loc.coords.longitude])
 }
 
-var drawCompetitors = function(){
-
+var draw_competitors = function(force){
+  $.each(competitor_list, function(ii, competitor){
+    if(!competitor.is_shown){
+      return;
+    }
+    var route = competitor_routes[competitor.id]
+    if(route != undefined){
+      var loc = route.getByTime(+clock.now()+time_offset);
+      if(competitor.map_marker == undefined){
+        competitor.map_marker = L.marker([loc.coords.latitude, loc.coords.longitude]);
+        competitor.map_marker.addTo(map);
+      }else{
+        competitor.map_marker.setLatLng([loc.coords.latitude, loc.coords.longitude]);
+      }
+    }
+  })
 }
 
 $(function() {

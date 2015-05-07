@@ -1,6 +1,7 @@
 import logging
 import time
 import re
+import datetime
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
@@ -421,10 +422,7 @@ class RouteListView(generics.ListCreateAPIView):
       - competitor_id[] -- Select multiple **competitor** by their id
       - competition_id -- Select **competitors** in a single **competition**
       - competition_id[] -- Select **competitors** in multiple **competition**
-      - start -- Minimum time of route data (unix timestamp)
-      - end -- Maximum time of route data (unix timestamp)
-      - page -- Page number (Default: 1)
-      - results_per_page -- Number of result per page (Default:20 Max: 1000)
+      - created_after -- Minimum time of route data creation (unix timestamp)
     """
     queryset = Route.objects.all()
     permission_classes = (permissions.AllowAny, )
@@ -462,6 +460,7 @@ class RouteListView(generics.ListCreateAPIView):
         competition_ids = self.request.query_params.getlist("competition_id[]")
         competitor_id = self.request.query_params.get("competitor_id")
         competitor_ids = self.request.query_params.getlist("competitor_id[]")
+        created_after = self.request.query_params.get("created_after")
         if competitor_id:
             qs = qs.filter(competitor_id=competitor_id)
         if competition_id:
@@ -485,6 +484,15 @@ class RouteListView(generics.ListCreateAPIView):
             ).values_list('pk', flat=True)
         if competitor_ids:
             qs = qs.filter(competitor_id__in=competitor_ids)
+        if created_after is not None:
+            from django.utils.timezone import utc
+            try:
+                start_epoch = float(created_after)
+            except ValueError:
+                raise ParseError()
+            start_datetime = datetime.datetime.fromtimestamp(start_epoch)
+            start = utc.localize(start_datetime)
+            qs = qs.filter(created__gt=start)
         return qs
 
 

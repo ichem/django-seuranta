@@ -10,6 +10,8 @@ var competitor_routes = {};
 var routes_last_fetched = -Infinity;
 var time_offset = 0;
 var playback_speed = 1;
+var tail_length = 60;
+var fetching_routes = false;
 
 var COLORS = new function(){
     var colors = ["#09F","#3D0","#F09","#D30","#30D","#DD0","#2DD","#D00","#D33","#00D","#DD2","#BFB"],
@@ -70,6 +72,16 @@ var select_live_mode = function(){
   time_offset = -competition.live_delay;
   playback_speed = 1;
   is_live_mode=true;
+
+  (function while_live(){
+    if(+clock.now()-routes_last_fetched > -time_offset*1e3 && !fetching_routes){
+      fetch_competitor_routes();
+    }
+    draw_competitors();
+    if(is_live_mode){
+      setTimeout(while_live, 100)
+    }
+  })()
 }
 
 var select_replay_mode = function(){
@@ -111,12 +123,13 @@ var fetch_competitor_list = function(url){
 };
 
 var fetch_competitor_routes = function(url){
+  fetching_routes = true;
   url = url || "/api/route";
   var data = {};
   if(url == "/api/route"){
     data.competition_id = competition.id;
     if(routes_last_fetched!= -Infinity){
-      data.start = routes_last_fetched;
+      data.created_after = routes_last_fetched/1e3;
     }
   }
   $.ajax({
@@ -134,13 +147,14 @@ var fetch_competitor_routes = function(url){
       }
     });
     if(response.next === null){
-      routes_last_fetched = clock.now()/1e3;
+      routes_last_fetched = +clock.now();
+      fetching_routes = false;
       draw_competitors(true);
     } else {
       fetch_competitor_routes(response.next)
     }
   }).fail(function(){
-
+    fetching_routes = false;
   });
 };
 
@@ -189,19 +203,32 @@ var zoom_on_competitor = function(compr){
   map.setView([loc.coords.latitude, loc.coords.longitude])
 }
 
-var draw_competitors = function(force){
+var draw_competitors = function(){
   $.each(competitor_list, function(ii, competitor){
     if(!competitor.is_shown){
       return;
     }
     var route = competitor_routes[competitor.id]
     if(route != undefined){
-      var loc = route.getByTime(+clock.now()+time_offset);
+      var loc = route.getByTime(+clock.now()-5*1e3+time_offset*1e3);
       if(competitor.map_marker == undefined){
-        competitor.map_marker = L.marker([loc.coords.latitude, loc.coords.longitude]);
+        competitor.map_marker = L.circleMarker([loc.coords.latitude, loc.coords.longitude],
+                                               {weight:5, radius: 7, color: competitor.color, fill: false, fillOpacity:0});
         competitor.map_marker.addTo(map);
       }else{
         competitor.map_marker.setLatLng([loc.coords.latitude, loc.coords.longitude]);
+      }
+      var tail = route.extractInterval(+clock.now()-5*1e3+time_offset*1e3-tail_length*1e3,
+                                       +clock.now()-5*1e3+time_offset*1e3);
+      var tail_latlng = []
+      $.each(tail.getArray(), function(jj, pos){
+        tail_latlng.push([pos.coords.latitude, pos.coords.longitude]);
+      })
+      if(competitor.tail == undefined){
+        competitor.tail = L.polyline(tail_latlng, {color: competitor.color});
+        competitor.tail.addTo(map);
+      }else{
+        competitor.tail.setLatLngs(tail_latlng);
       }
     }
   })

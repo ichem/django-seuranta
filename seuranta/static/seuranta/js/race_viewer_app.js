@@ -12,6 +12,7 @@ var time_offset = 0;
 var playback_speed = 1;
 var tail_length = 60;
 var fetching_routes = false;
+var current_time = 0;
 
 var COLORS = new function(){
     var colors = ["#09F","#3D0","#F09","#D30","#30D","#DD0","#2DD","#D00","#D33","#00D","#DD2","#BFB"],
@@ -77,6 +78,7 @@ var select_live_mode = function(){
     if(+clock.now()-routes_last_fetched > -time_offset*1e3 && !fetching_routes){
       fetch_competitor_routes();
     }
+    current_time = +clock.now()-5*1e3+time_offset*1e3;
     draw_competitors();
     if(is_live_mode){
       setTimeout(while_live, 100)
@@ -149,7 +151,6 @@ var fetch_competitor_routes = function(url){
     if(response.next === null){
       routes_last_fetched = +clock.now();
       fetching_routes = false;
-      draw_competitors(true);
     } else {
       fetch_competitor_routes(response.next)
     }
@@ -179,7 +180,11 @@ var display_competitor_list = function(){
         var icon = $(this).find('i');
         if(icon.hasClass('fa-toggle-on')){
           icon.removeClass('fa-toggle-on').addClass('fa-toggle-off');
-          competitor.is_shown = false
+          competitor.is_shown = false;
+          map.removeLayer(competitor.map_marker);
+          map.removeLayer(competitor.tail);
+          competitor.map_marker = null;
+          competitor.tail = null;
         }else{
           icon.removeClass('fa-toggle-off').addClass('fa-toggle-on');
           competitor.is_shown = true;
@@ -210,7 +215,7 @@ var draw_competitors = function(){
     }
     var route = competitor_routes[competitor.id]
     if(route != undefined){
-      var loc = route.getByTime(+clock.now()-5*1e3+time_offset*1e3);
+      var loc = route.getByTime(current_time);
       if(competitor.map_marker == undefined){
         competitor.map_marker = L.circleMarker([loc.coords.latitude, loc.coords.longitude],
                                                {weight:5, radius: 7, color: competitor.color, fill: false, fillOpacity:0});
@@ -218,8 +223,7 @@ var draw_competitors = function(){
       }else{
         competitor.map_marker.setLatLng([loc.coords.latitude, loc.coords.longitude]);
       }
-      var tail = route.extractInterval(+clock.now()-5*1e3+time_offset*1e3-tail_length*1e3,
-                                       +clock.now()-5*1e3+time_offset*1e3);
+      var tail = route.extractInterval(current_time-tail_length*1e3, current_time);
       var tail_latlng = []
       $.each(tail.getArray(), function(jj, pos){
         tail_latlng.push([pos.coords.latitude, pos.coords.longitude]);

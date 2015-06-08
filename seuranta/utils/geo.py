@@ -93,13 +93,13 @@ class GeoLocation(object):
     def __init__(self, timestamp, coordinates):
         self._timestamp = None
         self.timestamp = timestamp
-        if isinstance(coordinates, GeoLocation):
+        if isinstance(coordinates, GeoCoordinates):
             self.coordinates = coordinates
         elif isinstance(coordinates, (list, tuple)) and len(coordinates) == 2:
-            self.coordinates = GeoLocation(coordinates[0], coordinates[1])
+            self.coordinates = GeoCoordinates(coordinates[0], coordinates[1])
         else:
             raise ValueError("Wrong parameter 'coordinates', "
-                             "expecting a GeoLocation or a tuple of length 2.")
+                             "expecting GeoCoordinates or a tuple of length 2.")
 
     def get_datetime(self):
         return datetime.fromtimestamp(self._timestamp, utc)

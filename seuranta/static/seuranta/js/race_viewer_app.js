@@ -72,7 +72,10 @@ var on_load_competition = function(response){
   fetch_competitor_routes();
 }
 
-var select_live_mode = function(){
+var select_live_mode = function(e){
+  if(e !== undefined){
+    e.preventDefault();
+  }
   if(is_live_mode){
     return;
   }
@@ -95,7 +98,10 @@ var select_live_mode = function(){
   })()
 }
 
-var select_replay_mode = function(){
+var select_replay_mode = function(e){
+  if(e !== undefined){
+    e.preventDefault();
+  }
   if(!is_live_mode && $("#replay_button").hasClass('active')){
     return;
   }
@@ -240,9 +246,15 @@ var zoom_on_competitor = function(compr){
 var draw_competitors = function(){
   // play/pause button
   if(playback_paused){
-    $('#play_pause_button').html('<i class="fa fa-play"></i> x'+playback_rate)
+    var html = '<i class="fa fa-play"></i> x'+playback_rate;
+    if($('#play_pause_button').html() != html){
+      $('#play_pause_button').html(html);
+    }
   } else {
-    $('#play_pause_button').html('<i class="fa fa-pause"></i> x'+playback_rate)
+    var html = '<i class="fa fa-pause"></i> x'+playback_rate;
+    if($('#play_pause_button').html() != html){
+      $('#play_pause_button').html(html);
+    }
   }
   // progress bar
   var perc = is_live_mode ? 100 : (current_time-new Date(competition.start_date))/(Math.min(+clock.now(), new Date(competition.end_date))-new Date(competition.start_date))*100
@@ -310,18 +322,22 @@ $(function() {
   $('#live_button').on('click', select_live_mode);
   $('#replay_button').on('click', select_replay_mode);
   $('#play_pause_button').on('click', press_play_pause_button);
-  $('#next_button').on('click', function(){
+  $('#next_button').on('click', function(e){
+    e.preventDefault();
     playback_rate = playback_rate*2;
   });
-  $('#prev_button').on('click', function(){
+  $('#prev_button').on('click', function(e){
+    e.preventDefault();
     playback_rate = Math.max(1, playback_rate/2);
   });
-  $('#real_time_button').on('click', function(){
+  $('#real_time_button').on('click', function(e){
+    e.preventDefault();
     is_real_time=true;
     $('#real_time_button').addClass('active');
     $('#mass_start_button').removeClass('active');
   });
-  $('#mass_start_button').on('click', function(){
+  $('#mass_start_button').on('click', function(e){
+    e.preventDefault();
     is_real_time=false;
     $('#real_time_button').removeClass('active');
     $('#mass_start_button').addClass('active');
@@ -329,7 +345,8 @@ $(function() {
   $('#full_progress_bar').on('click', press_progress_bar)
 })
 
-var press_play_pause_button = function(){
+var press_play_pause_button = function(e){
+  e.preventDefault();
   playback_paused = !playback_paused;
 }
 

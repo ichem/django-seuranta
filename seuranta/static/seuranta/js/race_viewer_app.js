@@ -1,17 +1,19 @@
 var clock = ServerClock({url: '/api/time'});
 var map = null;
-var is_live = false;
-var is_real_time = false;
+var is_live_mode = false;
+var is_real_time = true;
 var replay_offset = 0;
 var competition = null;
 var open_street_map = null;
 var competitor_list = [];
 var competitor_routes = {};
 var routes_last_fetched = -Infinity;
-var time_offset = 0;
-var playback_speed = 1;
+var time_offset_s = 0;
+var playback_rate = 1;
+var playback_paused = true;
+var prev_display_refresh = 0;
 var tail_length = 60;
-var fetching_routes = false;
+var is_currently_fetching_routes = false;
 var current_time = 0;
 
 var COLORS = new function(){
@@ -37,12 +39,14 @@ var load_competition = function(competition_id){
     }
   );
 }
+
 var is_competition_live = function(){
     var start = + new Date(competition.start_date);
     var end = + new Date(competition.end_date);
     var now = + clock.now();
     return (start < now && now < end);
 }
+
 var on_load_competition = function(response){
   competition = response;
   map.setView(
@@ -60,25 +64,30 @@ var on_load_competition = function(response){
   }
   if(is_competition_live()){
     select_live_mode();
+  } else {
+    $("#live_button").hide()
+    select_replay_mode();
   }
   fetch_competitor_list();
   fetch_competitor_routes();
 }
 
 var select_live_mode = function(){
+  if(is_live_mode){
+    return;
+  }
   $("#live_button").addClass('active');
   $("#replay_button").removeClass('active');
   $("#replay_mode_buttons").hide();
   $("#replay_control_buttons").hide();
-  time_offset = -competition.live_delay;
-  playback_speed = 1;
+  time_offset_s = -competition.live_delay;
   is_live_mode=true;
 
   (function while_live(){
-    if(+clock.now()-routes_last_fetched > -time_offset*1e3 && !fetching_routes){
+    if(+clock.now()-routes_last_fetched > -time_offset_s*1e3 && !is_currently_fetching_routes){
       fetch_competitor_routes();
     }
-    current_time = +clock.now()-5*1e3+time_offset*1e3;
+    current_time = +clock.now()-5*1e3+time_offset_s*1e3;
     draw_competitors();
     if(is_live_mode){
       setTimeout(while_live, 100)
@@ -87,11 +96,32 @@ var select_live_mode = function(){
 }
 
 var select_replay_mode = function(){
+  if(!is_live_mode && $("#replay_button").hasClass('active')){
+    return;
+  }
   $("#live_button").removeClass('active');
   $("#replay_button").addClass('active');
   $("#replay_mode_buttons").show();
   $("#replay_control_buttons").show();
-  is_live_mode=false
+  is_live_mode=false;
+  prev_shown_time = +new Date(competition.start_date);
+  playback_paused = true;
+  playback_rate = 1;
+  prev_display_refresh = +clock.now();
+  (function while_replay(){
+    if(is_competition_live() && +clock.now()-routes_last_fetched > -time_offset_s*1e3 && !is_currently_fetching_routes){
+      fetch_competitor_routes();
+    }
+    var actual_playback_rate = playback_paused?0:playback_rate;
+    current_time = prev_shown_time + (+clock.now() - prev_display_refresh)*actual_playback_rate;
+    current_time = Math.min(+clock.now(), current_time)
+    draw_competitors();
+    prev_shown_time = current_time;
+    prev_display_refresh = +clock.now();
+    if(!is_live_mode){
+      setTimeout(while_replay, 100)
+    }
+  })()
 }
 
 var fetch_competitor_list = function(url){
@@ -125,7 +155,7 @@ var fetch_competitor_list = function(url){
 };
 
 var fetch_competitor_routes = function(url){
-  fetching_routes = true;
+  is_currently_fetching_routes = true;
   url = url || "/api/route";
   var data = {};
   if(url == "/api/route"){
@@ -150,12 +180,12 @@ var fetch_competitor_routes = function(url){
     });
     if(response.next === null){
       routes_last_fetched = +clock.now();
-      fetching_routes = false;
+      is_currently_fetching_routes = false;
     } else {
       fetch_competitor_routes(response.next)
     }
   }).fail(function(){
-    fetching_routes = false;
+    is_currently_fetching_routes = false;
   });
 };
 
@@ -201,21 +231,34 @@ var display_competitor_list = function(){
     $('#sidebar').append(list_div);
 }
 
-
 var zoom_on_competitor = function(compr){
   var route = competitor_routes[compr.id]
-  var loc = route.getByTime(+clock.now()+time_offset);
+  var loc = route.getByTime(+clock.now()+time_offset_s);
   map.setView([loc.coords.latitude, loc.coords.longitude])
 }
 
 var draw_competitors = function(){
+  // play/pause button
+  if(playback_paused){
+    $('#play_pause_button').html('<i class="fa fa-play"></i> x'+playback_rate)
+  } else {
+    $('#play_pause_button').html('<i class="fa fa-pause"></i> x'+playback_rate)
+  }
+  // progress bar
+  var perc = is_live_mode ? 100 : (current_time-new Date(competition.start_date))/(Math.min(+clock.now(), new Date(competition.end_date))-new Date(competition.start_date))*100
+  $('#progress_bar').css('width', perc+'%').attr('aria-valuenow', perc);
+  // $('#progress_bar_text').html(perc);
   $.each(competitor_list, function(ii, competitor){
     if(!competitor.is_shown){
       return;
     }
     var route = competitor_routes[competitor.id]
     if(route != undefined){
-      var loc = route.getByTime(current_time);
+      var viewed_time = current_time;
+      if(!is_live_mode && !is_real_time && competitor.start_time){
+        viewed_time += new Date(competitor.start_time) - new Date(competition.start_date)
+      }
+      var loc = route.getByTime(viewed_time);
       if(competitor.map_marker == undefined){
         competitor.map_marker = L.circleMarker([loc.coords.latitude, loc.coords.longitude],
                                                {weight:5, radius: 7, color: competitor.color, fill: false, fillOpacity:0});
@@ -223,7 +266,7 @@ var draw_competitors = function(){
       }else{
         competitor.map_marker.setLatLng([loc.coords.latitude, loc.coords.longitude]);
       }
-      var tail = route.extractInterval(current_time-tail_length*1e3, current_time);
+      var tail = route.extractInterval(viewed_time-tail_length*1e3, viewed_time);
       var tail_latlng = []
       $.each(tail.getArray(), function(jj, pos){
         tail_latlng.push([pos.coords.latitude, pos.coords.longitude]);
@@ -263,4 +306,35 @@ $(function() {
       $('#map').removeClass('hidden-xs').addClass('col-xs-12');
     }
   })
+
+  $('#live_button').on('click', select_live_mode);
+  $('#replay_button').on('click', select_replay_mode);
+  $('#play_pause_button').on('click', press_play_pause_button);
+  $('#next_button').on('click', function(){
+    playback_rate = playback_rate*2;
+  });
+  $('#prev_button').on('click', function(){
+    playback_rate = Math.max(1, playback_rate/2);
+  });
+  $('#real_time_button').on('click', function(){
+    is_real_time=true;
+    $('#real_time_button').addClass('active');
+    $('#mass_start_button').removeClass('active');
+  });
+  $('#mass_start_button').on('click', function(){
+    is_real_time=false;
+    $('#real_time_button').removeClass('active');
+    $('#mass_start_button').addClass('active');
+  });
+  $('#full_progress_bar').on('click', press_progress_bar)
 })
+
+var press_play_pause_button = function(){
+  playback_paused = !playback_paused;
+}
+
+var press_progress_bar = function(e){
+  var perc = (e.pageX - $('#full_progress_bar').offset().left)/$('#full_progress_bar').width();
+  current_time = +new Date(competition.start_date)+(Math.min(clock.now(), +new Date(competition.end_date))-new Date(competition.start_date))*perc;
+  prev_shown_time = current_time;
+}

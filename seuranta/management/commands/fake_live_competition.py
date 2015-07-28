@@ -63,7 +63,7 @@ class Command(BaseCommand):
             publication_policy='public',
             signup_policy='closed',
             start_date=now(),
-            end_date=now()+timedelta(3600*4),
+            end_date=now()+timedelta(seconds=3600*4),
             timezone='Europe/Helsinki',
         )
         competition.save()
@@ -75,7 +75,7 @@ class Command(BaseCommand):
                 competition=self.competition,
                 name=u'Runner {} {}'.format(make_random_code(4), ii+1),
                 short_name=u"R{}".format(ii+1),
-                start_time=self.competition.start_date+timedelta(60*ii),
+                start_time=self.competition.start_date+timedelta(seconds=60*ii),
                 approved=True,
             )
             competitor.save()

@@ -62,6 +62,16 @@ var on_load_competition = function(response){
       {maxZoom: 18}
     ).addTo(map);
   }
+  if(competition.map.display_mode === "map" || competition.map.display_mode === "map+bck"){
+    var anchors = [
+        [competition.map.top_left_lat, competition.map.top_left_lng],
+        [competition.map.top_right_lat, competition.map.top_right_lng],
+        [competition.map.bottom_right_lat, competition.map.bottom_right_lng],
+        [competition.map.bottom_left_lat, competition.map.bottom_left_lng]
+    ]
+    var transformedImage = L.imageTransform(competition.map.public_url, anchors);
+    transformedImage.addTo(map);
+  }
   if(is_competition_live()){
     select_live_mode();
   } else {

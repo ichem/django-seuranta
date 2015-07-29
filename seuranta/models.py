@@ -3,6 +3,7 @@ import base64
 import re
 from PIL import Image
 from pytz import common_timezones
+
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -59,6 +60,7 @@ BOT_L_IDX = 3
 
 def map_upload_path(instance=None, file_name=None):
     import os.path
+
     tmp_path = [
         'seuranta',
         'maps'
@@ -343,6 +345,7 @@ class Map(models.Model):
     def get_image_url(self):
         kwargs = {'pk': self.competition.pk, }
         return "seuranta_api_competition_map_download", (), kwargs
+
     image_url = property(get_image_url)
 
     @property
@@ -369,7 +372,7 @@ class Map(models.Model):
 
     def _get_corner(self, n, coord):
         if self.image is not None and self.is_calibrated:
-            return self.calibration_string.split("|")[2 * n + coord]
+            return float(self.calibration_string.split("|")[2 * n + coord])
         return BLANK_CALIBRATION_STRING[2 * n + coord]
 
     def _set_corner(self, n, coord, value):
@@ -557,8 +560,8 @@ class Competitor(models.Model):
     def clean(self):
         super(Competitor, self).clean()
         if self.start_time \
-           and not (self.competition.start_date <= self.start_time <=
-                    self.competition.end_date):
+                and not (self.competition.start_date <= self.start_time <=
+                             self.competition.end_date):
             raise ValidationError(
                 'start_time does not respect competition schedule'
             )
@@ -600,7 +603,7 @@ class Route(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     competitor = models.ForeignKey(Competitor,
                                    verbose_name=_("route"),
-                                   related_name="defined_routes",)
+                                   related_name="defined_routes", )
     encoded_data = models.TextField(_("encoded route points"))
     _start_datetime = models.DateTimeField(editable=False)
     _finish_datetime = models.DateTimeField(editable=False)

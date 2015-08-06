@@ -156,7 +156,7 @@ var fetch_competitor_list = function(url){
   var data={};
   if(url == "/api/competitor"){
     data.competition_id=competition.id
-    data.result_per_page = 1000
+    data.results_per_page = 1000
     data.approval_status = 'approved'
   }
   $.ajax({

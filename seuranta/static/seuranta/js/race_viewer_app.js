@@ -47,6 +47,12 @@ var is_competition_live = function(){
     return (start < now && now < end);
 }
 
+var has_competition_started = function(){
+    var start = + new Date(competition.start_date);
+    var now = + clock.now();
+    return start < now;
+}
+
 var on_load_competition = function(response){
   competition = response;
   map.setView(
@@ -71,6 +77,11 @@ var on_load_competition = function(response){
     ]
     var transformedImage = L.imageTransform(competition.map.public_url, anchors);
     transformedImage.addTo(map);
+  }
+  if(has_competition_started()){
+    $("#before_race_modal").hide();
+  }else{
+    return;
   }
   if(is_competition_live()){
     select_live_mode();
@@ -304,6 +315,9 @@ var draw_competitors = function(){
 }
 
 $(function() {
+  $("#before_race_modal").modal('show').on('hide.bs.modal', function(e){
+      e.preventDefault();
+  });
   map = L.map('map', {
     center: [15, 0],
     zoom: 3

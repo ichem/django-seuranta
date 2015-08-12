@@ -1,361 +1,123 @@
-{% extends "base.html" %}
+{% extends "seuranta/base.html" %}
+{% load staticfiles %}
 {% load i18n %}
 
-{% block title %}
-    {% trans "Web Tracker"%}
-{% endblock %}
-
-{% block extra_heads %}
-<link href="//fonts.googleapis.com/css?family=PT+Mono:400" rel="stylesheet">
-<style type='text/css'>
-	#error{display:none}
-    #uuid_display{
-        font-weight: bold;
-        font-family: 'PT Mono', 'PTMono-Regular';
-        font-size:15px;
-        padding:0 15px;
-    }
-    body{
-        font-weight: normal;
-        color:#fff;
-        background-color:#000;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-	<div id="main" >
-		<h2>GPS Tracker</h2>
-		<div>
-    		<button class="btn btn-default" id="gps_switch"></button> <button class="btn btn-default" id="lock_switch"></button>
-		</div>
-		<hr/>
-		<div>
-			<span id="clock"></span><br/>
-			<div id="gps_output"></div>
-			<div id="broadcast_output"></div>
-			<div id="server_output"></div>
-		</div>
+<div class="container">
+  <div class="row">
+    <h2>Live Tracker</h2>
+    <hr/>
+    <p>
+      <a role="button" class="btn btn-primary" id="select-competitor-btn" data-toggle="modal" data-target="#select-competitor-modal" >
+        Select Competitor
+      </a>
+    </p>
+    <div class="alert" id="competitor-info"></div>
+    <p>
+      <a role="button" class="btn btn-danger disabled" id="schedule-start-btn" data-toggle="modal" data-target="#schedule-start-modal">Schedule Start</a>
+    </p>
+    <hr/>
+    <div id="app-status" class="alert" role="alert"></div>
+   </div>
+</div>
 
-		<div style='display:none'>
-            <div id="uuid_qr"></div>
-            <span id="uuid_display"></span>
-			<input type="hidden" id="uuid" value="XXXX"/><br />
-		</div>
-		<hr/>
-        <div>
-            <i class="fa fa-info-circle"></i><br/>
-            - Press 'Broadcast GPS' - Data will be sent by packet every 5 seconds to the server when some GPS data have been be acquired with an acuracy &lt; 50m.<br/>
-            - Use 'Lock screen' to avoid pressing the button accidentaly.<br/>
-            - Android user are recomended to install a anti lock app such as <a href="https://play.google.com/store/apps/details?id=eu.thedarken.wl">Wake Lock - PowerManager</a> to avoid the phone to stop broadcasting their position when phone goes to sleep. You can use the setting &quot;SCREEN_DIM_WAKE_LOCK&quot; during the period of the broadcast.
+
+<div class="modal fade" id="schedule-start-modal" tabindex="-1" role="dialog" aria-labelledby="schedule-start-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                <h4 class="modal-title" id="schedule-start-modal-label">Schedule start</h4>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning error-message" id="schedule-start-errors"></div>
+                <div class="form-group">
+                    <label for="start-delay-input">Minutes before start</label>
+                    <input type="integer" class="form-control" id="start-delay-input" placeholder="5" value="5">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="start-btn">Start now</button>
+                <button type="button" class="btn btn-primary" id="start-schedule-btn">Schedule</button>
+            </div>
         </div>
-	</div>
-	<div id="error"><span id="error_message"></span></div>
+    </div>
+</div>
+
+<div class="modal fade" id="streaming-modal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="streaming-modal-label">Streaming Position</h4>
+            </div>
+            <div class="modal-body">
+                <div id="streaming-info-div"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="stop-streaming-btn">Stop</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="select-competitor-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="select-competitor-pane" id="select-competitor-pane-1">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title" id="select-competitor-modal-label">Select Competition</h4>
+                    <button class="btn btn-default" id="refresh-competition-list-btn">Refresh</button>
+                </div>
+                <div class="modal-body" id="competition-list">
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+            <div class="select-competitor-pane" id="select-competitor-pane-2">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title">Select Competitor</h4>
+                    <button class="btn btn-default" id="refresh-competitor-list-btn">Refresh</button>
+                </div>
+                <div class="modal-body" id="competitor-list">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default back-pane-btn" id="back-pane-btn-1">Back</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+            <div class="select-competitor-pane" id="select-competitor-pane-3">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title">Enter Access code</h4>
+                </div>
+                <div class="modal-body" id="access-code-form">
+                    <div class="alert alert-warning error-message" id="access-code-errors"></div>
+                    <div class="form-group">
+                        <label for="access-code-input">Access Code</label>
+                        <input type="password" class="form-control" id="access-code-input" placeholder="12345">
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary" id="validate-access-code-btn">Submit</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default back-pane-btn" id="back-pane-btn-2">Back</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-var TIME_API_URL="{% url 'seuranta_api_v1' 'clock/drift' %}",
-    UPDATE_TRACK_API_URL="{% url 'seuranta_api_v1' 'competitor/update' %}",
-    TRACKER_URL ="{% url 'seuranta_tracker' %}",
-    TRACKER_UUID = {% if uuid %}'{{ uuid }}'{% else %}null{% endif %};
-</script>
-<script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js'></script>
-<script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js'></script>
-<script type='text/javascript' src='{{STATIC_URL}}seuranta/js/positioning.js'></script>
-<script type='text/javascript' src='{{STATIC_URL}}seuranta/js/server_clock.js'></script>
-<script>
-var UUID = new (function(){
-    this.uuid4 = function(){
-        var d = +new Date(), r;
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            r = (d + Math.random()*16)%16 | 0;
-            d = Math.floor(d/16);
-            return (c=='x' ? r : (r&0x3|0x8)).toString(16);
-        });
-    };
-    var b16decode = function(t) {
-        return t.match(/../g).map(
-            function (x) {
-                return String.fromCharCode(parseInt(x, 16));
-            }
-        ).join('');
-    }
-    this.short_uuid4 = function(){
-        return btoa(b16decode(this.uuid4().replace(/-/g,''))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-    }
-})();
-</script>
-<script>
-var HUMANIZER = new function(){
-	var units = ['', 'k','M','G','T','P','E','Z','Y'],
-	    size = function(val, extension, si) {
-    		si = typeof si=="undefined"?true:si;
-	    	extension = typeof extension=="undefined"?'':extension;
-
-		    var thresh = si ? 1000 : 1024,
-		        u = 0;
-
-		    while(val >= thresh) {
-		 	    val /= thresh;
-			    u++;
-		    }
-		    return val.toFixed(1)+units[u]+(si ?"":"i")+ extension;
-	    };
-	var $$ = this;
-	$$.size = size;
-	$$.unixTimestamp =  function (x) {
-		return (moment(x).format("YYYY.MM.DD HH:mm:ss.SSS"));
-	};
-	$$.dateTime = function (x) {
-		return (moment(x).format("YYYY.MM.DD HH:mm:ss"));
-	};
-	$$.date = function (x) {
-		return (moment(x).format("YYYY.MM.DD"));
-	},
-	$$.distance = function (x) {
-		return size(x, "m")
-	},
-	$$.speed = function(x){
-		return size(x*3600, "m/h");
-	}
-	return $$
-};
-</script>
-<script>
-$(window).load(function(){
-	var server_clock = new ServerClock({time_api_url:TIME_API_URL}),
-		gps_switched_on = false,
-		broadcast_switched_on = false,
-		last_position = null,
-		broadcast_buffer = new PositionArchive(),
-		geoWatchId = null,
-		uuid=TRACKER_UUID,
-        assignments_count=0,
-		last_data_timestamp=null,
-		MINIMUM_ACCURACY=50,
-	    screen_locked=false,
-        supportsLocalStorage = function() {
-        	try {
-        		return 'localStorage' in window && window['localStorage'] !== null;
-        	} catch (e) {
-        		return false;
-        	}
-        },
-        fatalError = function(text) {
-		    $("#main").hide();
-		    $("#error").html(text).show();
-	    }
-
-    	if (!('geolocation' in navigator)) {
-	    	fatalError("<i class='fa fa-warning'></i> Geolocation is not supported by this browser!");
-		    return;
-	    }
-
-    $("#uuid").on("change", function(){
-        uuid = $("#uuid").val();
-        if(uuid.search(/[^-a-zA-Z0-9_]/g)!=-1 || uuid.length!=22){
- 	    	fatalError("<i class='fa fa-warning'></i> Ask an organizer for a proper traker url!");
-       	    return;
-        }
-        $('#uuid_display').text(uuid);
-        $('#uuid_qr').qrcode(uuid);
-        history.replaceState("", document.title, TRACKER_URL+uuid);
-        if (supportsLocalStorage()) {
-            localStorage["seuranta.tracker.uuid"]=uuid
-        }
-    });
-
-	(function load_uuid(){
-	    if (!uuid && supportsLocalStorage()) {
-            uuid = localStorage["seuranta.tracker.uuid"];
-		}
-
-		if(!uuid || uuid.search(/[^-a-zA-Z0-9_]/g)!=-1 || uuid.length!=22){
-            try{
-                uuid = UUID.short_uuid4();
-            }catch(e){
-                uuid = "";
-            }finally{
-    			if (supportsLocalStorage()) {
-	    			localStorage["seuranta.tracker.uuid"]="";
-		    	}
-			    $('#uuid').val(uuid);
-            }
-		}else{
-    		$('#uuid').val(uuid);
-		}
-    })();
-    $("#uuid").trigger("change")
-
-	function updateUI(){
-		var current_timestamp = server_clock.now();
-		$("#clock").html("<i class='fa fa-clock-o'></i> "+HUMANIZER.dateTime(+current_timestamp) + " drift:"+ Math.round(server_clock.getDrift())+"ms");
-
-        if(screen_locked){
-            $("#lock_switch").html('Unlock Screen <i class="fa fa-lock" style="color:#0f9"></i>')
-        }else{
-            $("#lock_switch").html('Lock Screen <i class="fa fa-unlock-alt" style="color:#ccc"></i>')
-        }
-
-		if (gps_switched_on) {
-			$("#gps_switch").html('Broadcast GPS <i class="fa fa-power-off" style="color:#0f9"></i>');
-		} else {
-			$("#gps_switch").html('Broadcast GPS <i class="fa fa-power-off" style="color:#ccc"></i>');
-		}
-		if (broadcast_switched_on) {
-			$("#broadcast_switch").html('Broadcast <i class="fa fa-cloud-upload" style="color:#09f"></i>');
-		} else {
-			$("#broadcast_switch").html('Broadcast <i class="fa fa-cloud-upload" style="color:#ccc"></i>');
-		}
-
-		$("#broadcast_output").html(
-			"<i class='fa fa-"+(navigator.onLine?"signal":"warning")+"'></i> "+((!last_data_timestamp)?"You did not sent data yet.":("Last packet sent "+(current_timestamp-last_data_timestamp<2e3?"about now":moment(last_data_timestamp).from(current_timestamp))))
-		);
-
-		$("#gps_output").html(
-			"<i class='fa fa-globe'></i> " +
-			((!last_position)?"No GPS data received yet":
-			    (
-				    last_position.coords.latitude.toFixed(5) + ", " +
-				    last_position.coords.longitude.toFixed(5) + " +/-" +
-				    HUMANIZER.distance(last_position.coords.accuracy) +
-				    ( (current_timestamp-last_position.timestamp)<2e3?"":( " "+moment(last_position.timestamp).from(current_timestamp) ) )
-			    )
-			)
-		);
-
-	}
-	updateUI();
-
-	function onAPIResponse(data){
-        $("#server_output").text("Server responded: "+data.msg)
-	}
-
-	(function onClockTick(){
-		updateUI();
-		setTimeout(onClockTick, 500);
-	})();
-
-	function onPositionUpdate(position) {
-		last_position = {
-		    timestamp:+position.timestamp+server_clock.getDrift(),
-		    coords:{
-		        latitude:position.coords.latitude,
-		        longitude:position.coords.longitude,
-		        accuracy:position.coords.accuracy
-		    }
-		};
-		var pos = new Position(last_position);
-		if(broadcast_switched_on && position.coords.accuracy<MINIMUM_ACCURACY) {
-			broadcast_buffer.add(pos);
-		}
-		updateUI();
-	}
-
-	function onPositionError(error){
-		switch (error.code){
-			case error.TIMEOUT:
-				break;
-			case error.POSITION_UNAVAILABLE:
-				break;
-			case error.PERMISSION_DENIED:
-				fatalError("<i class='fa fa-warning'></i> Location access denied.");
-				break;
-			default:
-				break;
-		}
-	}
-
-	$("#gps_switch").on(
-	    'click',
-	    function (e) {
-    	    e.preventDefault();
-    	    if(screen_locked){return;}
-    		if (!gps_switched_on) {
-          		broadcast_switched_on = true;
-    			gps_switched_on = true;
-                geoWatchId = navigator.geolocation.watchPosition(
-    		        onPositionUpdate,
-    		        onPositionError,
-    		        {
-    		            enableHighAccuracy:true,
-    		            timeout:999,
-    		            maximumAge:1000
-                    }
-                );
-		        (function positionRequestor(){
-		            navigator.geolocation.getCurrentPosition(
-    				    onPositionUpdate,
-    				    onPositionError,
-    				    {
-    					    enableHighAccuracy:true,
-    					    timeout:999,
-    					    maximumAge:1000
-    				    }
-    				);
-    				if(gps_switched_on){
-    				    setTimeout(positionRequestor, 1e3);
-    				}
-		        })();
-    		} else {
-    			gps_switched_on = false;
-         		broadcast_switched_on = false;
-    		    navigator.geolocation.clearWatch(geoWatchId);
-    		}
-    		updateUI();
-	    }
-    );
-
-	// broadcast position every 5s
-	(function broadcast_position(){
-		if(broadcast_switched_on){
-			var tks = broadcast_buffer.exportTks(),
-				now = server_clock.now();
-			if( broadcast_buffer.getAge(now) > 5e3 && tks != ""){
-				$.ajax({
-				    type:"POST",
-				    url:UPDATE_TRACK_API_URL,
-					dataType:"json",
-                                        data:{
-						secret:uuid,
-						encoded_data:tks,
-					},
-				})
-				.done(function(response){
-  					onAPIResponse(response);
-                    if(response.status=="OK"){
-    				    broadcast_buffer.eraseInterval(-Infinity, now);
-	    			    last_data_timestamp = now;
-		    		    setTimeout(broadcast_position, 5e3);
-                    }else{
-    			        setTimeout(broadcast_position, 2e3);
-                    }
-			    })
-				.fail(function(){
-					onAPIResponse({msg:"Broadcast failed..."});
-                    setTimeout(broadcast_position, 2e3);
-				});
-			} else {
-				setTimeout(broadcast_position, Math.max(5e3-broadcast_buffer.getAge(now), 1e3));
-			}
-		} else {
-			setTimeout(broadcast_position, 5e3);
-		}
-	})();
-
-    $('#lock_switch').on("click", function(e){
-        e.preventDefault();
-        screen_locked=!screen_locked;
-        updateUI();
-    });
-
-    window.onbeforeunload = function(){
-		if(broadcast_switched_on){
-            return 'If you leave now you will stop broadcasting your position.';
-		}
-    };
-
-});
-</script>
+<script type="text/javascript" src="{% static 'vendor/jstorage/0.4.12/jstorage.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'seuranta/js/server_clock.js' %}"></script>
+<script type="text/javascript" src="{% static 'seuranta/js/positioning.js' %}"></script>
+<script type="text/javascript" src="{% static 'seuranta/js/tracker_app.js' %}"></script>
 {% endblock %}

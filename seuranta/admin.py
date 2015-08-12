@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
-
-from seuranta.models import Competition, Competitor, RouteSection
+from seuranta.models import (Competition, Competitor, Route, Map,
+                             CompetitorToken)
 
 
 class PublisherAdmin(admin.ModelAdmin):
@@ -10,121 +10,96 @@ class PublisherAdmin(admin.ModelAdmin):
             obj.publisher = request.user
         obj.save()
 
-    def queryset(self, request):
-        qs = super(PublisherAdmin, self).queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(publisher=request.user)
 
-    def has_add_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-
-        if obj is None:
-            return True
-        else:
-            return obj.publisher == request.user
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-
-        if obj is None:
-            return True
-        else:
-            return obj.publisher == request.user
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-
-        if obj is None:
-            return True
-        else:
-            return obj.publisher == request.user
+class RouteInlineAdmin(admin.TabularInline):
+    model = Route
 
 
-class RouteSectionInlineAdmin(admin.TabularInline):
-    model = RouteSection
-
-
-class CompetitorInlineAdmin(admin.TabularInline):
+class CompetitorInlineAdmin(admin.StackedInline):
     model = Competitor
-    prepopulated_fields = {'shortname': ('name',), }
+    prepopulated_fields = {'short_name': ('name',), }
+
+
+class MapInlineAdmin(admin.StackedInline):
+    model = Map
 
 
 class CompetitorAdmin(admin.ModelAdmin):
     inlines = [
-    #    RouteSectionInlineAdmin,
+        RouteInlineAdmin,
     ]
-    list_display = ('name', 'shortname', 'competition', 'starting_time',
-                    'quick_setup_code')
-    prepopulated_fields = {'shortname': ('name',), }
-    list_filter = ('competition__name', )
+    list_display = ('name', 'short_name', 'competition', 'start_time',
+                    'access_code', 'approved')
     fieldsets = (
         (None, {
-            'fields': ('name', 'shortname', )
-        }),
-        (_('Schedule'), {
-            'fields': ('starting_time', )
+            'fields': ('name', 'short_name', )
+        }), (_('Schedule'), {
+            'fields': ('start_time', )
+        }), (_('Miscellaneous'), {
+            'fields': ('access_code', )
         }),
     )
-    def queryset(self, request):
-        qs = super(CompetitorAdmin, self).queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(competition__publisher=request.user)
+    list_filter = ('competition__name', 'approved')
+    actions = ['make_approved', 'renew_access_code', 'merge_route_points']
+    prepopulated_fields = {'short_name': ('name', ), }
 
-    def has_add_permission(self, request, obj=None):
-        return False
-#        if request.user.is_superuser:
-#            return True
-#        if obj is None:
-#            return True
-#        else:
-#            return obj.competition.publisher == request.user
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        if obj is None:
-            return True
+    def make_approved(self, request, queryset):
+        rows_updated = queryset.update(approved=True)
+        if rows_updated == 1:
+            message_bit = "1 competitor was"
         else:
-            return obj.competition.publisher == request.user
+            message_bit = "%s competitors were" % rows_updated
+        self.message_user(request,
+                          "%s successfully marked as approved." % message_bit)
+    make_approved.short_description = _("Approve selected competitors")
 
-    def has_delete_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        if obj is None:
-            return True
-        else:
-            return obj.competition.publisher == request.user
+    def renew_access_code(self, request, queryset):
+        for competitor in queryset:
+            competitor.reset_access_code()
+            competitor.save()
+    renew_access_code.short_description = _("Issue new access codes")
+
+    def merge_route_points(self, request, queryset):
+        for competitor in queryset:
+            competitor.merge_route()
+            competitor.save()
+    merge_route_points.short_description = _("Merge Route Points")
 
 
 class CompetitionAdmin(PublisherAdmin):
-    list_display = ('name', 'opening_date', 'closing_date',
-                    'publication_policy')
+    list_display = ('name', 'start_date', 'end_date',
+                    'timezone',
+                    'publication_policy', 'signup_policy')
     fieldsets = (
         (None, {
-            'fields': ('name', 'publication_policy', )
+            'fields': ('name', 'publication_policy', 'signup_policy',
+                       'timezone', 'live_delay', )
         }),
         (_('Schedule'), {
-            'fields': ('opening_date', 'closing_date', 'timezone')
+            'fields': ('start_date', 'end_date', )
         }),
-        (_('Map'), {
-            'fields': ('map', 'calibration_string', )
-        })
+        (_('Location'), {
+            'fields': ('latitude', 'longitude', 'zoom', )
+        }),
     )
     inlines = [
+        MapInlineAdmin,
         CompetitorInlineAdmin,
     ]
 
     class Media:
         js = {
-            "//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js",
-            "seuranta/js/jstz-1.0.5.min.js",
+            "vendor/jstz/1.0.5/jstz-1.0.5.min.js",
             "seuranta/admin/js/competition.js",
         }
 
+
+class CompetitorTokenAdmin(admin.ModelAdmin):
+    list_display = ('key', 'competitor', 'created')
+    fields = ('competitor',)
+    ordering = ('-created',)
+
+
+admin.site.register(CompetitorToken, CompetitorTokenAdmin)
 admin.site.register(Competition, CompetitionAdmin)
 admin.site.register(Competitor, CompetitorAdmin)

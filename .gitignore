@@ -2,6 +2,7 @@ build
 *CACHE*
 dist
 MANIFEST
+.coverage
 *.pyc
 *.egg-info
 *.egg
@@ -9,4 +10,7 @@ MANIFEST
 *~
 *.save
 *.save.*
+*.idea
+seuranta/app/local_settings.py
 docs/_build/
+seuranta/tests/media/*

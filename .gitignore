@@ -14,3 +14,4 @@ MANIFEST
 seuranta/app/local_settings.py
 docs/_build/
 seuranta/tests/media/*
+seuranta/app/media/*

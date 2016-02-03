@@ -266,7 +266,7 @@ class Map(models.Model):
         max_length=255,
         blank=True,
         null=True,
-        help_text=_("Use online calibration tool if unsure"),
+        help_text=_("Use online calibration tool if unsure ( https://j.mp/1UIJJdu )"),
     )
     display_mode = models.CharField(
         _("display mode"),
@@ -307,7 +307,7 @@ class Map(models.Model):
                     self.image.storage.open(compressed_file, 'wb') as fp_out:
                 buf = StringIO()
                 im = Image.open(fp_in)
-                im.save(buf, 'JPEG', quality=40)
+                im.convert('RGB').save(buf, 'JPEG', quality=40)
                 fp_out.write(buf.getvalue())
                 im.close()
                 buf.close()

@@ -305,7 +305,7 @@ class Map(models.Model):
                     self.image.storage.open(compressed_file, 'wb') as fp_out:
                 buf = StringIO()
                 im = Image.open(fp_in)
-                im.save(buf, 'JPEG', quality=40)
+                im.convert('RGB').save(buf, 'JPEG', quality=40)
                 fp_out.write(buf.getvalue())
                 im.close()
                 buf.close()

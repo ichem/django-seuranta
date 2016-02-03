@@ -264,7 +264,7 @@ class Map(models.Model):
         max_length=255,
         blank=True,
         null=True,
-        help_text=_("Use online calibration tool if unsure"),
+        help_text=_("Use online calibration tool if unsure ( https://j.mp/1UIJJdu )"),
     )
     display_mode = models.CharField(
         _("display mode"),

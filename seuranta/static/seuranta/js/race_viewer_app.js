@@ -292,17 +292,21 @@ var draw_competitors = function(){
         viewed_time += new Date(competitor.start_time) - new Date(competition.start_date)
       }
       var loc = route.getByTime(viewed_time);
-      if(competitor.map_marker == undefined){
-        competitor.map_marker = L.circleMarker([loc.coords.latitude, loc.coords.longitude],
-                                               {weight:5, radius: 7, color: competitor.color, fill: false, fillOpacity:0});
-        competitor.map_marker.addTo(map);
-      }else{
-        competitor.map_marker.setLatLng([loc.coords.latitude, loc.coords.longitude]);
+      if(!isNaN(loc.coords.latitude)){
+        if(competitor.map_marker == undefined){
+          competitor.map_marker = L.circleMarker([loc.coords.latitude, loc.coords.longitude],
+                                                 {weight:5, radius: 7, color: competitor.color, fill: false, fillOpacity:0});
+          competitor.map_marker.addTo(map);
+        }else{
+          competitor.map_marker.setLatLng([loc.coords.latitude, loc.coords.longitude]);
+        }
       }
       var tail = route.extractInterval(viewed_time-tail_length*1e3, viewed_time);
       var tail_latlng = []
       $.each(tail.getArray(), function(jj, pos){
-        tail_latlng.push([pos.coords.latitude, pos.coords.longitude]);
+        if(!isNaN(pos.coords.latitude)){
+          tail_latlng.push([pos.coords.latitude, pos.coords.longitude]);
+        }
       })
       if(competitor.tail == undefined){
         competitor.tail = L.polyline(tail_latlng, {color: competitor.color});

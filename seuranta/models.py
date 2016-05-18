@@ -183,8 +183,8 @@ class Competition(models.Model):
 
     @models.permalink
     def get_absolute_url(self):
-        kwargs = {'publisher': self.publisher.username, 'slug': self.slug}
-        return "seuranta.views.race_view", (), kwargs
+        kwargs = {'competition_id': self.id}
+        return "seuranta_race", (), kwargs
 
     absolute_url = property(get_absolute_url)
 

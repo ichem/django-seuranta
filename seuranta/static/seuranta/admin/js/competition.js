@@ -15,6 +15,7 @@ if (jQuery !== undefined) {
         $("<div/>")
         .attr({id: map_id})
         .css('height', '400px')
+        .css('width', '400px')
         .appendTo($(element).parent());
 
         var map = L.map(map_id).setView([latitude, longitude], zoom);

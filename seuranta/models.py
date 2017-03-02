@@ -183,8 +183,8 @@ class Competition(models.Model):
 
     @models.permalink
     def get_absolute_url(self):
-        kwargs = {'publisher': self.publisher.username, 'slug': self.slug}
-        return "seuranta.views.race_view", (), kwargs
+        kwargs = {'competition_id': self.id}
+        return "seuranta_race", (), kwargs
 
     absolute_url = property(get_absolute_url)
 
@@ -266,7 +266,8 @@ class Map(models.Model):
         max_length=255,
         blank=True,
         null=True,
-        help_text=_("Use online calibration tool if unsure"),
+        help_text=_("Use online calibration tool if unsure "
+                    "( https://rphlo.github.io/map_calibration2/ )"),
     )
     display_mode = models.CharField(
         _("display mode"),
@@ -307,7 +308,7 @@ class Map(models.Model):
                     self.image.storage.open(compressed_file, 'wb') as fp_out:
                 buf = StringIO()
                 im = Image.open(fp_in)
-                im.save(buf, 'JPEG', quality=40)
+                im.convert('RGB').save(buf, 'JPEG', quality=40)
                 fp_out.write(buf.getvalue())
                 im.close()
                 buf.close()

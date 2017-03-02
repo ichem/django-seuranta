@@ -266,7 +266,8 @@ class Map(models.Model):
         max_length=255,
         blank=True,
         null=True,
-        help_text=_("Use online calibration tool if unsure ( https://j.mp/1UIJJdu )"),
+        help_text=_("Use online calibration tool if unsure "
+                    "( https://rphlo.github.io/map_calibration2/ )"),
     )
     display_mode = models.CharField(
         _("display mode"),

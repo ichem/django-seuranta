@@ -239,8 +239,10 @@ var display_competitor_list = function(){
           icon.removeClass('fa-toggle-on').addClass('fa-toggle-off');
           competitor.is_shown = false;
           map.removeLayer(competitor.map_marker);
+          map.removeLayer(competitor.name_marker);
           map.removeLayer(competitor.tail);
           competitor.map_marker = null;
+          competitor.name_marker = null;
           competitor.tail = null;
         }else{
           icon.removeClass('fa-toggle-off').addClass('fa-toggle-on');
@@ -295,10 +297,16 @@ var draw_competitors = function(){
       if(!isNaN(loc.coords.latitude)){
         if(competitor.map_marker == undefined){
           competitor.map_marker = L.circleMarker([loc.coords.latitude, loc.coords.longitude],
-                                                 {weight:5, radius: 7, color: competitor.color, fill: false, fillOpacity:0});
+                                                 {weight:5, radius: 7, color: competitor.color, fill: false, fillOpacity:0, opacity: 0.75});
+          competitor.name_marker = L.marker([loc.coords.latitude, loc.coords.longitude],
+                                            {icon: L.divIcon({className: 'runner-icon',
+                                                              html: '<span style="-webkit-text-fill-color: '+competitor.color+';">'+competitor.short_name+'</span>'})
+                                            });
           competitor.map_marker.addTo(map);
+          competitor.name_marker.addTo(map);
         }else{
           competitor.map_marker.setLatLng([loc.coords.latitude, loc.coords.longitude]);
+          competitor.name_marker.setLatLng([loc.coords.latitude, loc.coords.longitude]);
         }
       }
       var tail = route.extractInterval(viewed_time-tail_length*1e3, viewed_time);
@@ -309,7 +317,7 @@ var draw_competitors = function(){
         }
       })
       if(competitor.tail == undefined){
-        competitor.tail = L.polyline(tail_latlng, {color: competitor.color});
+        competitor.tail = L.polyline(tail_latlng, {color: competitor.color, opacity: 0.75});
         competitor.tail.addTo(map);
       }else{
         competitor.tail.setLatLngs(tail_latlng);

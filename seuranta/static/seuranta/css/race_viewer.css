@@ -85,3 +85,18 @@ body {
   margin-top: 0;
 }
 
+.runner-icon{
+    color: #000;
+     /* Will override color (regardless of order) */
+    -webkit-text-stroke-width: 1px;
+    -webkit-text-stroke-color: #000;
+}
+
+.runner-icon span{
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.5em;
+    font-weight: bold;
+    padding: 0 15px;
+    white-space: nowrap;
+}
+

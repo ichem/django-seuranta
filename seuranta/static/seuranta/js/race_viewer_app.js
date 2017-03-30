@@ -262,7 +262,7 @@ var display_competitor_list = function(){
 
 var zoom_on_competitor = function(compr){
   var route = competitor_routes[compr.id]
-  var loc = route.getByTime(+clock.now()+time_offset_s);
+  var loc = route.getByTime(current_time);
   map.setView([loc.coords.latitude, loc.coords.longitude])
 }
 

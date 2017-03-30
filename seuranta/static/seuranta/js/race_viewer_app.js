@@ -74,7 +74,7 @@ var on_load_competition = function(response){
         [competition.map.top_right_lat, competition.map.top_right_lng],
         [competition.map.bottom_right_lat, competition.map.bottom_right_lng],
         [competition.map.bottom_left_lat, competition.map.bottom_left_lng]
-    ]
+    ];
     var transformedImage = L.imageTransform(competition.map.public_url, anchors);
     transformedImage.addTo(map);
   }
@@ -114,7 +114,7 @@ var select_live_mode = function(e){
     current_time = +clock.now()-5*1e3+time_offset_s*1e3;
     draw_competitors();
     if(is_live_mode){
-      setTimeout(while_live, 100)
+      setTimeout(while_live, 100);
     }
   })()
 }
@@ -209,7 +209,7 @@ var fetch_competitor_routes = function(url){
       routes_last_fetched = +clock.now();
       is_currently_fetching_routes = false;
     } else {
-      fetch_competitor_routes(response.next)
+      fetch_competitor_routes(response.next);
     }
   }).fail(function(){
     is_currently_fetching_routes = false;
@@ -261,9 +261,9 @@ var display_competitor_list = function(){
 }
 
 var zoom_on_competitor = function(compr){
-  var route = competitor_routes[compr.id]
+  var route = competitor_routes[compr.id];
   var loc = route.getByTime(current_time);
-  map.setView([loc.coords.latitude, loc.coords.longitude])
+  map.setView([loc.coords.latitude, loc.coords.longitude]);
 }
 
 var draw_competitors = function(){
@@ -291,7 +291,7 @@ var draw_competitors = function(){
     if(route != undefined){
       var viewed_time = current_time;
       if(!is_live_mode && !is_real_time && competitor.start_time){
-        viewed_time += new Date(competitor.start_time) - new Date(competition.start_date)
+        viewed_time += new Date(competitor.start_time) - new Date(competition.start_date);
       }
       var loc = route.getByTime(viewed_time);
       if(!isNaN(loc.coords.latitude)){
@@ -310,7 +310,7 @@ var draw_competitors = function(){
         }
       }
       var tail = route.extractInterval(viewed_time-tail_length*1e3, viewed_time);
-      var tail_latlng = []
+      var tail_latlng = [];
       $.each(tail.getArray(), function(jj, pos){
         if(!isNaN(pos.coords.latitude)){
           tail_latlng.push([pos.coords.latitude, pos.coords.longitude]);
@@ -337,7 +337,7 @@ $(function() {
   open_street_map = L.tileLayer('http://{s}.tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png', {
     attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
     maxZoom: 18
-  })
+  });
   open_street_map.addTo(map);
 
   var url = window.location.href;

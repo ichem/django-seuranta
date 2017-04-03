@@ -341,7 +341,7 @@ $(function() {
   open_street_map.addTo(map);
 
   var url = window.location.href;
-  var competition_id = url.match(/^.*\/watch\/(.{22})\/?(\?(.*))?(#(.*))?$/)[1];
+  var competition_id = url.match(/^.*\/watch\/(.{11})\/?(\?(.*))?(#(.*))?$/)[1];
   load_competition(competition_id);
 
   $('#runners_show_button').on('click', function(e){

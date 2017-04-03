@@ -1,7 +1,8 @@
 # coding=utf-8
+import base64
 from decimal import Decimal
-import uuid
 import datetime
+from six import string_types
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
@@ -10,7 +11,6 @@ from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
 import time
 from seuranta.models import BLANK_GIF_B64
-from seuranta.utils.b64_codec import url_safe_b64_codec, B64Codec
 from seuranta.utils.geo import GeoLocation, GeoCoordinates, GeoLocationSeries
 from seuranta.utils.validators import validate_longitude, validate_latitude, \
     validate_nice_slug
@@ -110,7 +110,10 @@ class ApiTestCase(APITestCase):
         )
         response = client.get(map_url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data.encode('base64').strip(), BLANK_GIF_B64)
+        self.assertEqual(
+            base64.b64encode(response.data).strip().decode('utf-8'),
+            BLANK_GIF_B64
+        )
         # Create a competition in future
         data2 = self.basic_competition_data
         data2['name'] = 'next Jukola'
@@ -406,23 +409,6 @@ class ValidatorsTestCase(TestCase):
                      'this_is_way_too_long_to_be_a_slug'):
             with self.assertRaises(ValidationError):
                 validate_nice_slug(slug)
-
-
-class B64CodecTestCase(TestCase):
-    def test_symmetry(self):
-        original = uuid.uuid4().bytes
-        encoded = url_safe_b64_codec.encode(original)
-        decoded = url_safe_b64_codec.decode(encoded)
-        self.assertEqual(original, decoded)
-
-    def test_original(self):
-        with self.assertRaises(TypeError):
-            B64Codec('banana')
-        b64_codec = B64Codec()
-        original = uuid.uuid4().bytes
-        encoded = b64_codec.encode(original)
-        decoded = b64_codec.decode(encoded)
-        self.assertEqual(original, decoded)
 
 
 class GeoToolTestCase(TestCase):

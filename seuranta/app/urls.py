@@ -21,7 +21,7 @@ urlpatterns = [
         name='seuranta_list_competitions'
     ),
     url(
-        r'^watch/(?P<competition_id>[-0-9a-zA-Z_]{22})/?$',
+        r'^watch/(?P<competition_id>[-0-9a-zA-Z_]{11})/?$',
         TemplateView.as_view(template_name='seuranta/race_viewer.html'),
         name='seuranta_race'
     ),
@@ -32,7 +32,7 @@ urlpatterns = [
     url(
         r'^media/seuranta/maps/(?P<publisher>[^/]+)/'
         r'(?P<hash>[-0-9a-zA-Z_])/(?P<hash2>[-0-9a-zA-Z_])/'
-        r'(?P<pk>(?P=hash)(?P=hash2)[-0-9a-zA-Z_]{20})',
+        r'(?P<pk>(?P=hash)(?P=hash2)[-0-9a-zA-Z_]{9})',
         admin_map_image,
         name='seuranta_admin_map_image',
     ),

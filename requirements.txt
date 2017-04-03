@@ -1,6 +1,7 @@
 markdown
 pillow
 pytz
+six
 unidecode
 django>=1.8,<1.9
 django-appconf>=1.0.1

@@ -1,13 +1,10 @@
 import datetime
 import base64
+import os
 import re
 from PIL import Image
 from pytz import common_timezones
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from six import BytesIO
 from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models.signals import post_delete
@@ -19,9 +16,9 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from seuranta.conf import settings
 from seuranta.storage import OverwriteImageStorage
-from seuranta.fields import ShortUUIDField
 from seuranta.utils import (slugify, make_random_code)
 from seuranta.utils.geo import GeoLocationSeries
+from seuranta.utils.random_key import random_key
 from seuranta.utils.validators import (validate_nice_slug, validate_latitude,
                                        validate_longitude)
 
@@ -76,8 +73,9 @@ def map_upload_path(instance=None, file_name=None):
     return os.path.join(*tmp_path)
 
 
+
 class Competition(models.Model):
-    id = ShortUUIDField(primary_key=True)
+    id = models.CharField(default=random_key, max_length=12, primary_key=True)
     updated = models.DateTimeField(auto_now=True)
     timezone = models.CharField(
         verbose_name=_("local timezone"),
@@ -301,12 +299,13 @@ class Map(models.Model):
     @property
     def image_data(self):
         if not self.image:
-            return BLANK_GIF_B64.decode('base64')
-        compressed_file = self.image.name + '_l'
-        if not self.image.storage.exists(compressed_file):
+            return base64.b64decode(BLANK_GIF_B64)
+        compressed_file = self.image.file.name + '_l'
+        if not self.image.storage.exists(compressed_file) or \
+                        os.stat(compressed_file).st_size == 0:
             with self.image.storage.open(self.image.file, 'rb') as fp_in, \
                     self.image.storage.open(compressed_file, 'wb') as fp_out:
-                buf = StringIO()
+                buf = BytesIO()
                 im = Image.open(fp_in)
                 im.convert('RGB').save(buf, 'JPEG', quality=40)
                 fp_out.write(buf.getvalue())
@@ -475,7 +474,8 @@ def map_post_delete_handler(sender, **kwargs):
 
 
 class Competitor(models.Model):
-    id = ShortUUIDField(_("identifier"), primary_key=True)
+    id = models.CharField(_("identifier"), max_length=12,
+                          default=random_key, primary_key=True)
     updated = models.DateTimeField(auto_now=True)
     competition = models.ForeignKey(
         Competition,
@@ -600,7 +600,8 @@ class CompetitorToken(models.Model):
 
 
 class Route(models.Model):
-    id = ShortUUIDField(_("identifier"), primary_key=True)
+    id = models.CharField(_("identifier"), default=random_key,
+                          max_length=12, primary_key=True)
     created = models.DateTimeField(auto_now_add=True)
     competitor = models.ForeignKey(Competitor,
                                    verbose_name=_("route"),

@@ -5,6 +5,7 @@ import re
 import calendar
 from decimal import Decimal
 from datetime import datetime
+from six import string_types
 
 from django.utils.timezone import utc
 
@@ -64,7 +65,7 @@ class GeoCoordinates(object):
             self.longitude = args[1]
         elif len(args) == 1:
             value = args[0]
-            if isinstance(value, basestring):
+            if isinstance(value, string_types):
                 match = self.repr_re.match(value)
                 if match is None:
                     raise ValueError("Incorrect argument '{}'".format(value))
@@ -87,7 +88,7 @@ class GeoCoordinates(object):
         # Put value in a correct range
         lat_mod = ((Decimal(value) + 90) % 360 + 360) % 360
         lat = 270 - lat_mod if lat_mod >= 180 else lat_mod - 90
-        if str(lat) > self.LATITUDE_MAX_LENGTH:
+        if len(str(lat)) > self.LATITUDE_MAX_LENGTH:
             lat = Decimal(str(lat)[:self.LATITUDE_MAX_LENGTH])
         self._latitude = lat
 
@@ -101,7 +102,7 @@ class GeoCoordinates(object):
             value = str(value)
         # Put value in a correct range
         lon = ((Decimal(value) + 180) % 360 + 360) % 360 - 180
-        if str(lon) > self.LONGITUDE_MAX_LENGTH:
+        if len(str(lon)) > self.LONGITUDE_MAX_LENGTH:
             lon = Decimal(str(lon)[:self.LONGITUDE_MAX_LENGTH])
         self._longitude = lon
 
@@ -135,8 +136,6 @@ class GeoLocation(object):
         elif isinstance(coordinates, (list, tuple)) and len(coordinates) == 2:
             self.coordinates = GeoCoordinates(coordinates[0], coordinates[1])
         else:
-            print timestamp, coordinates, type(coordinates)
-            print isinstance(coordinates, (list, tuple)), len(coordinates) == 2
             raise ValueError("Wrong parameter 'coordinates', "
                              "expecting GeoCoordinates or a tuple of "
                              "length 2.")
@@ -181,11 +180,11 @@ class GeoLocation(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def __cmp__(self, other):
+    def __lt__(self, other):
         if not isinstance(other, GeoLocation):
             raise TypeError('Can only compare to other instances of '
                             'GeoLocation')
-        return cmp(self.timestamp, other.timestamp)
+        return self.timestamp < other.timestamp
 
 
 class GeoLocationSeries(object):
@@ -195,12 +194,12 @@ class GeoLocationSeries(object):
             raise TypeError('item is not of type GeoLocation')
 
     def __init__(self, lst):
-        if isinstance(lst, basestring):
+        if isinstance(lst, string_types):
             lst = self.decode_str(lst)
         decorated = sorted(lst)
         self._keys = [item.timestamp for item in decorated]
         self._items = [item for item in decorated]
-        if isinstance(lst, basestring):
+        if isinstance(lst, string_types):
             lst = self.decode_str(lst)
         for item in lst:
             self.check_instance(item)

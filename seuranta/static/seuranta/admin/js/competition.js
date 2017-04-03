@@ -5,8 +5,8 @@ if (jQuery !== undefined) {
 }
 (function($) {
   $(document).ready(function() {
-    $('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '//cdn.leafletjs.com/leaflet-0.7.3/leaflet.css') );
-    $.getScript( "//cdn.leafletjs.com/leaflet-0.7.3/leaflet.js" , function(){
+    $('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css') );
+    $.getScript( "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js" , function(){
       $.each($(".field-latitude"), function(index, element){
         var latitude = parseFloat($(element).find('input').val())
         var longitude = parseFloat($(element).parent().find('.field-longitude input').val())

@@ -75,7 +75,8 @@ def map_upload_path(instance=None, file_name=None):
 
 
 class Competition(models.Model):
-    id = models.CharField(default=random_key, max_length=12, primary_key=True)
+    id = models.CharField(default=random_key, max_length=12, primary_key=True,
+                          editable = False)
     updated = models.DateTimeField(auto_now=True)
     timezone = models.CharField(
         verbose_name=_("local timezone"),
@@ -475,7 +476,7 @@ def map_post_delete_handler(sender, **kwargs):
 
 class Competitor(models.Model):
     id = models.CharField(_("identifier"), max_length=12,
-                          default=random_key, primary_key=True)
+                          default=random_key, primary_key=True, editable=False)
     updated = models.DateTimeField(auto_now=True)
     competition = models.ForeignKey(
         Competition,
@@ -601,7 +602,7 @@ class CompetitorToken(models.Model):
 
 class Route(models.Model):
     id = models.CharField(_("identifier"), default=random_key,
-                          max_length=12, primary_key=True)
+                          max_length=12, primary_key=True, editable=False)
     created = models.DateTimeField(auto_now_add=True)
     competitor = models.ForeignKey(Competitor,
                                    verbose_name=_("route"),

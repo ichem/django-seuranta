@@ -601,8 +601,6 @@ class CompetitorToken(models.Model):
 
 
 class Route(models.Model):
-    id = models.CharField(_("identifier"), default=random_key,
-                          max_length=12, primary_key=True, editable=False)
     created = models.DateTimeField(auto_now_add=True)
     competitor = models.ForeignKey(Competitor,
                                    verbose_name=_("route"),

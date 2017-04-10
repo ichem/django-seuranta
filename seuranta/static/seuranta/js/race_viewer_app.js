@@ -265,7 +265,20 @@ var zoom_on_competitor = function(compr){
   var loc = route.getByTime(current_time);
   map.setView([loc.coords.latitude, loc.coords.longitude]);
 }
-
+var get_progress_bar_text = function(){
+    var result = '';
+    var viewed_time = current_time;
+    if(!is_real_time){
+        viewed_time -= new Date(competition.start_date);
+        var t = viewed_time/1e3;
+        to2digits = function(x){return ('0'+Math.floor(x)).slice(-2);},
+        result += t > 3600 ? Math.floor(t/3600) + ':': '';
+        result += to2digits((t / 60) % 60) + ':' + to2digits(t % 60);
+    }else{
+        result = moment(+new Date(viewed_time)).tz(competition.timezone).format('HH:mm:ss');
+    }
+    return result;
+}
 var draw_competitors = function(){
   // play/pause button
   if(playback_paused){
@@ -282,7 +295,7 @@ var draw_competitors = function(){
   // progress bar
   var perc = is_live_mode ? 100 : (current_time-new Date(competition.start_date))/(Math.min(+clock.now(), new Date(competition.end_date))-new Date(competition.start_date))*100
   $('#progress_bar').css('width', perc+'%').attr('aria-valuenow', perc);
-  // $('#progress_bar_text').html(perc);
+  $('#progress_bar_text').html(get_progress_bar_text());
   $.each(competitor_list, function(ii, competitor){
     if(!competitor.is_shown){
       return;

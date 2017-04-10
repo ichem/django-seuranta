@@ -228,7 +228,7 @@ class Competition(models.Model):
         self.derive_slug()
         super(Competition, self).save(*args, **kwargs)
 
-    def __unicode__(self):
+    def __str__(self):
         return u"{} \"{}\"".format(_(u"Competition"), self.name)
 
     class Meta:
@@ -568,7 +568,7 @@ class Competitor(models.Model):
                 'start_time does not respect competition schedule'
             )
 
-    def __unicode__(self):
+    def __str__(self):
         return u"{} \"{}\" > {}".format(_(u"Competitor"), self.name,
                                         self.competition)
 

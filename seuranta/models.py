@@ -568,14 +568,33 @@ class Competitor(models.Model):
                 'start_time does not respect competition schedule'
             )
 
+    def gpx(self):
+        out = '<gpx creator="Routechoices.com" version="1.1" ' \
+              'xsi:schemaLocation="http://www.topografix.com/GPX/1/1 ' \
+              'http://www.topografix.com/GPX/11.xsd">'
+        out += '<metadata><time>{}</time></metadata>'.format(
+            self.route[0].get_datetime().strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        )
+        out += '<trk>'
+        out += '<name>{}</name>'.format(self.name)
+        out += '<trkseg>'
+        for point in self.route:
+            out += '<trkpt lat="{}" lon="{}"><time>{}</time></trkpt>'.format(
+                point.coordinates.latitude,
+                point.coordinates.longitude,
+                point.get_datetime().strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            )
+        out += '</trkseg></trk></gpx>'
+        return out
+
     def __str__(self):
-        return u"{} \"{}\" > {}".format(_(u"Competitor"), self.name,
+        return u'{} "{}" > {}'.format(_(u'Competitor'), self.name,
                                         self.competition)
 
     class Meta:
-        ordering = ["competition", "start_time", "name"]
-        verbose_name = _("competitor")
-        verbose_name_plural = _("competitors")
+        ordering = ['competition', 'start_time', 'name']
+        verbose_name = _('competitor')
+        verbose_name_plural = _('competitors')
 
 
 class CompetitorToken(models.Model):
@@ -596,8 +615,8 @@ class CompetitorToken(models.Model):
         return self.key
 
     class Meta:
-        verbose_name = _("competitor publishing token")
-        verbose_name_plural = _("competitor publishing tokens")
+        verbose_name = _('competitor publishing token')
+        verbose_name_plural = _('competitor publishing tokens')
 
 
 class Route(models.Model):

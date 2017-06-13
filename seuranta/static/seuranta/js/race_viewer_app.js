@@ -141,12 +141,12 @@ var select_replay_mode = function(e){
     }
     var actual_playback_rate = playback_paused?0:playback_rate;
     current_time = prev_shown_time + (+clock.now() - prev_display_refresh)*actual_playback_rate;
-    current_time = Math.min(+clock.now(), current_time)
+    current_time = Math.min(+clock.now(), current_time, +new Date(competition.end_date));
     draw_competitors();
     prev_shown_time = current_time;
     prev_display_refresh = +clock.now();
     if(!is_live_mode){
-      setTimeout(while_replay, 100)
+      setTimeout(while_replay, 100);
     }
   })()
 }
@@ -155,9 +155,9 @@ var fetch_competitor_list = function(url){
   url = url || "/api/competitor";
   var data={};
   if(url == "/api/competitor"){
-    data.competition_id=competition.id
-    data.results_per_page = 1000
-    data.approval_status = 'approved'
+    data.competition_id = competition.id;
+    data.results_per_page = 1000;
+    data.approval_status = 'approved';
   }
   $.ajax({
     url: url,

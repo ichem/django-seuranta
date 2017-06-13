@@ -50,6 +50,11 @@ urlpatterns = [
         name='seuranta_api_competitor'
     ),
     url(
+        r'^competitor/(?P<pk>[-a-zA-Z0-9_]{11})\.gpx$',
+        views.download_gpx,
+        name='seuranta_api_competitor_gpx_download'
+    ),
+    url(
         r'^competitor_token/obtain/?$',
         views.obtain_competitor_token,
         name='seuranta_api_obtain_competitor_token'

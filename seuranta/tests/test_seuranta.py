@@ -343,6 +343,7 @@ class ApiTestCase(APITestCase):
     def test_publish_route(self):
         url_api_competition = reverse('seuranta_api_competitions')
         url_api_competitor = reverse('seuranta_api_competitors')
+        url_api_routes = reverse('seuranta_api_routes')
         client = APIClient()
         client.login(username='alice', password='passw0rd!')
         competition_data = self.basic_competition_data
@@ -367,7 +368,7 @@ class ApiTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         pub_token = response.data['token']
         response = client.post(
-            reverse('seuranta_api_routes'),
+            url_api_routes,
             {
                 'competitor': competitor_id,
                 'encoded_data': 'A??',
@@ -376,14 +377,14 @@ class ApiTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         client.post(
-            reverse('seuranta_api_routes'),
+            url_api_routes,
             {
                 'competitor': competitor_id,
                 'encoded_data': 'CAA',
                 'token': pub_token,
             }
         )
-        response = client.get(reverse('seuranta_api_routes'), format='json')
+        response = client.get(url_api_routes, format='json')
         self.assertEqual(len(response.data['results']), 2)
         response = client.get(
             reverse('seuranta_api_competitor_route',
@@ -391,6 +392,29 @@ class ApiTestCase(APITestCase):
             format='json'
         )
         self.assertEqual(response.data['encoded_data'], 'A??AAA')
+        response = client.get(
+            reverse('seuranta_api_competitor_gpx_download',
+                    kwargs = {'pk': competitor_id})
+        )
+        self.assertEquals(
+            response.data,
+            '<gpx creator="Routechoices.com" version="1.1" '
+            'xsi:schemaLocation="http://www.topografix.com/GPX/1/1 '
+            'http://www.topografix.com/GPX/11.xsd">'
+            '<metadata><time>2000-01-01T00:00:01.000Z</time></metadata>'
+            '<trk>'
+            '<name>Kapteeni Kiila</name>'
+            '<trkseg>'
+            '<trkpt lat="0.0" lon="0.0">'
+            '<time>2000-01-01T00:00:01.000Z</time>'
+            '</trkpt>'
+            '<trkpt lat="0.00001" lon="0.00001">'
+            '<time>2000-01-01T00:00:02.000Z</time>'
+            '</trkpt>'
+            '</trkseg>'
+            '</trk>'
+            '</gpx>'
+        )
 
 
 class ValidatorsTestCase(TestCase):

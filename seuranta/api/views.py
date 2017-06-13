@@ -14,10 +14,9 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.exceptions import ParseError, PermissionDenied, NotFound
 from rest_framework import status
 from rest_framework.views import APIView
-from seuranta.api import pagination
 from seuranta.api.pagination import RouteDataPagination
 from seuranta.models import Competition, Competitor, CompetitorToken, Route
 from seuranta.api.serializers import (
@@ -526,6 +525,26 @@ class CompetitorRouteDetailView(generics.RetrieveUpdateAPIView):
                 encoded_data = CustomRouteSerializer(source='route')
             return CustomCompetitorRouteSerializer
         return CompetitorRouteSerializer
+
+
+class GPXRenderer(renderers.BaseRenderer):
+    media_type = 'application/gpx+xml'
+    format = 'gpx'
+    charset = 'utf-8'
+    render_style = 'text'
+
+    def render(self, data, media_type=None, renderer_context=None):
+        return data
+
+
+@api_view(['GET', ])
+@renderer_classes((GPXRenderer, ))
+def download_gpx(request, pk):
+    competitor = get_object_or_404(Competitor, pk=pk)
+    # Check if competition is completed
+    if not competitor.competition.is_completed():
+        raise NotFound
+    return Response(competitor.gpx)
 
 
 destroy_auth_token = DestroyAuthToken.as_view()

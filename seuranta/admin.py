@@ -86,6 +86,20 @@ class CompetitionAdmin(PublisherAdmin):
         MapInlineAdmin,
         CompetitorInlineAdmin,
     ]
+    actions = ['close']
+
+    def close(self, request, queryset):
+        for competition in queryset:
+            competition.close_competition()
+            competition.save()
+        if len(queryset) == 1:
+            message_bit = '1 competition was'
+        else:
+            message_bit = '%s competitions were' % len(queryset)
+        self.message_user(request,
+                          '%s successfully closed.' % message_bit)
+
+    close.short_description = _('Close competitions')
 
     class Media:
         js = {

@@ -3,6 +3,7 @@ import base64
 import os
 import re
 from PIL import Image
+from django.contrib.sites.models import Site
 from pytz import common_timezones
 from six import BytesIO
 from django.core.files.base import ContentFile
@@ -570,9 +571,10 @@ class Competitor(models.Model):
 
     @property
     def gpx(self):
-        out = '<gpx creator="Routechoices.com" version="1.1" ' \
+        site_name = Site.objects.get_current().name
+        out = '<gpx creator="{}" version="1.1" ' \
               'xsi:schemaLocation="http://www.topografix.com/GPX/1/1 ' \
-              'http://www.topografix.com/GPX/11.xsd">'
+              'http://www.topografix.com/GPX/11.xsd">'.format(site_name)
         out += '<metadata><time>{}</time></metadata>'.format(
             self.route[0].get_datetime().strftime('%Y-%m-%dT%H:%M:%S.000Z')
         )

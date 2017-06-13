@@ -398,7 +398,7 @@ class ApiTestCase(APITestCase):
         )
         self.assertEquals(
             response.data,
-            '<gpx creator="Routechoices.com" version="1.1" '
+            '<gpx creator="example.com" version="1.1" '
             'xsi:schemaLocation="http://www.topografix.com/GPX/1/1 '
             'http://www.topografix.com/GPX/11.xsd">'
             '<metadata><time>2000-01-01T00:00:01.000Z</time></metadata>'

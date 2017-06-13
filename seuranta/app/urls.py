@@ -25,8 +25,8 @@ urlpatterns = [
         TemplateView.as_view(template_name='seuranta/race_viewer.html'),
         name='seuranta_race'
     ),
+    url(r'^accounts/', include('allauth.urls')),
     url(r'^api/', include('seuranta.api.urls')),
-
     # Django admin specifics
     url(r'^admin/', include(admin.site.urls)),
     url(

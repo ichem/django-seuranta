@@ -264,7 +264,7 @@ var zoom_on_competitor = function(compr){
   var route = competitor_routes[compr.id];
   var time_t = current_time;
   if(!is_real_time){
-    time_t += compr.start_time - competition.start_date;
+    time_t += +new Date(compr.start_time) - competition.start_date;
   }
   var loc = route.getByTime(time_t);
   map.setView([loc.coords.latitude, loc.coords.longitude]);

@@ -12,7 +12,11 @@ var ServerClock = function(opts){
     for(var ii=0; ii < drifts.length; ii++){
         total_drift += drifts[ii];
     }
-    return total_drift/drifts.length;
+    if(drifts.length===0){
+      return 0;
+    }else{
+      return total_drift/drifts.length;
+    }
   }
 
   function onServerResponse(requestTime){

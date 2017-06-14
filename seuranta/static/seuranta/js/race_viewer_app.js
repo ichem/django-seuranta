@@ -48,8 +48,8 @@ var is_competition_live = function(){
 }
 
 var has_competition_started = function(){
-    var start = + new Date(competition.start_date);
-    var now = + clock.now();
+    var start = +new Date(competition.start_date);
+    var now = +clock.now();
     return start < now;
 }
 
@@ -78,19 +78,23 @@ var on_load_competition = function(response){
     var transformedImage = L.imageTransform(competition.map.public_url, anchors);
     transformedImage.addTo(map);
   }
+  check_race_started();
+}
+
+var check_race_started = function(){
   if(has_competition_started()){
-    $("#before_race_modal").hide();
+    $("#before_race_modal").hide();  
+    if(is_competition_live()){
+      select_live_mode();
+    } else {
+      $("#live_button").hide();
+      select_replay_mode();
+    }
+    fetch_competitor_list();
+    fetch_competitor_routes();
   }else{
-    return;
+    window.setTimeout(check_race_started, 1000);
   }
-  if(is_competition_live()){
-    select_live_mode();
-  } else {
-    $("#live_button").hide()
-    select_replay_mode();
-  }
-  fetch_competitor_list();
-  fetch_competitor_routes();
 }
 
 var select_live_mode = function(e){

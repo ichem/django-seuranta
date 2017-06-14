@@ -398,6 +398,7 @@ class ApiTestCase(APITestCase):
         )
         self.assertEquals(
             response.data,
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<gpx creator="example.com" version="1.1" '
             'xsi:schemaLocation="http://www.topografix.com/GPX/1/1 '
             'http://www.topografix.com/GPX/11.xsd">'

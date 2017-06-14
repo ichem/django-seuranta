@@ -572,9 +572,10 @@ class Competitor(models.Model):
     @property
     def gpx(self):
         site_name = Site.objects.get_current().name
-        out = '<gpx creator="{}" version="1.1" ' \
-              'xsi:schemaLocation="http://www.topografix.com/GPX/1/1 ' \
-              'http://www.topografix.com/GPX/11.xsd">'.format(site_name)
+        out = '<?xml version="1.0" encoding="UTF-8"?>\n'
+        out += '<gpx creator="{}" version="1.1" ' \
+               'xsi:schemaLocation="http://www.topografix.com/GPX/1/1 ' \
+               'http://www.topografix.com/GPX/11.xsd">'.format(site_name)
         out += '<metadata><time>{}</time></metadata>'.format(
             self.route[0].get_datetime().strftime('%Y-%m-%dT%H:%M:%S.000Z')
         )

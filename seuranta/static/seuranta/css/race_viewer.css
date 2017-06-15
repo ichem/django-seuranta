@@ -52,6 +52,13 @@ body {
     background-color: #e5e5e5;
 }
 
+@media only screen
+and (max-device-width : 500px) {
+  .time_bar{
+    height: 120px;
+  }
+}
+
 /* Sidebar navigation */
 .nav-sidebar {
   margin-right: -21px; /* 20px padding + 1px border */
@@ -98,5 +105,16 @@ body {
     font-weight: bold;
     padding: 0 15px;
     white-space: nowrap;
+}
+@media (max-device-width : 767px){
+  .time_bar{
+    height: 120px;
+  }
+  .main {
+    bottom: 120px;
+  }
+  .sidebar {
+    bottom: 120px;
+  }
 }
 

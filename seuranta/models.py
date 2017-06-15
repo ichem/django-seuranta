@@ -179,7 +179,7 @@ class Competition(models.Model):
         return self.pending_competitors.count()
 
     def close_competition(self):
-        self.end_date = datetime.utcnow().replace(tzinfo=utc)
+        self.end_date = datetime.datetime.utcnow().replace(tzinfo=utc)
 
     @models.permalink
     def get_absolute_url(self):

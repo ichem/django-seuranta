@@ -12,7 +12,7 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.utils.translation import ugettext_lazy as _, ugettext
 from django.utils.timezone import utc, now
-from django.core.validators import MinLengthValidator
+from django.core.validators import MinLengthValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from seuranta.conf import settings
@@ -133,7 +133,8 @@ class Competition(models.Model):
                                        default=1)
 
     live_delay = models.PositiveIntegerField(
-        _('live delay'), default=30, help_text=_('delay of live in seconds')
+        _('live delay'), default=30, help_text=_('delay of live in seconds'),
+        validators=[MinValueValidator(10)]
     )
 
     @property

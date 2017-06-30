@@ -12,7 +12,7 @@ urlpatterns = [
         TemplateView.as_view(template_name='seuranta/home.html'),
         name='seuranta_home'
     ),
-    url(r'^dashbord/?$',
+    url(r'^dashboard/?$',
         views.own_competitions,
         name='seuranta_dashboard'
     ),

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<pre>{% for c in competitions %}
+{{c.name}} {{c.competitors.count}}
+{% empty %}You haven't created any competitions, yet
+{% endfor %}</pre>
+
+<a href="{% url 'seuranta_create_competition' %}">Create competition</a>
+</body>
+</html>

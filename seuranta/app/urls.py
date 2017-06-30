@@ -2,6 +2,8 @@ from django.conf.urls import include, url
 from django.contrib import admin
 from django.views.generic import TemplateView
 from seuranta.views import admin_map_image
+from seuranta.app import views
+
 admin.autodiscover()
 
 urlpatterns = [
@@ -9,6 +11,14 @@ urlpatterns = [
         r'^$',
         TemplateView.as_view(template_name='seuranta/home.html'),
         name='seuranta_home'
+    ),
+    url(r'^dashbord/?$',
+        views.own_competitions,
+        name='seuranta_dashboard'
+    ),
+    url(r'^create_competition/?$',
+        views.create_competition,
+        name='seuranta_create_competition'
     ),
     url(
         r'^tracker/?$',

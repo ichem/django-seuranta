@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Location selector</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.3/leaflet.css" />
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+        html, body, #map {
+            height: 100%;
+            width: 100%;
+        }
+        .nav{
+            position: absolute;
+            right: 0px;
+            bottom: 0px;
+            width: 110px;
+            height: 70px;
+            z-index:9999;
+            padding:5px;
+        }
+
+        .button {
+            background-color: #000000;
+            color: #FFFFFF;
+            padding: 10px;
+            border-radius: 10px;
+            -moz-border-radius: 10px;
+            -webkit-border-radius: 10px;
+            margin:10px
+        }
+
+        .big-btn {
+            width: 90px;
+            height: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="nav">
+        <button type="button" class="button big-btn" id="saveButton">Save</button>
+    <div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.3/leaflet.js"></script>
+    <script>
+        var loc = window.opener.document.getElementById('coordinates_input');
+        var loc_p = loc.value.split(' ');
+
+        var map = L.map('map').setView([parseFloat(loc_p[0]), parseFloat(loc_p[1])], parseInt(loc_p[2]));
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        var to5digits = function(n){
+           return Math.round(n*1e5)/1e5;
+        }
+
+        window.onload = function(){
+            var saveButton = document.getElementById('saveButton');
+            saveButton.addEventListener('click', saveCoordinates);
+        }
+
+        var saveCoordinates = function(e){
+            e.preventDefault();
+            loc.value = to5digits(map.getCenter().lat) + " " + to5digits(map.getCenter().lng) + " " + map.getZoom();
+            window.close();
+        }
+    </script>
+</body>
+</html>

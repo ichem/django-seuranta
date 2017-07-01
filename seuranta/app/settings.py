@@ -54,6 +54,7 @@ TEMPLATES = [
                 'django.core.context_processors.media',
                 'django.core.context_processors.static',
                 'django.template.context_processors.request',
+                'seuranta.context_processors.site'
             ],
         },
     },

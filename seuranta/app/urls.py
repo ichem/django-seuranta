@@ -20,6 +20,10 @@ urlpatterns = [
         views.create_competition,
         name='seuranta_create_competition'
     ),
+    url(r'^edit_competition/(?P<competition_id>[-0-9a-zA-Z_]{11})/?$',
+        views.edit_competition,
+        name='seuranta_edit_competition'
+    ),
     url(
         r'^tracker/?$',
         TemplateView.as_view(template_name='seuranta/tracker.html'),

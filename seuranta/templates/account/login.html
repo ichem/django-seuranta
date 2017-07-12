@@ -1,0 +1,40 @@
+{% extends "seuranta/base.html" %}
+{% load staticfiles %}
+{% load i18n %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-xs-10 col-sm-6 col-md-4 col-xs-offset-1 col-sm-offset-3 col-md-offset-4" id="mainDiv">
+    <h3>Login</h3>
+    <hr/>
+    <a class="col-md-12 btn btn-primary" href="/accounts/facebook/login/?process=login">Login with facebook</a>
+    <p class="text-center">or</p>
+  <form class="login" method="POST" action="{% url 'account_login' %}">
+    <div class="form-group">
+      <label for="id_login">Email</label>
+      <input type="email" class="form-control" id="id_login"  name="login" placeholder="Email address" autofocus="autofocus">
+    </div>
+    <div class="form-group">
+      <label for="id_password">Password</label>
+      <input type="password" class="form-control" id="id_password" name="password" placeholder="Password">
+    </div>
+    <div class="checkbox">
+      <label>
+        <input type="checkbox" id="id_remember" name="remember"> Remember Me
+      </label>
+    </div>
+    {% csrf_token %}
+    {% if redirect_field_value %}
+    <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+    {% endif %}
+    <button type="submit" class="btn btn-default">Submit</button>
+  </form>
+  <hr/>
+    <p>
+      <a href="{% url 'account_reset_password' %}">Forgot password?</a> - <a href="{{ signup_url }}">Sign Up</a>
+    </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

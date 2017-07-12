@@ -19,12 +19,12 @@
     </div>
     {% if request.user.is_authenticated %}
     <div class="navbar-right">
-        <p class="navbar-text">Signed in as {{ request.user.email }}</p>
-        <a href="{% url 'account_logout' %}" class="btn btn-primary navbar-btn">Sign out</a>
+        <p class="navbar-text">Logged in as {{ request.user.email }}</p>
+        <a href="{% url 'account_logout' %}" class="btn btn-primary navbar-btn">Logout</a>
     </div>
     {% else %}
     <div class="navbar-right">
-        <a href="{% url 'account_login' %}" class="btn btn-default navbar-btn">Sign in</a>
+        <a href="{% url 'account_login' %}" class="btn btn-default navbar-btn">Login</a>
         <a href="{% url 'account_signup' %}" class="btn btn-primary navbar-btn">Sign up</a>
     </div>
     {% endif %}

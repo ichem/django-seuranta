@@ -28,3 +28,13 @@ def edit_competition(request, competition_id):
     return render(request,
                   'seuranta/edit_competition.html',
                   {'competition': competition})
+
+
+@login_required
+def edit_map(request, competition_id):
+    competition = get_object_or_404(Competition, id=competition_id)
+    if competition.publisher != request.user:
+        raise PermissionDenied
+    return render(request,
+                  'seuranta/edit_map.html',
+                  {'competition': competition})

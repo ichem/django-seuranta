@@ -136,7 +136,8 @@ var displayCompetitionList = function(){
   $('#competition-list').append('<table class="table table-striped"/>')
   $.each(competitions, function(ii, competition){
     var link = $('<td><a href="#">'+competition.name+'</a></td>');
-    link.on('click', function(){
+    link.on('click', function(e){
+      e.preventDefault();
       competitionSelectionChoice = competition;
       fetchCompetitorList();
       $('.select-competitor-pane').hide();
@@ -156,7 +157,8 @@ var displayCompetitorList = function(){
   $('#competitor-list').append('<table class="table table-striped"/>')
   $.each(competitors, function(ii, competitor){
     var link = $('<td><a href="#">'+competitor.name+'</a></td>');
-    link.on('click', function(){
+    link.on('click', function(e){
+      e.preventDefault();
       competitorSelectionChoice = competitor;
       $('.select-competitor-pane').hide();
       $('.error-message').hide();
@@ -199,7 +201,7 @@ var validateAccessCode = function(){
     return
   }
   var competitorId = competitorSelectionChoice.id;
-  var url = getServerUrl() + 'api/competitor_token/obtain';
+  var url = getServerUrl() + 'api/competitor_token/';
   setStatus('Fetching competitor token');
   $.ajax({
     url: url,
@@ -341,7 +343,12 @@ var onPositionUpdate = function(position){
 }
 
 var onPositionError = function(e){
-  console.log(e)
+  console.log(e);
+  if(e.code == 1){
+    stopStreaming();
+    $('#error-modal-msg').text("You must allow location service for this site!");
+    $('#error-modal').modal('show');
+  }
 }
 
 $(function() {

@@ -1,0 +1,62 @@
+{% extends "seuranta/base.html" %}
+{% load staticfiles %}
+{% load i18n %}
+{% load tz %}
+
+{% block content %}
+<div class="row">
+<form class="form-horizontal" id="map_edit_form">
+    <fieldset>
+
+<!-- Form Name -->
+<legend>Edit Map</legend>
+
+<!-- Select Basic -->
+<div class="form-group">
+  <label class="col-md-4 control-label" for="selectbasic">Map mode</label>
+  <div class="col-md-4">
+    <select id="selectbasic" name="selectbasic" class="form-control">
+      <option value="1">Map + Background</option>
+      <option value="2">Map Alone</option>
+      <option value="2">Background Alone</option>
+    </select>
+  </div>
+</div>
+
+<!-- Text input-->
+<div class="form-group">
+  <label class="col-md-4 control-label" for="textinput">Current Map</label>
+  <div class="col-md-4">
+  <input id="textinput" name="textinput" placeholder="placeholder" class="form-control input-md" type="text">
+  <span class="help-block">help</span>
+  </div>
+</div>
+
+<!-- Button -->
+<div class="form-group">
+  <label class="col-md-4 control-label" for="singlebutton"></label>
+  <div class="col-md-4">
+    <button id="singlebutton" name="singlebutton" class="btn btn-primary">Delete</button>
+  </div>
+</div>
+
+<!-- File Button -->
+<div class="form-group">
+  <label class="col-md-4 control-label" for="filebutton">New Map Image</label>
+  <div class="col-md-4">
+    <input id="filebutton" name="filebutton" class="input-file" type="file">
+  </div>
+</div>
+
+<!-- Button -->
+<div class="form-group">
+  <label class="col-md-4 control-label" for="">Calibrate Map</label>
+  <div class="col-md-4">
+    <button id="" name="" class="btn btn-primary">Button</button>
+  </div>
+</div>
+
+</fieldset>
+</form>
+</div>
+{% endblock %}

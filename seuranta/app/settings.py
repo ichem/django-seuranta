@@ -48,11 +48,11 @@ TEMPLATES = [
             'context_processors': [
                 'django.contrib.auth.context_processors.auth',
                 'django.template.context_processors.debug',
-                'django.core.context_processors.i18n',
+                'django.template.context_processors.i18n',
                 'django.contrib.messages.context_processors.messages',
-                'django.core.context_processors.tz',
-                'django.core.context_processors.media',
-                'django.core.context_processors.static',
+                'django.template.context_processors.tz',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
                 'django.template.context_processors.request',
                 'seuranta.context_processors.site'
             ],
@@ -97,7 +97,8 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.AdminRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer'
+        'rest_framework.renderers.BrowsableAPIRenderer',
+        'rest_framework.renderers.CoreJSONRenderer',
     ],
     'DEFAULT_PAGINATION_CLASS': 'seuranta.api.pagination.'
                                 'StandardPageNumberPagination',

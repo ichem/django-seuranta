@@ -1,5 +1,6 @@
-from django.conf.urls import url
+from django.conf.urls import url, include
 from rest_framework.authtoken.views import obtain_auth_token
+
 from seuranta.api import views
 
 
@@ -10,14 +11,9 @@ urlpatterns = [
         name='seuranta_api_time'
     ),
     url(
-        r'^auth_token/obtain/?$',
-        obtain_auth_token,
-        name='seuranta_api_auth_token_obtain'
-    ),
-    url(
-        r'^auth_token/destroy/?$',
-        views.destroy_auth_token,
-        name='seuranta_api_auth_token_destroy'
+        r'^auth_token/?$',
+        views.auth_token_view,
+        name='seuranta_api_auth_token'
     ),
     url(
         r'^competition/?$',
@@ -55,14 +51,9 @@ urlpatterns = [
         name='seuranta_api_competitor_gpx_download'
     ),
     url(
-        r'^competitor_token/obtain/?$',
-        views.obtain_competitor_token,
-        name='seuranta_api_obtain_competitor_token'
-    ),
-    url(
-        r'^competitor_token/destroy/?$',
-        views.destroy_competitor_token,
-        name='seuranta_api_destroy_competitor_token'
+        r'^competitor_token/?$',
+        views.competitor_token_view,
+        name='seuranta_api_competitor_token'
     ),
     url(
         r'^route/?$',

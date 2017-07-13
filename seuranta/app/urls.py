@@ -1,6 +1,7 @@
 from django.conf.urls import include, url
 from django.contrib import admin
 from django.views.generic import TemplateView
+from rest_framework.documentation import include_docs_urls
 from seuranta.views import admin_map_image
 from seuranta.app import views
 
@@ -41,6 +42,7 @@ urlpatterns = [
     ),
     url(r'^accounts/', include('allauth.urls')),
     url(r'^api/', include('seuranta.api.urls')),
+    url(r'^docs/', include_docs_urls(title='API Documentation')),
     # Django admin specifics
     url(r'^admin/', include(admin.site.urls)),
     url(

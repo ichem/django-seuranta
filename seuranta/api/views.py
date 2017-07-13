@@ -11,6 +11,7 @@ from rest_framework import renderers
 from rest_framework import parsers
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.serializers import AuthTokenSerializer
+from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.response import Response
@@ -37,14 +38,9 @@ from seuranta.api.serializers import (
 logger = logging.getLogger(__name__)
 
 
-class DestroyAuthToken(APIView):
-    throttle_classes = ()
-    permission_classes = ()
-    parser_classes = (parsers.FormParser, parsers.MultiPartParser,
-                      parsers.JSONParser,)
-    renderer_classes = (renderers.JSONRenderer,)
+class AuthTokenView(ObtainAuthToken):
 
-    def post(self, request):
+    def delete(self, request):
         serializer = AuthTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
@@ -55,7 +51,7 @@ class DestroyAuthToken(APIView):
         return Response(status=status.HTTP_404_NOT_FOUND)
 
 
-class ObtainCompetitorToken(APIView):
+class CompetitorTokenView(APIView):
     throttle_classes = ()
     permission_classes = ()
     parser_classes = (parsers.FormParser, parsers.MultiPartParser,
@@ -71,15 +67,7 @@ class ObtainCompetitorToken(APIView):
         )
         return Response({'token': token.key})
 
-
-class DestroyCompetitorToken(APIView):
-    throttle_classes = ()
-    permission_classes = ()
-    parser_classes = (parsers.FormParser, parsers.MultiPartParser,
-                      parsers.JSONParser,)
-    renderer_classes = (renderers.JSONRenderer,)
-
-    def post(self, request):
+    def delete(self, request):
         serializer = CompetitorTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         competitor = serializer.validated_data['competitor']
@@ -224,8 +212,11 @@ class MapDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MapSerializer
 
     def get_serializer_class(self):
-        if any([self.request.user.is_superuser,
-                self.request.user == self.get_object().competition.publisher]):
+        if self.request \
+                and self.kwargs \
+                and any([self.request.user.is_superuser,
+                         self.request.user
+                                 == self.get_object().competition.publisher]):
             return MapFullSerializer
         return MapSerializer
 
@@ -278,21 +269,24 @@ class CompetitorListView(generics.ListCreateAPIView):
     lookup_fields = ('name', )
 
     def get_serializer_class(self):
-        competition_id = self.request.query_params.get("competition_id")
+        competition_id=None
+        if self.request:
+            competition_id = self.request.query_params.get("competition_id")
         open_competitions = Competition.objects.all()
-        if self.request.user.is_superuser:
+        if self.request and self.request.user.is_superuser:
             return AdminCompetitorSerializer
         elif competition_id:
             open_competitions = open_competitions.filter(pk=competition_id)
-        elif self.request.user.is_anonymous():
+        elif self.request and self.request.user.is_anonymous():
             open_competitions = open_competitions.filter(
                 publication_policy='public'
             ).exclude(signup_policy='closed')
         else:
-            open_competitions = open_competitions.filter(
-                Q(publisher=self.request.user) |
-                (Q(publication_policy='public') & ~Q(signup_policy='closed'))
-            )
+            filter = (Q(publication_policy='public')
+                      & ~Q(signup_policy='closed'))
+            if self.request:
+                filter |= Q(publisher=self.request.user)
+            open_competitions = open_competitions.filter(filter)
 
         class CustomCompetitorSerializer(CompetitorSerializer):
             competition = serializers.PrimaryKeyRelatedField(
@@ -304,9 +298,10 @@ class CompetitorListView(generics.ListCreateAPIView):
                 queryset=open_competitions
             )
 
-        if self.request.user.is_anonymous() or not competition_id:
+        if (self.request and self.request.user.is_anonymous())\
+                or not competition_id:
             return CustomCompetitorSerializer
-        if not self.request.user.is_anonymous():
+        if self.request and not self.request.user.is_anonymous():
             is_publisher = Competition.objects.filter(
                 publisher=self.request.user,
                 id=competition_id
@@ -381,12 +376,13 @@ class CompetitorDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (permissions.AllowAny, )
 
     def get_serializer_class(self):
-        if self.request.user.is_superuser:
+        if self.request and self.request.user.is_superuser:
             return AdminCompetitorSerializer
-        instance = self.get_object()
-        is_publisher = (instance.competition.publisher == self.request.user)
-        if is_publisher:
-            return AdminCompetitorSerializer
+        if self.kwargs and self.request:
+            instance = self.get_object()
+            is_publisher = instance.competition.publisher == self.request.user
+            if is_publisher:
+                return AdminCompetitorSerializer
         return AnonCompetitorSerializer
 
     def perform_update(self, serializer):
@@ -428,7 +424,7 @@ class RouteListView(generics.ListCreateAPIView):
     pagination_class = RouteDataPagination
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
+        if self.request and self.request.method == 'POST':
             if self.request.user.is_superuser:
                 return PostRouteSerializer
             if self.request.user.is_anonymous():
@@ -507,7 +503,7 @@ class CompetitorRouteDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = (permissions.AllowAny, )
 
     def get_serializer_class(self):
-        if self.request.method == 'GET':
+        if self.request and self.request.method == 'GET':
             min_timestamp = self.request.query_params.get("start", '-inf')
             max_timestamp = self.request.query_params.get("end", '+inf')
             if (min_timestamp != '-inf' and
@@ -547,9 +543,8 @@ def download_gpx(request, pk):
     return Response(competitor.gpx)
 
 
-destroy_auth_token = DestroyAuthToken.as_view()
-obtain_competitor_token = ObtainCompetitorToken.as_view()
-destroy_competitor_token = DestroyCompetitorToken.as_view()
+auth_token_view = AuthTokenView.as_view()
+competitor_token_view = CompetitorTokenView.as_view()
 competitions_view = CompetitionListView.as_view()
 competition_view = CompetitionDetailView.as_view()
 competition_map_view = MapDetailView.as_view()

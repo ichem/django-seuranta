@@ -137,6 +137,7 @@ class PostRouteSerializer(RouteSerializer):
         if not token.exists():
             msg = _('Invalid competitor token')
             raise exceptions.ValidationError(msg)
+        validated_data.pop('token', None)
         return validated_data
 
     class Meta:

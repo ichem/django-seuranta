@@ -59,12 +59,11 @@ class ApiTestCase(APITestCase):
         ensure new token is different
         """
         client = APIClient()
-        url = reverse('seuranta_api_auth_token_obtain')
-        destroy_url = reverse('seuranta_api_auth_token_destroy')
+        url = reverse('seuranta_api_auth_token')
         response = client.post(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        response = client.post(
-            destroy_url,
+        response = client.delete(
+            url,
             {'username': 'alice', 'password': 'passw0rd!'},
             format='json'
         )
@@ -74,8 +73,8 @@ class ApiTestCase(APITestCase):
             {'username': 'alice', 'password': 'passw0rd!'},
             format='json'
         )
-        del_resp = client.post(
-            destroy_url,
+        del_resp = client.delete(
+            url,
             {'username': 'alice', 'password': 'passw0rd!'},
             format='json'
         )
@@ -201,10 +200,8 @@ class ApiTestCase(APITestCase):
     def test_competitor_token(self):
         url_api_competition = reverse('seuranta_api_competitions')
         url_api_competitor = reverse('seuranta_api_competitors')
-        url_api_token = reverse('seuranta_api_obtain_competitor_token')
-        url_destroy_api_token = reverse(
-            'seuranta_api_destroy_competitor_token'
-        )
+        url_api_token = reverse('seuranta_api_competitor_token')
+
         client = APIClient()
         client.login(username='alice', password='passw0rd!')
         competition_data = self.basic_competition_data
@@ -223,12 +220,12 @@ class ApiTestCase(APITestCase):
             'competitor': competitor_id,
             'access_code': access_code,
         }
-        response = client.post(url_destroy_api_token,  cred,  format='json')
+        response = client.delete(url_api_token,  cred,  format='json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         response = client.post(url_api_token, cred, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         pub_token1 = response.data['token']
-        response = client.post(url_destroy_api_token,  cred,  format='json')
+        response = client.delete(url_api_token,  cred,  format='json')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         response = client.post(url_api_token, cred, format='json')
         pub_token2 = response.data['token']
@@ -238,7 +235,7 @@ class ApiTestCase(APITestCase):
         url_api_competition = reverse('seuranta_api_competitions')
         url_api_competitor = reverse('seuranta_api_competitors')
         url_api_competitor_token = reverse(
-            'seuranta_api_obtain_competitor_token'
+            'seuranta_api_competitor_token'
         )
         client = APIClient()
         client.login(username='alice', password='passw0rd!')
@@ -358,7 +355,7 @@ class ApiTestCase(APITestCase):
         competitor_id = response.data['id']
         client.logout()
         response = client.post(
-            reverse('seuranta_api_obtain_competitor_token'),
+            reverse('seuranta_api_competitor_token'),
             {
                 'competitor': competitor_id,
                 'access_code': competitor_data['access_code']

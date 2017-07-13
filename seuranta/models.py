@@ -4,6 +4,7 @@ import os
 import re
 from PIL import Image
 from django.contrib.sites.models import Site
+from django.urls import reverse
 from pytz import common_timezones
 from six import BytesIO
 from django.core.files.base import ContentFile
@@ -182,10 +183,9 @@ class Competition(models.Model):
     def close_competition(self):
         self.end_date = datetime.datetime.utcnow().replace(tzinfo=utc)
 
-    @models.permalink
     def get_absolute_url(self):
         kwargs = {'competition_id': self.id}
-        return "seuranta_race", (), kwargs
+        return reverse("seuranta_race", (), kwargs)
 
     absolute_url = property(get_absolute_url)
 
@@ -344,10 +344,11 @@ class Map(models.Model):
         else:
             raise ValueError('Not a base 64 encoded data URI of an image')
 
-    @models.permalink
     def get_image_url(self):
         kwargs = {'pk': self.competition.pk, }
-        return "seuranta_api_competition_map_download", (), kwargs
+        return reverse('seuranta_api_competition_map_download',
+                       args=(),
+                       kwargs=kwargs)
 
     image_url = property(get_image_url)
 

@@ -216,6 +216,7 @@ class MapSerializer(serializers.ModelSerializer):
         model = Map
         fields = (
             'updated',
+            'is_calibrated',
             'public_url',
             'size',
             'top_left_lat',
@@ -232,7 +233,7 @@ class MapSerializer(serializers.ModelSerializer):
 
 
 class MapFullSerializer(MapSerializer):
-    data_uri = serializers.CharField()
+    data_uri = serializers.CharField(allow_blank=True)
     size = serializers.ReadOnlyField()
     top_left_lat = serializers.FloatField()
     top_left_lng = serializers.FloatField()
@@ -247,6 +248,7 @@ class MapFullSerializer(MapSerializer):
         model = Map
         fields = (
             'updated',
+            'is_calibrated',
             'data_uri',
             'public_url',
             'size',
@@ -271,14 +273,14 @@ class CompetitionSerializer(serializers.ModelSerializer):
     )
     pending_competitor_count = serializers.ReadOnlyField()
     map = MapSerializer(read_only=True, source='get_map')
-    publisher = serializers.ReadOnlyField(source='publisher_name')
+    # publisher = serializers.ReadOnlyField(source='publisher_name')
 
     class Meta:
         model = Competition
         fields = (
             'id',
             'updated',
-            'publisher',
+            # 'publisher',
             'name', 'slug',
             'live_delay',
             'latitude', 'longitude', 'zoom',

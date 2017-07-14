@@ -39,7 +39,9 @@ logger = logging.getLogger(__name__)
 
 
 class AuthTokenView(ObtainAuthToken):
-
+    """
+    Create or Delete your authorization token
+    """
     def delete(self, request):
         serializer = AuthTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -52,6 +54,9 @@ class AuthTokenView(ObtainAuthToken):
 
 
 class CompetitorTokenView(APIView):
+    """
+    Create or Delete a competitor token used to update its route
+    """
     throttle_classes = ()
     permission_classes = ()
     parser_classes = (parsers.FormParser, parsers.MultiPartParser,
@@ -102,6 +107,9 @@ def download_map(request, pk):
 
 @api_view(['GET', ])
 def get_time(request):
+    """
+    Return the server unix time
+    """
     now = time.time()
     return Response({
         "time": now,
@@ -142,7 +150,6 @@ class CompetitionListView(generics.ListCreateAPIView):
 
       - id -- Select single **competition** by its id
       - id[] -- Select multiple **competition** by their id
-      - publisher -- Select competition from publisher using its username
       - status[] -- Competition status ("live", "archived", "upcoming")
       - page -- Page number (Default: 1)
       - results_per_page -- Number of result per page (Default:20 Max: 1000)
@@ -156,7 +163,6 @@ class CompetitionListView(generics.ListCreateAPIView):
         qs = super(CompetitionListView, self).get_queryset()
         competition_id = self.request.query_params.get("id")
         competition_ids = self.request.query_params.getlist("id[]")
-        publisher = self.request.query_params.get("publisher")
         states = self.request.query_params.getlist("status[]")
         reverse_order = self.request.query_params.get("reverse_order", "false")
         if competition_id:
@@ -168,8 +174,6 @@ class CompetitionListView(generics.ListCreateAPIView):
             if not self.request.user.is_anonymous():
                 query |= Q(publisher=self.request.user)
             qs = qs.filter(query)
-        if publisher:
-            qs = qs.filter(publisher__username=publisher)
         if states:
             states = set(states)
             current_date = timezone.now()

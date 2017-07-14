@@ -13,50 +13,193 @@
 
 <!-- Select Basic -->
 <div class="form-group">
-  <label class="col-md-4 control-label" for="selectbasic">Map mode</label>
+  <label class="col-md-4 control-label" for="select_display_mode">Map mode</label>
   <div class="col-md-4">
-    <select id="selectbasic" name="selectbasic" class="form-control">
-      <option value="1">Map + Background</option>
-      <option value="2">Map Alone</option>
-      <option value="2">Background Alone</option>
+    <select id="select_display_mode" class="form-control">
+      <option value="map+bck" {% if competition.map.display_mode == 'map+bck' %}selected=""{% endif%}>Map + Open Street Map</option>
+      <option value="map" {% if competition.map.display_mode == 'map' %}selected=""{% endif%}>Map Alone</option>
+      <option value="bck" {% if competition.map.display_mode == 'bck' %}selected=""{% endif%}>Open Street Map Alone</option>
     </select>
   </div>
 </div>
 
 <!-- Text input-->
-<div class="form-group">
-  <label class="col-md-4 control-label" for="textinput">Current Map</label>
+<div id="img_map_div" class="form-group {% if competition.map.display_mode == 'bck' or not competition.map.image %}hidden{% endif %}">
+  <label class="col-md-4 control-label">Current Map</label>
   <div class="col-md-4">
-  <input id="textinput" name="textinput" placeholder="placeholder" class="form-control input-md" type="text">
-  <span class="help-block">help</span>
+  <img id="img_map" src="{% if competition.map.image %}{{competition.map.data_uri}}{% endif %}" width="100%" style="border:1px solid #000"/>
   </div>
 </div>
 
 <!-- Button -->
-<div class="form-group">
-  <label class="col-md-4 control-label" for="singlebutton"></label>
+<div id="img_delete_div" class="form-group {% if competition.map.display_mode == 'bck' or not competition.map.image %}hidden{% endif %}">
+  <label class="col-md-4 control-label" for="img_delete_btn"></label>
   <div class="col-md-4">
-    <button id="singlebutton" name="singlebutton" class="btn btn-primary">Delete</button>
+    <button id="img_delete_btn" class="btn btn-danger">Delete</button>
   </div>
 </div>
 
 <!-- File Button -->
-<div class="form-group">
-  <label class="col-md-4 control-label" for="filebutton">New Map Image</label>
+<div id="new_img_div" class="form-group {% if competition.map.display_mode == 'bck' or competition.map.image %}hidden{% endif %}">
+  <label class="col-md-4 control-label" for="new_img_btn">Map Image</label>
   <div class="col-md-4">
-    <input id="filebutton" name="filebutton" class="input-file" type="file">
+    <input id="new_img_btn" class="input-file" type="file" accept="image/*">
   </div>
 </div>
 
+<div id="msg_ref_div" class="col-md-4 col-md-offset-4 {% if competition.map.display_mode == 'bck' %}hidden{% endif %}">
+    <div id="msg_ref_ok" class="alert alert-success {% if not competition.map.updated or not competition.map.is_calibrated %}hidden{% endif %}" role="alert"><span class=""></span>Your map is geo referenced.</div>
+    <div id="msg_ref_no_ok" class="alert alert-danger {% if not competition.map.updated or not competition.map.image or competition.map.is_calibrated %}hidden{% endif %}" role="alert"><span class=""></span>Your map is not geo referenced.</div>
+</div>
+
 <!-- Button -->
+<div id="calibrate_div" class="form-group {% if competition.map.display_mode == 'bck' or not competition.map.image or competition.map.is_calibrated %}hidden{% endif %}">
+  <div class="col-md-4 col-md-offset-4">
+    <button id="calibrate_btn" class="btn btn-primary">GeoReference Map</button>
+  </div>
+</div>
+
+<input id="id_input" type="hidden" value="{{competition.id}}"/>
+<input id="calibration_string" type="hidden" value="{% if competition.map.is_calibrated %}{{competition.map.calibration_string}}{% endif %}">
+<input id="competition_location" type="hidden" value="{{competition.latitude}} {{competition.longitude}} {{competition.zoom}}">
+
+
 <div class="form-group">
-  <label class="col-md-4 control-label" for="">Calibrate Map</label>
-  <div class="col-md-4">
-    <button id="" name="" class="btn btn-primary">Button</button>
+  <div class="col-md-offset-4 col-md-4">
+    <a class="btn btn-default" href="{% url 'seuranta_edit_competition' competition_id=competition.id %}">Back</a>
+    <button type="submit" class="btn btn-primary">Submit</button>
   </div>
 </div>
 
 </fieldset>
 </form>
 </div>
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script>
+$(function(){
+    var map_changed = false;
+    var accepted_format = {
+        "image/jpeg":true,
+        "image/gif":true,
+        "image/png":true
+    };
+    $('#new_img_btn').val('');
+
+    $('#select_display_mode').on('change', function(){
+        if(this.value == 'bck'){
+            $('#new_img_div').addClass('hidden');
+            $('#img_map_div').addClass('hidden');
+            $('#img_delete_div').addClass('hidden');
+            $('#msg_ref_div').addClass('hidden');
+            $('#calibrate_div').addClass('hidden');
+            $('#img_map').attr('src', '');
+            $('#new_img_btn').val('');
+        }else{
+            if($('#img_map').attr('src')){
+                $('#new_img_div').addClass('hidden');
+                $('#img_map_div').removeClass('hidden');
+                $('#img_delete_div').removeClass('hidden');
+                $('#msg_ref_div').removeClass('hidden');
+                if($('#calibration_string').val()){
+                    $('#calibrate_div').addClass('hidden');
+                    $('#msg_ref_no_ok').addClass('hidden');
+                    $('#msg_ref_ok').removeClass('hidden');
+                }else{
+                    $('#calibrate_div').removeClass('hidden');
+                    $('#msg_ref_no_ok').removeClass('hidden');
+                    $('#msg_ref_ok').addClass('hidden');
+                }
+            }else{
+                $('#new_img_div').removeClass('hidden');
+                $('#img_map_div').addClass('hidden');
+                $('#img_delete_div').addClass('hidden');
+                $('#msg_ref_div').addClass('hidden');
+                $('#calibrate_div').addClass('hidden');
+            }
+        }
+    });
+
+    $('#new_img_btn').on('change', function(e){
+        if(this.files.length>0){
+            var file = this.files[0];
+            if(accepted_format[file.type]){
+                var reader = new FileReader();
+                reader.onload = function (event) {
+                    $('#img_map').attr('src', event.target.result);
+                    $('#img_map_div').removeClass('hidden');
+                    $('#img_delete_div').removeClass('hidden');
+                    $('#msg_ref_div').removeClass('hidden');
+                    $('#msg_ref_no_ok').removeClass('hidden');
+                    $('#msg_ref_ok').addClass('hidden');
+                    $('#calibrate_div').removeClass('hidden');
+                    $('#new_img_div').addClass('hidden');
+                    map_changed = true;
+                }
+                reader.readAsDataURL(file);
+            }else{
+                alert("Invalid image format");
+            }
+        }
+    });
+
+    $('#img_delete_btn').on('click', function(e){
+        e.preventDefault();
+        $('#img_map_div').addClass('hidden');
+        $('#new_img_btn').val('');
+        $('#img_delete_div').addClass('hidden');
+        $('#msg_ref_div').addClass('hidden');
+        $('#msg_ref_ok').addClass('hidden');
+        $('#calibrate_div').addClass('hidden');
+        $('#new_img_div').removeClass('hidden');
+        $('#img_map').attr('src', '');
+        map_changed = true;
+    });
+
+    $('#calibrate_btn').on('click', function(e){
+        e.preventDefault();
+        window.open('{% static 'seuranta/html/map_calibration.html' %}');
+    });
+
+    $('#map_edit_form').on('submit', function(e){
+        e.preventDefault();
+        var id = $('#id_input').val();
+        var display_mode = $('#select_display_mode').val();
+        var data_uri = $('#img_map').attr('src');
+        var calibration_string = $('#calibration_string').val();
+        var data = {
+            display_mode: display_mode,
+        }
+        if(map_changed){
+            data['data_uri'] =  data_uri;
+        }
+        if(calibration_string){
+            var csv = calibration_string.split('|');
+            $.extend(
+                data,
+                {
+                    top_left_lat: csv[0],
+                    top_left_lng: csv[1],
+                    top_right_lat: csv[2],
+                    top_right_lng: csv[3],
+                    bottom_right_lat: csv[4],
+                    bottom_right_lng: csv[5],
+                    bottom_left_lat: csv[6],
+                    bottom_left_lng: csv[7]
+                }
+            );
+        }
+        $.ajax({
+            url: '/api/map/'+id,
+            method: 'PATCH',
+            data: data,
+            dataType: 'JSON'
+        }).success(function(r){
+            window.location = '/edit_map/'+id
+        })
+    });
+});
+</script>
 {% endblock %}

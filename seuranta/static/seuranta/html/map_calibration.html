@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Map calibration tool</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css" />
+<style>
+</style>
+</head>
+<body>
+<div class="container">
+<div id="main">
+<div id="step2">
+    <h2>Calibrate Map:</h2>
+    <div>
+        <form method="post">
+            <label for="id_x">X:</label>
+            <input name="x" id="id_x" type="text">
+
+            <label for="id_y">Y:</label>
+            <input name="y" id="id_y" type="text">
+
+            <label for="id_lat">Latitude:</label>
+            <input name="lat" id="id_lat" type="text">
+
+            <label for="id_lon">Longitude:</label>
+            <input name="lon" id="id_lon" type="text">
+
+            <button type="submit" id="button_next" class="btn btn-primary">Next Point</button>
+        </form>
+    </div>
+    <ul class="nav nav-tabs" id="method_navbar">
+        <li><a href="#">Image</a></li>
+        <li><a href="#">Map</a></li>
+    </ul>
+    <div id="method_view">
+        <div id="raster_canvas"></div>
+        <div id="map_canvas"></div>
+    </div>
+</div>
+<div id="step3">
+</div>
+</div>
+</div>
+</div>
+<script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
+<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.2/raphael-min.js"></script>
+<script>
+Point = (function(){
+    function P(x, y){
+        this.x = x;
+        this.y = y;
+    }
+    return P;
+})();
+LatLon = (function(){
+    var p = "prototype",
+    m = Math,
+    mcos = m.cos,
+    msin = m.sin,
+    mpow = m.pow,
+    msqr = m.sqrt;
+    function L(lat, lon){
+        this.lat = lat;
+        this.lon = lon;
+    }
+    L[p].distance = function(latlon){
+        var C = m.PI/180,
+        dlat = this.lat - latlon.lat,
+        dlon = this.lon - latlon.lon,
+        a = mpow(msin(C*dlat / 2), 2) + mcos(C*this.lat) * mcos(C*latlon.lat) * mpow(msin(C*dlon / 2), 2);
+        return 12756274 * m.atan2(msqr(a), msqr(1 - a));
+    };
+    return L;
+})();
+SpheroidProjection = (function(){
+    var p = "prototype",
+    m = Math,
+    pi = m.PI,
+    _180 = 180.0,
+    rad = 6378137,
+    originShift = pi * rad,
+    pi_180 = pi/_180;
+    function S(){
+    }
+    S[p].LatLonToMeters = function(latlon){
+        return new Point(
+            latlon.lon*rad*pi_180,
+            m.log(m.tan((90+latlon.lat)*pi_180/2))*rad
+        );
+    };
+    S[p].MetersToLatLon = function(mxy){
+        return new LatLon(
+            (2*m.atan(m.exp(mxy.y/rad))-pi/2)/pi_180,
+            mxy.x/rad/pi_180
+        );
+    };
+    S[p].resolution = function(zoom){
+        return (2 * originShift) / (256 * m.pow(2, zoom));
+    };
+    S[p].zoomForPixelSize = function(pixelSize ){
+        for(i=0; i<30; i++){
+            if(pixelSize > resolution(i)){
+                return m.max(i-1,0);
+            }
+        }
+    };
+    S[p].pixelsToMeters = function(px, py, zoom){
+        var res = resolution( zoom ),
+            mx = px * res - originShift,
+            my = py * res - originShift;
+        return new Point(mx, my);
+    };
+    return S;
+})();
+</script>
+<script>
+  var solveAffine = function (r1, s1, t1, r2, s2, t2, r3, s3, t3) {
+    var a = (((t2 - t3) * (s1 - s2)) - ((t1 - t2) * (s2 - s3))) / (((r2 - r3) * (s1 - s2)) - ((r1 - r2) * (s2 - s3))),
+        b = (((t2 - t3) * (r1 - r2)) - ((t1 - t2) * (r2 - r3))) / (((s2 - s3) * (r1 - r2)) - ((s1 - s2) * (r2 - r3))),
+        c = t1 - (r1 * a) - (s1 * b);
+        return [a, b, c];
+  }
+  var deriveCoeffs = function (A, B) {
+    var a0 = B[0], a1 = A[0],
+        b0 = B[1], b1 = A[1],
+        c0 = B[2], c1 = A[2],
+        e = 1e-15, x, y;
+        a0.x-=e;a0.y+=e;b0.x+=e;b0.y-=e;a1.x+=e;a1.y+=e;b1.x-=e;b1.y-=e;
+        x = solveAffine(a0.x, a0.y, a1.x, b0.x, b0.y, b1.x, c0.x, c0.y, c1.x);
+        y = solveAffine(a0.x, a0.y, a1.y, b0.x, b0.y, b1.y, c0.x, c0.y, c1.y);
+        return [x[0], x[1], x[2], y[0], y[1], y[2]];
+  };
+  var threeCalPtsToCorners = function(calibration_string, width, height){
+    var cal_pts_raw = calibration_string.split('|');
+    var cal_pts = [
+     {'lon': parseFloat(cal_pts_raw[0]), 'lat': parseFloat(cal_pts_raw[1]), 'x': parseFloat(cal_pts_raw[2]), 'y': parseFloat(cal_pts_raw[3])},
+     {'lon': parseFloat(cal_pts_raw[4]), 'lat': parseFloat(cal_pts_raw[5]), 'x': parseFloat(cal_pts_raw[6]), 'y': parseFloat(cal_pts_raw[7])},
+     {'lon': parseFloat(cal_pts_raw[8]), 'lat': parseFloat(cal_pts_raw[9]), 'x': parseFloat(cal_pts_raw[10]), 'y': parseFloat(cal_pts_raw[11])}
+    ]
+    var proj = new SpheroidProjection();
+    var cal_pts_meter = [
+      proj.LatLonToMeters(cal_pts[0]),
+      proj.LatLonToMeters(cal_pts[1]),
+      proj.LatLonToMeters(cal_pts[2])
+    ]
+    console.log(cal_pts_raw);
+    console.log(cal_pts_meter);
+    var xyToCoordsCoeffs = deriveCoeffs(cal_pts_meter, cal_pts);
+    console.log(xyToCoordsCoeffs);
+    var mapXYToLatLon = function(xy){
+        var x, y;
+        x = xy.x*xyToCoordsCoeffs[0]+xy.y*xyToCoordsCoeffs[1]+xyToCoordsCoeffs[2];
+        y = xy.x*xyToCoordsCoeffs[3]+xy.y*xyToCoordsCoeffs[4]+xyToCoordsCoeffs[5];
+        return proj.MetersToLatLon(new Point(x, y));
+    };
+    corners = [
+      mapXYToLatLon(new Point(0, 0)),
+      mapXYToLatLon(new Point(width, 0)),
+      mapXYToLatLon(new Point(width, height)),
+      mapXYToLatLon(new Point(0, height))
+    ]
+    console.log(corners);
+    return [corners[0].lat, corners[0].lon, corners[1].lat, corners[1].lon, corners[2].lat, corners[2].lon, corners[3].lat, corners[3].lon].join('|');
+  }
+</script>
+<script>
+$(function(){
+    var refXY = null,
+        refLatLng = null,
+        img_overlay = null,
+        img_width = null,
+        img_height = null,
+        map_marker = null,
+        map_loaded = false,
+        MAP_INDEX = 1,
+        map = null,
+        map_set = null,
+        map_img = null,
+        calibration_points = [],
+        paper = Raphael("raster_canvas", "100%", "500px"),
+        MARKER_ICON = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/images/marker-icon.png";
+
+    $.each($("#method_navbar li"), function(index, item){
+        $(item).on("click", function(e){
+            e.preventDefault();
+            selectMethod(index);
+        });
+    });
+    loadImage();
+    
+    function loadImage(){
+        var img_src = window.opener.document.getElementById('img_map').src;
+        var image = new Image();
+        image.onload = function(){
+            map_set = paper.set();
+            img_width = image.width;
+            img_height = image.height;
+            map_img = paper.image(image.src, 0, 0, image.width, image.height);
+            img_overlay = paper.image(MARKER_ICON, 0, 0, 25, 41);
+            map_set.push(map_img, img_overlay);
+            img_overlay.hide();
+            var foreground = paper.rect(0, 0, paper.width, paper.height).attr({fill:"#FFF", opacity:0})
+            foreground.drag(
+                //onMove
+                function(dx, dy, x, y, event){
+                    var t_x = x-map_set.o_x,
+                        t_y = y-map_set.o_y;
+                    map_set.translate(t_x, t_y);
+                    map_set.o_x = x;
+                    map_set.o_y = y;
+                    event.preventDefault();
+                }
+                ,
+                //onStart
+                function(x, y, event){
+                    map_set.o_x = x;
+                    map_set.o_y = y;
+                    event.preventDefault();
+                }
+                ,
+                //onEnd
+                function(event){
+                    event.preventDefault();
+                }
+            )
+            .click((function(el){
+                return function(event){
+                    var bbox = el.getBBox(),
+                        X = event.layerX-bbox.x,
+                        Y = event.layerY-bbox.y;
+                    setRefXY({"x":X, "y":Y});
+                }
+            })(map_img))
+        };
+        image.src = img_src;
+        selectMethod(0);
+    };
+
+    function selectMethod(x){
+        $("#method_navbar>li").removeClass("active")
+        $("#method_navbar>li:eq("+x+")").addClass("active")
+        $("#method_view>div").addClass("hide")
+        $("#method_view>div:eq("+x+")").removeClass("hide")
+        if(x==MAP_INDEX){
+            loadMap()
+        }
+    }
+    
+    function loadMap(){
+        if(map_loaded){
+            return;
+        }
+        // add the layer to the map, set the view to a given place and zoom
+        $('#map_canvas').css({"height":"500px", "width":"100%"})
+        var loc = window.opener.document.getElementById('competition_location').value.split(' ');
+        map = new L.Map('map_canvas', {
+            center:new L.LatLng(loc[0], loc[1]),
+            zoom:loc[2],
+            attributionControl:true
+        });
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        /*
+        L.tileLayer('https://mt0.google.com/vt/x={x}&y={y}&z={z}', {
+            attribution: '&copy; <a href="http://maps.google.com">Google Maps</a>'
+        }).addTo(map);
+        */
+        map.on('click', function(e) {
+            setRefLatLng(e.latlng);
+        });
+        map_loaded=true
+    }
+    function setRefXY(xy){
+        refXY = xy;
+        img_overlay.attr({"x":xy.x-13, "y":xy.y-41});
+        img_overlay.show()
+        displayRefXYPoint();
+    }
+    function displayRefXYPoint(){
+        $("#id_x").val(refXY.x)
+        $("#id_y").val(refXY.y)
+    }
+    function setRefLatLng(xy){
+        if(map_marker != null){
+            map.removeLayer(map_marker);
+        }
+        map_marker = new L.Marker(xy).addTo(map);
+        refLatLng=xy;
+        displayRefLatLonPoint()
+    }
+    function displayRefLatLonPoint(){
+        $("#id_lat").val(Math.round(parseFloat(refLatLng.lat)*1e5)/1e5)
+        $("#id_lon").val(Math.round(parseFloat(refLatLng.lng)*1e5)/1e5)
+    }
+    $("#button_next").on('click', function(e){
+        if (
+            !isNaN(parseFloat($("#id_lon").val())) &&
+            !isNaN(parseFloat($("#id_lat").val())) &&
+            !isNaN(parseFloat($("#id_x").val())) &&
+            !isNaN(parseFloat($("#id_y").val()))
+        ){
+            calibration_points.push([$("#id_lon").val(), $("#id_lat").val(), $("#id_x").val(), $("#id_y").val()].join('|'));
+            if(calibration_points.length==3){
+                var result = calibration_points.join('|');
+                var result2 = threeCalPtsToCorners(result, img_width, img_height);
+                window.opener.document.getElementById('calibration_string').value = result2;
+                $(window.opener.document.getElementById('msg_ref_no_ok')).addClass('hidden')
+                $(window.opener.document.getElementById('msg_ref_ok')).removeClass('hidden')
+                window.close()
+            }else if(calibration_points.length==2){
+                $("#button_next").text("Finish");
+            }
+            $("#id_x").val("");
+            $("#id_y").val("");
+            $("#id_lat").val("");
+            $("#id_lon").val("");
+            if(map_marker != null){
+                map.removeLayer(map_marker);
+            }
+            if(img_overlay != null){
+                img_overlay.hide();
+            }
+        }else{
+            alert("Incorrect value(s)");
+        }
+        return false;
+    })
+})
+</script>
+<div id="bg"></div>
+</body>
+</html>

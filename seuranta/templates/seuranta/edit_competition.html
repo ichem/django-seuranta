@@ -145,6 +145,7 @@
             $('#tz').val(jstz.determine().name());
         });
         $('#edit_location_btn').on('click', function(e){
+            e.preventDefault();
             window.open('{% static 'seuranta/html/location_selector.html' %}');
         });
         $('#competition_creation_form').on('submit', function(e){

@@ -2,13 +2,17 @@ import datetime
 import base64
 import os
 import re
+
+import math
 from PIL import Image
 from django.contrib.sites.models import Site
+from django.db.models.expressions import RawSQL
 from django.urls import reverse
 from pytz import common_timezones
 from six import BytesIO
 from django.core.files.base import ContentFile
 from django.db import models
+from django.db.backends.signals import connection_created
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.utils.translation import ugettext_lazy as _, ugettext
@@ -75,8 +79,43 @@ def map_upload_path(instance=None, file_name=None):
     return os.path.join(*tmp_path)
 
 
+@receiver(connection_created)
+def extend_sqlite(connection=None, **kwargs):
+    if connection.vendor == "sqlite":
+        # sqlite doesn't natively support math functions, so add them
+        cf = connection.connection.create_function
+        cf('acos', 1, math.acos)
+        cf('cos', 1, math.cos)
+        cf('radians', 1, math.radians)
+        cf('sin', 1, math.sin)
+
+
+class LocationManager(models.Manager):
+    def nearby(self, latitude, longitude, proximity):
+        """
+        Return all object which distance to specified coordinates
+        is less than proximity given in kilometers
+        """
+        # Great circle distance formula
+        gcd = """
+              6371 * acos(
+               cos(radians(%s)) * cos(radians(latitude))
+               * cos(radians(longitude) - radians(%s)) +
+               sin(radians(%s)) * sin(radians(latitude))
+              )
+              """
+        return self.get_queryset()\
+                   .exclude(latitude=None)\
+                   .exclude(longitude=None)\
+                   .annotate(distance=RawSQL(gcd, (latitude,
+                                                   longitude,
+                                                   latitude)))\
+                   .filter(distance__lt=proximity)\
+                   .order_by('distance')
+
 
 class Competition(models.Model):
+    objects = LocationManager()
     id = models.CharField(default=random_key, max_length=12, primary_key=True,
                           editable = False)
     updated = models.DateTimeField(auto_now=True)
@@ -321,10 +360,18 @@ class Map(models.Model):
     @property
     def data_uri(self):
         return "data:%s;base64,%s" % (self.format,
-                                      base64.b64encode(self.image_data))
+                                      base64.b64encode(
+                                          self.image_data
+                                      ).decode("utf-8"))
 
     @data_uri.setter
     def data_uri(self, value):
+        compressed_file = self.image.name + '_l'
+        if not value:
+            if self.image.storage.exists(compressed_file):
+                self.image.storage.delete(compressed_file)
+            self.image.delete(save=True)
+            return
         data_matched = re.match(
             r'^data:image/(?P<format>jpeg|png|gif);base64,'
             r'(?P<data_b64>(?:[A-Za-z0-9+/]{4})*'
@@ -354,7 +401,7 @@ class Map(models.Model):
 
     @property
     def is_calibrated(self):
-        if not self.calibration_string:
+        if not self.calibration_string or not self.image:
             return False
         values = self.calibration_string.split('|')
         if len(values) != 8:
@@ -461,6 +508,11 @@ class Map(models.Model):
     @bottom_left_lng.setter
     def bottom_left_lng(self, value):
         self._set_corner(BOT_L_IDX, LNG_IDX, value)
+
+    def save(self, *args, **kwargs):
+        if not self.image:
+            self.calibration_string = None
+        super(Map, self).save(*args, **kwargs)
 
     class Meta:
         verbose_name = _("map")

@@ -1,5 +1,5 @@
 {
-    "name": "Routechoices",
+    "name": "{{ site.name }}",
     "icons": [
         {
             "src": "/static/android-chrome-192x192.png",
@@ -14,7 +14,7 @@
     ],
     "theme_color": "#ffffff",
     "background_color": "#ffffff",
-    "start_url": "https://www.routechoices.com",
+    "start_url": "http{% if request.is_secure %}s{% endif %}://{{site.domain}}/",
     "display": "standalone",
     "orientation": "portrait"
 }

@@ -13,6 +13,11 @@ urlpatterns = [
         TemplateView.as_view(template_name='seuranta/home.html'),
         name='seuranta_home'
     ),
+    url(
+        r'^manifest.json$',
+        TemplateView.as_view(template_name='seuranta/manifest.html'),
+        name='seuranta_manifest'
+    ),
     url(r'^dashboard/?$',
         views.own_competitions,
         name='seuranta_dashboard'

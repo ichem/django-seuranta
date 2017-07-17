@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render, get_object_or_404
+from django.utils.timezone import now
 
 from seuranta.models import Competition
 
@@ -38,3 +39,26 @@ def edit_map(request, competition_id):
     return render(request,
                   'seuranta/edit_map.html',
                   {'competition': competition})
+
+
+def list_competitions(request):
+    ts = now()
+    qs = Competition.objects.all()
+    live = qs.filter(
+        start_date__lte=ts,
+        end_date__gte=ts,
+        publication_policy="public"
+    ).order_by('start_date')
+    upcoming = qs.filter(
+        start_date__gt=ts,
+        end_date__gt=ts,
+        publication_policy="public"
+    ).order_by('start_date')
+    past = qs.filter(
+        start_date__lt=ts,
+        end_date__lt=ts,
+        publication_policy="public"
+    ).order_by('-end_date')
+    return render(request,
+                  'seuranta/list_competitions.html',
+                  {'live': live, 'upcoming': upcoming, 'past': past})

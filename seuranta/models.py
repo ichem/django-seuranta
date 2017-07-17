@@ -224,7 +224,7 @@ class Competition(models.Model):
 
     def get_absolute_url(self):
         kwargs = {'competition_id': self.id}
-        return reverse("seuranta_race", (), kwargs)
+        return reverse("seuranta_race", args=(), kwargs=kwargs)
 
     absolute_url = property(get_absolute_url)
 

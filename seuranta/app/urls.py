@@ -41,7 +41,7 @@ urlpatterns = [
     ),
     url(
         r'^watch/?$',
-        TemplateView.as_view(template_name='seuranta/watch.html'),
+        views.list_competitions,
         name='seuranta_list_competitions'
     ),
     url(

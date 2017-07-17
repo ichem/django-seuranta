@@ -1,0 +1,68 @@
+{% extends "seuranta/base.html" %}
+{% load i18n %}
+{% load staticfiles %}
+
+{% block content %}
+    <h1><i class="fa fa-trophy"></i> {% trans "Competitions"%}</h1>
+    <h2><i class="fa fa-bolt"></i> {% trans "Live"%}</h2>
+    <ul>
+    {% regroup live by start_date.date as comp_list_by_date %}
+    {% for comp_date in comp_list_by_date %}
+        <li>{{comp_date.grouper}}
+        <ul>
+        {% for comp in comp_date.list %}
+        <li><a href="{{ comp.absolute_url }}">{{comp.name}}</a> - <small>Ends <span class="end_date_utc" data-date="{{comp.end_date|date:"c"}}"></span></small></li>
+        {% endfor %}
+        </ul>
+        </li>
+    {% empty %}
+        <li>{% trans "No live race"%}</li>
+    {% endfor %}
+    </ul>
+    <h2><i class="fa fa-calendar"></i> {% trans "Upcoming"%}</h2>
+    <ul>
+    {% regroup upcoming by start_date.date as comp_list_by_date %}
+    {% for comp_date in comp_list_by_date %}
+        <li>{{comp_date.grouper}}
+        <ul>
+        {% for comp in comp_date.list %}
+        <li><a href="{{ comp.absolute_url }}">{{comp.name}}</a> - <small>Starts at <span class="start_date_utc" data-date="{{comp.start_date|date:"c"}}"></span></small></li>
+        {% endfor %}
+        </ul>
+        </li>
+    {% empty %}
+        <li>{% trans "No race upcoming"%}</li>
+    {% endfor %}
+    </ul>
+    <h2><i class="fa fa-archive"></i> {% trans "Archived"%}</h2>
+    <ul>
+    {% regroup past by start_date.date as comp_list_by_date %}
+    {% for comp_date in comp_list_by_date %}
+        <li>{{comp_date.grouper}}
+        <ul>
+        {% for comp in comp_date.list %}
+        <li><a href="{{ comp.absolute_url }}">{{comp.name}}</a></li>
+        {% endfor %}
+        </ul>
+        </li>
+    {% empty %}
+        <li>{% trans "No race archived"%}</li>
+    {% endfor %}
+    </ul>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{% static 'vendor/jstz/1.0.6/jstz.min.js' %}"></script>
+<script src="{% static 'vendor/moment/2.9.0/moment-with-locales.min.js' %}"></script>
+<script src="{% static 'vendor/moment-timezone/0.3.0/moment-timezone-with-data.js' %}"></script>
+<script>
+    $(function(){
+        var local_tz = jstz.determine().name();
+        $('.end_date_utc').each(function(idx, el){
+            $(el).text(moment($(el).attr('data-date')).fromNow());
+        });
+        $('.start_date_utc').each(function(idx, el){
+            $(el).text(moment($(el).attr('data-date')).tz(local_tz).format('HH:mm'));
+        });
+    });
+</script>
+{% endblock %}

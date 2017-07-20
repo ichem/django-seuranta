@@ -1,0 +1,51 @@
+{% extends "seuranta/base.html" %}
+{% load staticfiles %}
+{% load i18n %}
+{% load tz %}
+
+{% block extra_heads %}
+<link rel="stylesheet" href="{% static 'vendor/bootstrap-datetimepicker/bootstrap-datetimepicker.min.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+<a class="btn btn-primary" href="#" id="create_competitor_btn">Add competitor</a>
+
+<h3>Competitors</h3>
+    <small>Times are given in the competition timezone ({{competition.timezone}})</small>
+{% if competition.competitors %}
+<table class="table table-striped">
+    <tr>
+        <th>Short Name</th>
+        <th>Full Name</th>
+        <th>Start Time</th>
+        <th>Is Approved?</th>
+        <th>Access Code</th>
+        <th></th>
+    </tr>
+{% endif %}
+{% for c in competition.competitors.all %}
+<tr data-competitor-id="{{c.id}}">
+    <td>{{c.short_name}}</td>
+    <td>{{c.name}}</td>
+    <td>{{c.start_time|timezone:competition.timezone|date:"Y-m-d H:i:s"}}</td>
+    <td>{{c.approved}}</td>
+    <td>{{c.access_code}}</td>
+    <td><a class="btn btn-primary" href="#" class="edit_competitor_btn">Edit</a>
+        <a class="btn btn-danger" href="#" class="delete_competitor_btn">Delete</a></td>
+{% empty %}<p>You haven't created any competitions, yet</p>
+{% endfor %}
+{% if competition.competitors %}
+</table>
+{% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'vendor/moment/2.9.0/moment-with-locales.min.js' %}"></script>
+<script src="{% static 'vendor/moment-timezone/0.3.0/moment-timezone-with-data.js' %}"></script>
+<script src="{% static 'vendor/bootstrap-datetimepicker/bootstrap-datetimepicker.min.js' %}"></script>
+<script type="text/javascript">
+
+</script>
+{% endblock %}

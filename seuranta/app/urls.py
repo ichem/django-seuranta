@@ -34,6 +34,10 @@ urlpatterns = [
         views.edit_map,
         name='seuranta_edit_map'
     ),
+    url(r'^edit_competitors/(?P<competition_id>[-0-9a-zA-Z_]{11})/?$',
+        views.edit_competitors,
+        name='seuranta_edit_competitors'
+    ),
     url(
         r'^tracker/?$',
         TemplateView.as_view(template_name='seuranta/tracker.html'),

@@ -41,6 +41,16 @@ def edit_map(request, competition_id):
                   {'competition': competition})
 
 
+@login_required
+def edit_competitors(request, competition_id):
+    competition = get_object_or_404(Competition, id=competition_id)
+    if competition.publisher != request.user:
+        raise PermissionDenied
+    return render(request,
+                  'seuranta/edit_competitors.html',
+                  {'competition': competition})
+
+
 def list_competitions(request):
     ts = now()
     qs = Competition.objects.all()

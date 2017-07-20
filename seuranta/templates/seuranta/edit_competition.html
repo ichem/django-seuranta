@@ -104,13 +104,13 @@
 
 <div class="form-group">
 <div class="col-md-offset-4 col-md-4">
- <a href="#" class="btn btn-primary">Manage Competitors</a>
+ <a href="{% url 'seuranta_edit_competitors' competition_id=competition.id %}" class="btn btn-primary">Manage Competitors</a>
 </div>
 </div>
 
 <div class="form-group">
 <div class="col-md-offset-4 col-md-4">
- <a href="#" class="btn btn-danger">Delete Competition</a>
+ <a href="#" id="delete_competition_btn" class="btn btn-danger">Delete Competition</a>
 </div>
 </div>
 
@@ -148,6 +148,16 @@
             e.preventDefault();
             window.open('{% static 'seuranta/html/location_selector.html' %}');
         });
+        $('#delete_competition_btn').on('click', function(e){
+            e.preventDefault();
+            var id = $('#id_input').val();
+            $.ajax({
+                url: '/api/competition/'+id,
+                method: 'DELETE'
+            }).success(function(){
+                window.location = '/dashboard/';
+            })
+        })
         $('#competition_creation_form').on('submit', function(e){
             e.preventDefault();
             var id = $('#id_input').val();
@@ -178,7 +188,7 @@
                 },
                 dataType: 'JSON'
             }).success(function(r){
-                window.location = '/dashboard/'
+                window.location = '/dashboard/';
             })
         });
     });

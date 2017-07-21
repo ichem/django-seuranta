@@ -168,7 +168,9 @@ class CompetitorSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         start_time = data.get('start_time')
-        competition = data.get('competition', self.instance.competition)
+        competition = data.get('competition')
+        if not competition and self.instance:
+            competition = self.instance.competition
         if start_time and \
                 (start_time < competition.start_date or
                  start_time > competition.end_date):

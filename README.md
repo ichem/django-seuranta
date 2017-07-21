@@ -10,104 +10,20 @@ Live gps tracking server for orienteering events.
 Requirement
 -----------
 
-Python version 2.7
+Python version 3.4
 
 
 Installation
 ------------
 
-run ```./install.sh``` It will ask for a username and a password for a super user. that you can use to login in the admin.
-once installed you can run the server with ```python manage.py runserver``` admin is available at ```http://127.0.0.1:8000/admin/``` see next paragraph for API endpoints
+First create a ```local_settings.py``` file in ```/seuranta/app/``` folder to indicates your db and smtp settings, secret key and allowed host according to standard django settings. See django documentation for more detials.
 
+You can then run ```./install.sh``` It will ask for a username and a password for a super user that you can use to login in the admin.
 
-API Endpoints
--------------
+Once installed you can run the server with ```python manage.py runserver``` admin is available at ```http://127.0.0.1:8000/admin/```
 
-Note: API is browsable and endpoints are documented on their own page.
-  
-  * /api/time
+In the admin configure the site at ```http://127.0.0.1:8000/admin/sites/site/``` and your facebook app detail in ```http://127.0.0.1:8000/admin/socialaccount/socialapp/```
 
-    GET -- Return Server Unix Time
+It is recomended to run the application as uwsgi app behind a nginx server. Search for ```django with uwsgi and nginx``` for tutorials.
 
-  * /api/auth_token/obtain
-   
-    POST -- Return user authorization token
-
-    parameters:
-      - username
-      - password
-
-
-  * /api/auth_token/destroy
-  
-    POST -- Void user authorization token
-
-    parameters
-    - username
-    - password
-
-
-  * /api/competitor_token/obtain
-  
-    POST -- Return competitor publishing token
-  
-    parameters:
-    - competitor
-    - access_code
-
-
-  * /api/competitor_token/destroy
-   
-    POST -- Void competitor publishing token
-    
-    parameters:
-    - competitor
-    - access_code
-
-
-  * /api/competition
-   
-    GET -- List competitions
-    
-
-    POST -- Create a competition (requires an user account)
-
-  * /api/competition/*competition_id*
-   
-    GET -- Retrieve a competition
-
-    PUT/PATCH -- Update competition data (available to competition publisher)
-
-    DELETE -- Delete a competition (available to competition publisher)
-
-  * /api/map/*competition_id*[.jpg]
-
-    GET -- Retrieve info about competition Map
-
-    PUT/PATCH -- Update info about competition map (available to competition publisher)
-
-  * /api/competitor
-
-    GET -- List competitors
- 
-    POST -- Create a competitor (Success depends on competition signup policy)
-
-  * /api/competitor/*competitor_id*
-
-    GET -- Retrieve competitor info
-
-    PUT/PATCH -- Update competitor info (may require a competitor publishing token)
-
-    DELETE -- Delete a competitor (competition publisher only)
-
-  * /api/route/
-
-    GET -- Retrieve posted route data (special encoding)
-
-    POST -- Post route data (special encoding)
-
-  * /api/route/*competitor_id*
-
-    GET -- Retrieve a the full route for a competitor
-
-    PUT/PATCH -- Update the full route for a competitor
+To use the web tracker and use the user location you will need to run the application with HTTPS. You can get a free certificate with lets encrypt or run behing a proxy such as Cloudflare.

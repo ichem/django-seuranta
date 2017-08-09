@@ -27,6 +27,8 @@ INSTALLED_APPS = (
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.facebook',
+
+    'raven.contrib.django.raven_compat',
 )
 
 MIDDLEWARE_CLASSES = (

@@ -62,7 +62,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('key', models.CharField(primary_key=True, max_length=40, serialize=False)),
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('competitor', models.OneToOneField(related_name='set_token', to='seuranta.Competitor')),
+                ('competitor', models.OneToOneField(related_name='set_token', to='seuranta.Competitor', on_delete=models.CASCADE)),
             ],
             options={
                 'verbose_name_plural': 'competitor publishing tokens',
@@ -82,7 +82,7 @@ class Migration(migrations.Migration):
                 ('_east', models.FloatField(validators=[seuranta.utils.validators.validate_longitude], editable=False)),
                 ('_west', models.FloatField(validators=[seuranta.utils.validators.validate_longitude], editable=False)),
                 ('_count', models.PositiveIntegerField(editable=False)),
-                ('competitor', models.ForeignKey(verbose_name='route', related_name='defined_routes', to='seuranta.Competitor')),
+                ('competitor', models.ForeignKey(verbose_name='route', related_name='defined_routes', to='seuranta.Competitor', on_delete=models.CASCADE)),
             ],
             options={
                 'ordering': ['-_start_datetime', 'competitor'],
@@ -93,7 +93,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Map',
             fields=[
-                ('competition', models.OneToOneField(related_name='defined_map', serialize=False, primary_key=True, to='seuranta.Competition')),
+                ('competition', models.OneToOneField(related_name='defined_map', serialize=False, primary_key=True, to='seuranta.Competition', on_delete=models.CASCADE)),
                 ('updated', models.DateTimeField(auto_now=True)),
                 ('image', models.ImageField(width_field='width', height_field='height', verbose_name='image', null=True, blank=True, storage=seuranta.storage.OverwriteImageStorage(), upload_to=seuranta.models.map_upload_path)),
                 ('width', models.PositiveIntegerField(blank=True, verbose_name='width', null=True, editable=False)),
@@ -110,11 +110,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='competitor',
             name='competition',
-            field=models.ForeignKey(verbose_name='competition', related_name='competitors', to='seuranta.Competition'),
+            field=models.ForeignKey(verbose_name='competition', related_name='competitors', to='seuranta.Competition', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='competition',
             name='publisher',
-            field=models.ForeignKey(verbose_name='publisher', related_name='competitions', editable=False, to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(verbose_name='publisher', related_name='competitions', editable=False, to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE),
         ),
     ]

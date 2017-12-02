@@ -57,7 +57,7 @@ urlpatterns = [
     url(r'^api/', include('seuranta.api.urls')),
     url(r'^docs/', include_docs_urls(title='API Documentation')),
     # Django admin specifics
-    url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin/', admin.site.urls),
     url(
         r'^media/seuranta/maps/(?P<publisher>[^/]+)/'
         r'(?P<hash>[-0-9a-zA-Z_])/(?P<hash2>[-0-9a-zA-Z_])/'

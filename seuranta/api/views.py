@@ -124,7 +124,7 @@ class CompetitionPermission(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         if request.method == 'POST':
-            return not request.user.is_anonymous()
+            return not request.user.is_anonymous
         return (obj.publisher == request.user) or request.user.is_superuser
 
 
@@ -171,7 +171,7 @@ class CompetitionListView(generics.ListCreateAPIView):
             qs = qs.filter(pk__in=competition_ids)
         else:
             query = Q(publication_policy='public')
-            if not self.request.user.is_anonymous():
+            if not self.request.user.is_anonymous:
                 query |= Q(publisher=self.request.user)
             qs = qs.filter(query)
         if states:
@@ -198,7 +198,7 @@ class CompetitionListView(generics.ListCreateAPIView):
         return qs
 
     def perform_create(self, serializer):
-        if self.request.user.is_anonymous():
+        if self.request.user.is_anonymous:
             self.permission_denied(self.request)
         serializer.save(publisher=self.request.user)
         super(CompetitionListView, self).perform_create(serializer)
@@ -281,7 +281,7 @@ class CompetitorListView(generics.ListCreateAPIView):
             return AdminCompetitorSerializer
         elif competition_id:
             open_competitions = open_competitions.filter(pk=competition_id)
-        elif self.request and self.request.user.is_anonymous():
+        elif self.request and self.request.user.is_anonymous:
             open_competitions = open_competitions.filter(
                 publication_policy='public'
             ).exclude(signup_policy='closed')
@@ -302,10 +302,10 @@ class CompetitorListView(generics.ListCreateAPIView):
                 queryset=open_competitions
             )
 
-        if (self.request and self.request.user.is_anonymous())\
+        if (self.request and self.request.user.is_anonymous)\
                 or not competition_id:
             return CustomCompetitorSerializer
-        if self.request and not self.request.user.is_anonymous():
+        if self.request and not self.request.user.is_anonymous:
             is_publisher = Competition.objects.filter(
                 publisher=self.request.user,
                 id=competition_id
@@ -331,7 +331,7 @@ class CompetitorListView(generics.ListCreateAPIView):
         if not (competition_ids or competition_id or competitor_id or
                 competitor_ids):
             query = Q(publication_policy='public')
-            if not self.request.user.is_anonymous():
+            if not self.request.user.is_anonymous:
                 query |= Q(publisher=self.request.user)
             competition_ids = Competition.objects.filter(
                 query
@@ -431,7 +431,7 @@ class RouteListView(generics.ListCreateAPIView):
         if self.request and self.request.method == 'POST':
             if self.request.user.is_superuser:
                 return PostRouteSerializer
-            if self.request.user.is_anonymous():
+            if self.request.user.is_anonymous:
                 possible_competition_ids = Competition.objects.filter(
                     publication_policy='public'
                 )
@@ -473,7 +473,7 @@ class RouteListView(generics.ListCreateAPIView):
         if not (competition_ids or competition_id or competitor_id or
                 competitor_ids):
             query = Q(publication_policy='public')
-            if not self.request.user.is_anonymous():
+            if not self.request.user.is_anonymous:
                 query |= Q(publisher=self.request.user)
             competition_ids = Competition.objects.filter(
                 query

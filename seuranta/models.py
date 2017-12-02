@@ -136,7 +136,8 @@ class Competition(models.Model):
         settings.AUTH_USER_MODEL,
         verbose_name=_("publisher"),
         related_name="competitions",
-        editable=False
+        editable=False,
+        on_delete=models.CASCADE
     )
     name = models.CharField(
         _('name'),
@@ -281,7 +282,8 @@ class Competition(models.Model):
 class Map(models.Model):
     competition = models.OneToOneField(Competition,
                                        related_name='defined_map',
-                                       primary_key=True)
+                                       primary_key=True,
+                                       on_delete=models.CASCADE)
     updated = models.DateTimeField(auto_now=True)
     image = models.ImageField(
         _("image"),
@@ -537,6 +539,7 @@ class Competitor(models.Model):
         Competition,
         verbose_name=_('competition'),
         related_name="competitors",
+        on_delete=models.CASCADE
     )
     name = models.CharField(
         _('name'),
@@ -657,7 +660,9 @@ class Competitor(models.Model):
 
 class CompetitorToken(models.Model):
     key = models.CharField(max_length=40, primary_key=True)
-    competitor = models.OneToOneField(Competitor, related_name='set_token')
+    competitor = models.OneToOneField(Competitor,
+                                      related_name='set_token',
+                                      on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
@@ -681,7 +686,8 @@ class Route(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     competitor = models.ForeignKey(Competitor,
                                    verbose_name=_("route"),
-                                   related_name="defined_routes", )
+                                   related_name="defined_routes",
+                                   on_delete=models.CASCADE)
     encoded_data = models.TextField(_("encoded route points"))
     _start_datetime = models.DateTimeField(editable=False)
     _finish_datetime = models.DateTimeField(editable=False)

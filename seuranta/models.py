@@ -255,7 +255,7 @@ class Competition(models.Model):
         qs = Competition.objects.all()
         if self.pk is not None:
             qs = qs.exclude(pk=self.pk)
-        while qs.filter(slug=desired_slug)[:1].count() > 0:
+        while qs.filter(slug=desired_slug)[:1].exists():
             ending = "-%d" % counter
             desired_slug = "%s%s" % (orig_slug[:21 - len(ending)], ending)
             counter += 1
